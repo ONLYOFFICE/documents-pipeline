@@ -1,4 +1,4 @@
-def checkoutRepo(String repo, String branch = 'master') {
+def checkoutRepo(String repo, String branch = 'master', String company = 'ONLYOFFICE') {
     checkout([
             $class: 'GitSCM',
             branches: [[
@@ -13,7 +13,7 @@ def checkoutRepo(String repo, String branch = 'master') {
             ],
             submoduleCfg: [],
             userRemoteConfigs: [[
-                    url: 'git@github.com:ONLYOFFICE/' + repo + '.git'
+                    url: "git@github.com:${company}/${repo}.git"
                 ]
             ]
         ]
