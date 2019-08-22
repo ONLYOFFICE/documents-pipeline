@@ -27,7 +27,9 @@ def getReposList()
     def repos = []
     repos.add('build_tools')
     repos.add('core')
+    repos.add('core-ext')
     repos.add('desktop-apps')
+    repos.add('desktop-apps-ext')
     repos.add('desktop-sdk')
     repos.add('dictionaries')
     repos.add('document-builder-package')
@@ -41,7 +43,12 @@ def getReposList()
 def checkoutRepos(String branch = 'master')
 {    
     for (repo in getReposList()) {
-        checkoutRepo(repo, branch)
+        if( repo != 'web-apps-pro' ) {
+            checkoutRepo(repo, branch)
+        }
+        else {
+            checkoutRepo(repo, branch, 'ASC-OFFICE')
+        }
     }
 
     return this
@@ -119,9 +126,10 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
             --deploy\
             --qt-dir \"C:\\Qt\\Qt5.9.8\\5.9.8\"\
             --qt-dir-xp \"C:\\Qt\\Qt5.6.3\\5.6.3\" &&\
+            cd ..\\core-ext\\build_tools &&\
             call make.bat"
 
-    bat "cd desktop-apps &&\
+    bat "cd desktop-apps-ext &&\
             mingw32-make clean-package &&\
             mingw32-make package win-linux/package/windows/index.html"
 

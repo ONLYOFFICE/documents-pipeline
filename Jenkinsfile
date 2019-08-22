@@ -40,10 +40,10 @@ pipeline {
       steps {
         script {
           def branchName = env.BRANCH_NAME
-          def productVersion = "5.3.99"
-          def pV = branchName =~ /^(release|hotfix)\\/v(.*)$/
+          def productVersion = "1.3.99"
+          def pV = branchName =~ /^(release|hotfix)\\/v[\d]+.(.*)$/
           if(pV.find()) {
-            productVersion = pV.group(2)
+            productVersion = "1." + pV.group(2)
           }
           env.PRODUCT_VERSION = productVersion
         }
@@ -66,7 +66,7 @@ pipeline {
           agent {
             node {
               label 'win_64'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64"
+              customWorkspace "C:\\r7\\${env.BRANCH_NAME}\\win_64"
             }
           }
           steps {
@@ -82,7 +82,7 @@ pipeline {
           agent {
             node {
               label 'win_32'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32"
+              customWorkspace "C:\\r7\\${env.BRANCH_NAME}\\win_32"
             }
           }
           steps {
@@ -98,7 +98,7 @@ pipeline {
           agent {
             node {
               label 'win_64_xp'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64_xp"
+              customWorkspace "C:\\r7\\${env.BRANCH_NAME}\\win_64_xp"
             }
           }
           environment {
@@ -117,7 +117,7 @@ pipeline {
           agent {
             node {
               label 'win_32_xp'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32_xp"
+              customWorkspace "C:\\r7\\${env.BRANCH_NAME}\\win_32_xp"
             }
           }
           environment {
