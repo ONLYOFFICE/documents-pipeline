@@ -131,7 +131,7 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
 
     bat "cd desktop-apps-ext &&\
             mingw32-make clean-package &&\
-            mingw32-make package win-linux/package/windows/index.html"
+            mingw32-make deploy"
 
     publishHTML([
             allowMissing: false,
