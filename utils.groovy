@@ -53,7 +53,7 @@ def tagRepos(String tag)
         sh "cd ${repo} && \
             git tag -l | xargs git tag -d && \
             git fetch --tags && \
-            git tag v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER} && \
+            git tag ${tag} && \
 	        git push origin --tags"
     }
 
