@@ -75,6 +75,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             --platform ${platform}\
             --update false\
             --branch ${branch}\
+            --branding r7\
             --clean ${clean.toString()}\
             --deploy\
             --qt-dir \$QT_PATH &&\
@@ -122,6 +123,7 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
             --platform ${platform}\
             --update false\
             --branch ${branch}\
+            --branding r7\
             --clean ${clean.toString()}\
             --deploy\
             --qt-dir \"C:\\Qt\\Qt5.9.8\\5.9.8\"\
