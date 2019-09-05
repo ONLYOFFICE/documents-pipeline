@@ -81,7 +81,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             --qt-dir \$QT_PATH &&\
     	cd ../core-ext/build_tools &&\
         ./make"
-    sh "cd desktop-apps/win-linux/package/linux &&\
+    sh "cd desktop-apps-ext/win-linux/package/linux &&\
          make clean &&\
          make deploy"
     sh "cd document-builder-package &&\
