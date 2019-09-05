@@ -84,10 +84,11 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
     sh "cd desktop-apps-ext/win-linux/package/linux &&\
          make clean &&\
          make deploy"
+    /*
     sh "cd document-builder-package &&\
          make clean &&\
          make deploy"
-
+    */
     publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
@@ -99,7 +100,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             reportTitles: ''
         ]
     )
-
+    /*
     publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
@@ -111,6 +112,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             reportTitles: ''
         ]
     )
+    */
     return this
 }
 
@@ -147,7 +149,7 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
             reportTitles: ''
         ]
     )
-
+    /*
     if ( !platform.endsWith('_xp') ) {
         bat "cd document-builder-package &&\
             mingw32-make clean &&\
@@ -165,4 +167,5 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
             ]
         )
     }
+    */
 }
