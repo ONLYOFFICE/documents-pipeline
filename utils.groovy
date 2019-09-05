@@ -79,6 +79,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             --clean ${clean.toString()}\
             --deploy true\
             --qt-dir \$QT_PATH &&\
+    	cd core-ext/build_tools &&\
         ./make"
     sh "cd desktop-apps/win-linux/package/linux &&\
          make clean &&\
