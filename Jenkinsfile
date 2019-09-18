@@ -102,7 +102,7 @@ pipeline {
           agent {
             node {
               label 'win_64_xp'
-              customWorkspace "C:\\r7\\${env.BRANCH_NAME}\\win_64_xp"
+              customWorkspace "C:\\x8\\${env.BRANCH_NAME}"
             }
           }
           environment {
@@ -121,7 +121,7 @@ pipeline {
           agent {
             node {
               label 'win_32_xp'
-              customWorkspace "C:\\r7\\${env.BRANCH_NAME}\\win_32_xp"
+              customWorkspace "C:\\x4\\${env.BRANCH_NAME}"
             }
           }
           environment {
