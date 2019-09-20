@@ -33,7 +33,7 @@ pipeline {
     )
   }
   triggers {
-    cron('@midnight')
+    cron('H 20 * * 1-5')
   }
   stages {
     stage('Prepare') {
