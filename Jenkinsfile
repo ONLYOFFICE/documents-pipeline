@@ -40,7 +40,7 @@ pipeline {
       steps {
         script {
           def branchName = env.BRANCH_NAME
-          def productVersion = "1.3.99"
+          def productVersion = "1.4.99"
           def pV = branchName =~ /^(release|hotfix)\\/v[\d]+.(.*)$/
           if(pV.find()) {
             productVersion = "1." + pV.group(2)
