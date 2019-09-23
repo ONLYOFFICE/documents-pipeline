@@ -17,17 +17,17 @@ pipeline {
       name: 'win_64'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: '',
       name: 'win_32'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: '',
       name: 'win_64_xp'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: '',
       name: 'win_32_xp'
     )
