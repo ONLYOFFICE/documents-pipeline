@@ -35,7 +35,7 @@ def getReposList()
     repos.add('r7')
     repos.add('sdkjs')
     repos.add('sdkjs-plugins')
-    repos.add('web-apps-pro')
+    repos.add('web-apps')
     repos.add('DocumentBuilder')
     return repos
 }
