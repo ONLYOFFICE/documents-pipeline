@@ -63,7 +63,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
 {
     checkoutRepos(branch)
     sh "cd build_tools && \
-        ./configure \
+        ./configure.py \
             --module \"desktop builder\"\
             --platform ${platform}\
             --update false\
@@ -71,7 +71,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             --clean ${clean.toString()}\
             --deploy true\
             --qt-dir \$QT_PATH &&\
-        ./make"
+        ./make.py"
     sh "cd desktop-apps/win-linux/package/linux &&\
          make clean &&\
          make deploy"
@@ -110,7 +110,7 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
     checkoutRepos(branch)
 
     bat "cd build_tools &&\
-            call configure.bat\
+            call python configure.py\
             --module \"desktop builder tests updmodule\"\
             --platform ${platform}\
             --update false\
@@ -119,7 +119,7 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
             --deploy true\
             --qt-dir \"C:\\Qt\\Qt5.9.8\\5.9.8\"\
             --qt-dir-xp \"C:\\Qt\\Qt5.6.3\\5.6.3\" &&\
-            call make.bat"
+            call python make.py"
 
     bat "cd desktop-apps &&\
             mingw32-make clean-package &&\
