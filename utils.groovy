@@ -69,7 +69,6 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             --update false\
             --branch ${branch}\
             --clean ${clean.toString()}\
-            --deploy true\
             --qt-dir \$QT_PATH &&\
         ./make.py"
     sh "cd desktop-apps/win-linux/package/linux &&\
@@ -116,7 +115,6 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
             --update false\
             --branch ${branch}\
             --clean ${clean.toString()}\
-            --deploy true\
             --qt-dir \"C:\\Qt\\Qt5.9.8\\5.9.8\"\
             --qt-dir-xp \"C:\\Qt\\Qt5.6.3\\5.6.3\" &&\
             call python make.py"
