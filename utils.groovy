@@ -105,8 +105,8 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
     checkoutRepo('doc-builder-testing')
     sh "docker rmi doc-builder-testing || true"
     sh "cd doc-builder-testing &&\
-        docker build --name doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
-        docker run doc-builder-testing"
+        docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
+        docker run --rm doc-builder-testing"
 
     return this
 }
