@@ -70,23 +70,23 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
 {
     checkoutRepos(branch)
     sh "cd build_tools && \
-        ./configure \
-            --module \"desktop builder\"\
+        ./configure.py \
+            --module \"desktop builder core\"\
             --platform ${platform}\
             --update false\
             --branch ${branch}\
             --branding r7\
             --clean ${clean.toString()}\
-            --deploy true\
             --qt-dir \$QT_PATH &&\
-        ./make"
-    sh "cd desktop-apps-ext/win-linux/package/linux &&\
+        ./make.py"
+    sh "cd desktop-apps/win-linux/package/linux &&\
          make clean &&\
          make deploy"
     /*
     sh "cd document-builder-package &&\
-         make clean &&\
          make deploy"
+    sh "cd core && \
+        make deploy"
     */
     publishHTML([
             allowMissing: false,
@@ -111,6 +111,12 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             reportTitles: ''
         ]
     )
+
+    checkoutRepo('doc-builder-testing')
+    sh "docker rmi doc-builder-testing || true"
+    sh "cd doc-builder-testing &&\
+        docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
+        docker run --rm doc-builder-testing parallel_rspec spec -n 2"
     */
     return this
 }
@@ -120,17 +126,16 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
     checkoutRepos(branch)
 
     bat "cd build_tools &&\
-            call configure.bat\
-            --module \"desktop builder tests updmodule\"\
+            call python configure.py\
+            --module \"desktop builder core tests updmodule\"\
             --platform ${platform}\
             --update false\
             --branch ${branch}\
             --branding r7\
             --clean ${clean.toString()}\
-            --deploy true\
             --qt-dir \"C:\\Qt\\Qt5.9.8\\5.9.8\"\
             --qt-dir-xp \"C:\\Qt\\Qt5.6.3\\5.6.3\" &&\
-            call make.bat"
+            call python make.py"
 
     bat "cd desktop-apps-ext &&\
             mingw32-make clean-package &&\
@@ -151,6 +156,24 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
     if ( !platform.endsWith('_xp') ) {
         bat "cd document-builder-package &&\
             mingw32-make clean &&\
+            mingw32-make deploy"
+
+        String winSdkVersion = '10.0.14393.0'
+        String platformType
+        
+        switch (platform) {
+            case 'win_64':
+                platformType = 'x64'
+                break
+            case 'win_32':
+                platformType = 'x86'
+                break
+            default:
+                platformType = ''
+        }
+
+        bat "cd core && \
+            call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" ${platformType} ${winSdkVersion} && \
             mingw32-make deploy"
 
         publishHTML([
