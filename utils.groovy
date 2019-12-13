@@ -72,6 +72,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
     sh "cd build_tools && \
         ./configure.py \
             --module \"desktop builder core\"\
+            --sdkjs-addon comparison\
             --platform ${platform}\
             --update false\
             --branch ${branch}\
@@ -129,6 +130,7 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
             call python configure.py\
             --module \"desktop builder core tests updmodule\"\
             --platform ${platform}\
+            --sdkjs-addon comparison\
             --update false\
             --branch ${branch}\
             --branding r7\
