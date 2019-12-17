@@ -104,6 +104,11 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
         ]
     )
 
+    return this
+}
+
+def linuxTest()
+{
     checkoutRepo('doc-builder-testing')
     sh "docker rmi doc-builder-testing || true"
     sh "cd doc-builder-testing &&\
