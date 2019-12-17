@@ -31,6 +31,11 @@ pipeline {
       description: '',
       name: 'win_32_xp'
     )
+    booleanParam (
+      defaultValue: true,
+      description: '',
+      name: 'test'
+    )
   }
   triggers {
     cron('H 20 * * *')
@@ -58,6 +63,9 @@ pipeline {
               def utils = load "utils.groovy"
               if ( params.linux_64 ) {
                 utils.linuxBuild(env.BRANCH_NAME, "linux_64", params.clean)
+              }
+              if ( params.test ) {
+                utils.linuxTest()
               }
             }
           }
