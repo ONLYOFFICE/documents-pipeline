@@ -31,6 +31,8 @@ def getReposList()
     repos.add('desktop-sdk')
     repos.add('dictionaries')
     repos.add('document-builder-package')
+    repos.add('document-server-integration')
+    repos.add('document-server-package')
     repos.add('sdkjs')
     repos.add('sdkjs-plugins')
     repos.add('web-apps')
@@ -64,7 +66,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
     checkoutRepos(branch)
     sh "cd build_tools && \
         ./configure.py \
-            --module \"desktop builder core\"\
+            --module \"desktop builder core server\"\
             --platform ${platform}\
             --update false\
             --branch ${branch}\
@@ -77,6 +79,9 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
     sh "cd document-builder-package &&\
          make clean &&\
          make deploy"
+    sh "cd document-server-package && \
+        make clean && \
+        make"
     sh "cd core && \
         make deploy"
 
@@ -124,7 +129,7 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
 
     bat "cd build_tools &&\
             call python configure.py\
-            --module \"desktop builder core tests updmodule\"\
+            --module \"desktop builder core tests updmodule server\"\
             --platform ${platform}\
             --update false\
             --branch ${branch}\
@@ -153,6 +158,10 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
         bat "cd document-builder-package &&\
             mingw32-make clean &&\
             mingw32-make deploy"
+
+        bat "cd document-server-package && \
+            mingw32-make clean && \
+            mingw32-make"
 
         String winSdkVersion = '10.0.14393.0'
         String platformType
