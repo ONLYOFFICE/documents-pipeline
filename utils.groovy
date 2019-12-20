@@ -83,9 +83,10 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
     sh "cd desktop-apps/win-linux/package/linux &&\
          make clean &&\
          make deploy"
-    /*
     sh "cd document-builder-package &&\
-         make deploy"
+        make clean &&\
+        make deploy"
+    /*
     sh "cd core && \
         make deploy"
     */
@@ -100,7 +101,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             reportTitles: ''
         ]
     )
-    /*
+
     publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
@@ -112,7 +113,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             reportTitles: ''
         ]
     )
-
+    /*
     checkoutRepo('doc-builder-testing')
     sh "docker rmi doc-builder-testing || true"
     sh "cd doc-builder-testing &&\
@@ -154,12 +155,13 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
             reportTitles: ''
         ]
     )
-    /*
+
     if ( !platform.endsWith('_xp') ) {
         bat "cd document-builder-package &&\
             mingw32-make clean &&\
             mingw32-make deploy"
 
+        /*
         String winSdkVersion = '10.0.14393.0'
         String platformType
         
@@ -177,6 +179,7 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
         bat "cd core && \
             call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" ${platformType} ${winSdkVersion} && \
             mingw32-make deploy"
+        */
 
         publishHTML([
                 allowMissing: true,
@@ -190,5 +193,4 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
             ]
         )
     }
-    */
 }

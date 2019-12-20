@@ -48,8 +48,11 @@ pipeline {
           env.PRODUCT_VERSION = productVersion
         }
         script {
-          env.PUBLISHER_NAME = "AO \"NOVYE KOMMUNIKACIONNYE TEHNOLOGII\""
           env.COMPANY_NAME = "R7-Office"
+          env.PUBLISHER_NAME = "AO \"NOVYE KOMMUNIKACIONNYE TEHNOLOGII\""
+          env.PUBLISHER_URL = "http://r7-office.ru"
+          env.SUPPORT_URL = "http://support.r7-office.ru"
+          env.SUPPORT_MAIL = "support@r7-office.ru"
         }
       }
     }
