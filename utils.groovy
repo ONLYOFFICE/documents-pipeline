@@ -162,7 +162,7 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
 
         bat "cd document-server-package && \
             mingw32-make clean && \
-            mingw32-make"
+            mingw32-make exe"
 
         String winSdkVersion = '10.0.14393.0'
         String platformType
