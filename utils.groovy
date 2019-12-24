@@ -125,7 +125,7 @@ def linuxBuildBuilder(String platform = 'native')
     return this
 }
 
-def linuxBuildServer(String productName='DocumentServer')
+def linuxBuildServer(String productName='documentserver')
 {
     sh "cd document-server-package && \
         export PRODUCT_NAME=${productName} && \

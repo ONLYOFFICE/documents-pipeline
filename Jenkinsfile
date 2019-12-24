@@ -114,11 +114,11 @@ pipeline {
                 if ( params.documentserver_ie || params.documentserver_de ) {
                   utils.linuxBuild(platform, false, true)
                   if ( params.documentserver_ie ) {
-                    utils.linuxBuildServer("DocumentServer-IE")
+                    utils.linuxBuildServer("documentserver-ie")
                     utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
                   }
                   if ( params.documentserver_de ) {
-                    utils.linuxBuildServer("DocumentServer-DE")
+                    utils.linuxBuildServer("documentserver-de")
                   }
                 }
               }
