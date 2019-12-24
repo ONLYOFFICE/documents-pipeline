@@ -37,6 +37,7 @@ def getReposList()
     repos.add('sdkjs-plugins')
     repos.add('server')
     repos.add('web-apps')
+    repos.add('Docker-DocumentServer')
     repos.add('DocumentBuilder')
     return repos
 }
