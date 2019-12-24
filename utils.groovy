@@ -165,7 +165,6 @@ def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneF
         --module \"desktop builder core tests updmodule server\"\
         --platform ${platform}\
         --update false\
-        --branch ${branch}\
         --clean ${clean.toString()}\
         --qt-dir \"C:\\Qt\\Qt5.9.8\\5.9.8\"\
         --qt-dir-xp \"C:\\Qt\\Qt5.6.3\\5.6.3\""
