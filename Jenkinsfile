@@ -54,12 +54,12 @@ pipeline {
     booleanParam (
       defaultValue: true,
       description: '',
-      name: 'documentserver-ie'
+      name: 'documentserver_ie'
     )
     booleanParam (
       defaultValue: false,
       description: '',
-      name: 'documentserver-de'
+      name: 'documentserver_de'
     )
     booleanParam (
       defaultValue: true,
@@ -111,12 +111,12 @@ pipeline {
                 if ( params.test ) {
                   utils.linuxTest()
                 }
-                if ( params.documentserver-ie || params.documentserver-de ) {
+                if ( params.documentserver_ie || params.documentserver_de ) {
                   utils.linuxBuild(platform, false, true)
-                  if ( params.documentserver-ie ) {
+                  if ( params.documentserver_ie ) {
                     utils.linuxBuildServer("DocumentServer-IE")
                   }
-                  if ( params.documentserver-de ) {
+                  if ( params.documentserver_de ) {
                     utils.linuxBuildServer("DocumentServer-DE")
                   }
                 }
@@ -149,12 +149,12 @@ pipeline {
                 if ( params.documentserver ) {
                   utils.windowsBuildServer()
                 }
-                if ( params.documentserver-ie || params.documentserver-de ) {
+                if ( params.documentserver_ie || params.documentserver_de ) {
                   utils.windowsBuild(platform, false, true)
-                  if ( params.documentserver-ie ) {
+                  if ( params.documentserver_ie ) {
                     utils.windowsBuildServer("DocumentServer-IE")
                   }
-                  if ( params.documentserver-de ) {
+                  if ( params.documentserver_de ) {
                     utils.windowsBuildServer("DocumentServer-DE")
                   }
                 }
