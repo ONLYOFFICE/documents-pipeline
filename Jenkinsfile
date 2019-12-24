@@ -34,6 +34,36 @@ pipeline {
     booleanParam (
       defaultValue: true,
       description: '',
+      name: 'core'
+    )
+    booleanParam (
+      defaultValue: true,
+      description: '',
+      name: 'desktopeditor'
+    )
+    booleanParam (
+      defaultValue: true,
+      description: '',
+      name: 'documentbuilder'
+    )
+    booleanParam (
+      defaultValue: false,
+      description: '',
+      name: 'documentserver'
+    )
+    booleanParam (
+      defaultValue: true,
+      description: '',
+      name: 'documentserver-ie'
+    )
+    booleanParam (
+      defaultValue: false,
+      description: '',
+      name: 'documentserver-de'
+    )
+    booleanParam (
+      defaultValue: true,
+      description: '',
       name: 'test'
     )
   }
@@ -61,11 +91,35 @@ pipeline {
           steps {
             script {
               def utils = load "utils.groovy"
+              utils.checkoutRepos(env.BRANCH_NAME)
+              
               if ( params.linux_64 ) {
-                utils.linuxBuild(env.BRANCH_NAME, "linux_64", params.clean)
-              }
-              if ( params.test ) {
-                utils.linuxTest()
+                String platform = "linux_64"
+                utils.linuxBuild(platform, params.clean, false)
+                if ( params.core ) {
+                  utils.linuxBuildCore()
+                }
+                if ( params.documentbuilder ) {
+                  utils.linuxBuildBuilder(platform)
+                }
+                if ( params.desktopeditor ) {
+                  utils.linuxBuildDesktop(platform)
+                }
+                if ( params.documentserver ) {
+                  utils.linuxBuildServer()
+                }
+                if ( params.test ) {
+                  utils.linuxTest()
+                }
+                if ( params.documentserver-ie || params.documentserver-de ) {
+                  utils.linuxBuild(platform, false, true)
+                  if ( params.documentserver-ie ) {
+                    utils.linuxBuildServer("DocumentServer-IE")
+                  }
+                  if ( params.documentserver-de ) {
+                    utils.linuxBuildServer("DocumentServer-DE")
+                  }
+                }
               }
             }
           }
@@ -81,7 +135,29 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_64 ) {
-                utils.windowsBuild(env.BRANCH_NAME, "win_64", params.clean)
+                String platform = "win_64"
+                utils.windowsBuild(platform, params.clean, false)
+                if ( params.core ) {
+                  utils.windowsBuildCore()
+                }
+                if ( params.documentbuilder ) {
+                  utils.windowsBuildBuilder(platform)
+                }
+                if ( params.desktopeditor ) {
+                  utils.windowsBuildDesktop(platform)
+                }
+                if ( params.documentserver ) {
+                  utils.windowsBuildServer()
+                }
+                if ( params.documentserver-ie || params.documentserver-de ) {
+                  utils.windowsBuild(platform, false, true)
+                  if ( params.documentserver-ie ) {
+                    utils.windowsBuildServer("DocumentServer-IE")
+                  }
+                  if ( params.documentserver-de ) {
+                    utils.windowsBuildServer("DocumentServer-DE")
+                  }
+                }
               }
             }
           }
@@ -97,7 +173,17 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_32 ) {
-                utils.windowsBuild(env.BRANCH_NAME, "win_32", params.clean)
+                String platform = "win_32"
+                utils.windowsBuild(platform, params.clean, false)
+                if ( params.core ) {
+                  utils.windowsBuildCore()
+                }
+                if ( params.documentbuilder ) {
+                  utils.windowsBuildBuilder(platform)
+                }
+                if ( params.desktopeditor ) {
+                  utils.windowsBuildDesktop(platform)
+                }
               }
             }
           }
@@ -116,7 +202,11 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_64_xp ) {
-                utils.windowsBuild(env.BRANCH_NAME, "win_64_xp", params.clean)
+                String platform = "win_64_xp"
+                utils.windowsBuild(platform, params.clean, false)
+                if ( params.desktopeditor ) {
+                  utils.windowsBuildDesktop(platform)
+                }
               }
             }
           }
@@ -135,7 +225,11 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_32_xp ) {
-                utils.windowsBuild(env.BRANCH_NAME, "win_32_xp", params.clean)
+                String platform = "win_32_xp"
+                utils.windowsBuild(platform, params.clean, false)
+                if ( params.desktopeditor ) {
+                  utils.windowsBuildDesktop(platform)
+                }
               }
             }
           }
