@@ -91,9 +91,10 @@ pipeline {
           steps {
             script {
               def utils = load "utils.groovy"
-              utils.checkoutRepos(env.BRANCH_NAME)
               
               if ( params.linux_64 ) {
+                utils.checkoutRepos(env.BRANCH_NAME)
+
                 String platform = "linux_64"
                 utils.linuxBuild(platform, params.clean, false)
                 if ( params.core ) {
@@ -136,6 +137,8 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_64 ) {
+                utils.checkoutRepos(env.BRANCH_NAME)
+
                 String platform = "win_64"
                 utils.windowsBuild(platform, params.clean, false)
                 if ( params.core ) {
@@ -174,6 +177,8 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_32 ) {
+                utils.checkoutRepos(env.BRANCH_NAME)
+
                 String platform = "win_32"
                 utils.windowsBuild(platform, params.clean, false)
                 if ( params.core ) {
@@ -203,6 +208,8 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_64_xp ) {
+                utils.checkoutRepos(env.BRANCH_NAME)
+
                 String platform = "win_64_xp"
                 utils.windowsBuild(platform, params.clean, false)
                 if ( params.desktopeditor ) {
@@ -226,6 +233,8 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_32_xp ) {
+                utils.checkoutRepos(env.BRANCH_NAME)
+
                 String platform = "win_32_xp"
                 utils.windowsBuild(platform, params.clean, false)
                 if ( params.desktopeditor ) {
