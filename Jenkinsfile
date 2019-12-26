@@ -96,7 +96,15 @@ pipeline {
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "linux_64"
-                utils.linuxBuild(platform, params.clean, false)
+                Bool clean = params.clean
+                if ( params.core
+                     || params.documentbuilder
+                     || params.desktopeditor
+                     || documentserver
+                     ) {
+                  utils.linuxBuild(platform, clean, false)
+                  clean = false
+                }
                 if ( params.core ) {
                   utils.linuxBuildCore()
                 }
@@ -109,11 +117,8 @@ pipeline {
                 if ( params.documentserver ) {
                   utils.linuxBuildServer()
                 }
-                if ( params.test ) {
-                  utils.linuxTest()
-                }
                 if ( params.documentserver_ie || params.documentserver_de ) {
-                  utils.linuxBuild(platform, false, true)
+                  utils.linuxBuild(platform, clean, true)
                   if ( params.documentserver_ie ) {
                     utils.linuxBuildServer("documentserver-ie")
                     utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
@@ -121,6 +126,9 @@ pipeline {
                   if ( params.documentserver_de ) {
                     utils.linuxBuildServer("documentserver-de")
                   }
+                }
+                if ( params.test ) {
+                  utils.linuxTest()
                 }
               }
             }
