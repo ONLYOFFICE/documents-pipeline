@@ -27,6 +27,7 @@ def getReposList()
     def repos = []
     repos.add('build_tools')
     repos.add('core')
+    repos.add('core-fonts')
     repos.add('desktop-apps')
     repos.add('desktop-sdk')
     repos.add('dictionaries')
