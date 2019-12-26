@@ -150,7 +150,7 @@ pipeline {
                 String platform = "win_64"
                 utils.windowsBuild(platform, params.clean, false)
                 if ( params.core ) {
-                  utils.windowsBuildCore()
+                  utils.windowsBuildCore(platform)
                 }
                 if ( params.documentbuilder ) {
                   utils.windowsBuildBuilder(platform)
@@ -190,7 +190,7 @@ pipeline {
                 String platform = "win_32"
                 utils.windowsBuild(platform, params.clean, false)
                 if ( params.core ) {
-                  utils.windowsBuildCore()
+                  utils.windowsBuildCore(platform)
                 }
                 if ( params.documentbuilder ) {
                   utils.windowsBuildBuilder(platform)
