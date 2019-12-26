@@ -3,67 +3,67 @@ pipeline {
   parameters {
     booleanParam (
       defaultValue: true,
-      description: '',
+      description: 'Rebuild binaries from the \'core\' repo',
       name: 'clean'
     )
     booleanParam (
       defaultValue: true,
-      description: '',
+      description: 'Build Linux x64 targets',
       name: 'linux_64'
     )
     booleanParam (
       defaultValue: true,
-      description: '',
+      description: 'Build Windows x64 targets',
       name: 'win_64'
     )
     booleanParam (
       defaultValue: false,
-      description: '',
+      description: 'Build Windows x86 targets',
       name: 'win_32'
     )
     booleanParam (
       defaultValue: false,
-      description: '',
+      description: 'Build Windows XP x64 targets',
       name: 'win_64_xp'
     )
     booleanParam (
       defaultValue: false,
-      description: '',
+      description: 'Build Windows XP x86 targets',
       name: 'win_32_xp'
     )
     booleanParam (
       defaultValue: true,
-      description: '',
+      description: 'Build and publish \'core\' binaries',
       name: 'core'
     )
     booleanParam (
       defaultValue: true,
-      description: '',
+      description: 'Build and publish DesktopEditors packages',
       name: 'desktopeditor'
     )
     booleanParam (
       defaultValue: true,
-      description: '',
+      description: 'Build and publish DocumentBuilder packages',
       name: 'documentbuilder'
     )
     booleanParam (
       defaultValue: false,
-      description: '',
+      description: 'Build and publish DocumentServer packages',
       name: 'documentserver'
     )
     booleanParam (
       defaultValue: true,
-      description: '',
+      description: 'Build and publish DocumentServer-IE packages',
       name: 'documentserver_ie'
     )
     booleanParam (
       defaultValue: false,
-      description: '',
+      description: 'Build and publish DocumentServer-DE packages',
       name: 'documentserver_de'
     )
     booleanParam (
       defaultValue: true,
-      description: '',
+      description: 'Run test(Only on Linux)',
       name: 'test'
     )
   }
