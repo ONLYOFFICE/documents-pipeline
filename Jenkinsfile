@@ -96,7 +96,7 @@ pipeline {
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "linux_64"
-                Bool clean = params.clean
+                Boolean clean = params.clean
                 if ( params.core
                      || params.documentbuilder
                      || params.desktopeditor
