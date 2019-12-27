@@ -226,7 +226,7 @@ def windowsBuildBuilder(String platform)
 def windowsBuildServer(String productName='DocumentServer')
 {
     bat "cd document-server-package && \
-        set PRODUCT_NAME=${productName} && \
+        set \"PRODUCT_NAME=${productName}\" && \
         mingw32-make clean && \
         mingw32-make deploy"
 
