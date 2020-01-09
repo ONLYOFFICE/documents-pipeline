@@ -100,7 +100,7 @@ pipeline {
                 if ( params.core
                      || params.documentbuilder
                      || params.desktopeditor
-                     || documentserver
+                     || params.documentserver
                      ) {
                   utils.linuxBuild(platform, clean, false)
                   clean = false
