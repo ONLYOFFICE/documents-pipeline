@@ -220,7 +220,7 @@ def windowsBuildBuilder(String platform)
         ]
     )
 
-    returm this
+    return this
 }
 
 def windowsBuildServer(String productName='DocumentServer')
