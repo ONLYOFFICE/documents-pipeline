@@ -75,7 +75,7 @@ def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFre
         --qt-dir \$QT_PATH"
 
     if (noneFree) {
-        confParams = confParams.concat(" --sdkjs-addon sdkjs-comparison")
+        confParams = confParams.concat(" --sdkjs-addon comparison")
     }
 
     sh "cd build_tools && \
@@ -172,7 +172,7 @@ def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneF
         --qt-dir-xp \"C:\\Qt\\Qt5.6.3\\5.6.3\""
 
     if (noneFree) {
-        confParams = confParams.concat(" --sdkjs-addon sdkjs-comparison")
+        confParams = confParams.concat(" --sdkjs-addon comparison")
     }
 
     bat "cd build_tools &&\
