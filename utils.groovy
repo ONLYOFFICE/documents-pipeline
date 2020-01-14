@@ -95,7 +95,7 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             alwaysLinkToLastBuild: false,
             includes: 'index.html',
             keepAll: true,
-            reportDir: 'desktop-apps-ext/win-linux/package/linux',
+            reportDir: 'desktop-apps/win-linux/package/linux',
             reportFiles: 'index.html',
             reportName: "DesktopEditors(${platform})",
             reportTitles: ''
