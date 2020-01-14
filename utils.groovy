@@ -27,15 +27,20 @@ def getReposList()
     def repos = []
     repos.add('build_tools')
     repos.add('core')
+    repos.add('core-fonts')
     repos.add('desktop-apps')
     repos.add('desktop-apps-ext')
     repos.add('desktop-sdk')
     repos.add('dictionaries')
     repos.add('document-builder-package')
+    repos.add('document-server-integration')
+    repos.add('document-server-package')
     repos.add('r7')
     repos.add('sdkjs')
     repos.add('sdkjs-plugins')
+    repos.add('server')
     repos.add('web-apps')
+    repos.add('Docker-DocumentServer')
     repos.add('DocumentBuilder')
     return repos
 }
@@ -66,30 +71,32 @@ def tagRepos(String tag)
 
     return this
 }
-def linuxBuild(String branch = 'master', String platform = 'native', Boolean clean = true)
+def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
 {
-    checkoutRepos(branch)
+    String confParams = "\
+        --module \"desktop builder core server\"\
+        --platform ${platform}\
+        --update false\
+        --branding r7\
+        --clean ${clean.toString()}\
+        --qt-dir \$QT_PATH"
+
+    if (noneFree) {
+        confParams = confParams.concat(" --sdkjs-addon sdkjs-comparison")
+    }
+
     sh "cd build_tools && \
-        ./configure.py \
-            --module \"desktop builder core\"\
-            --sdkjs-addon comparison\
-            --platform ${platform}\
-            --update false\
-            --branch ${branch}\
-            --branding r7\
-            --clean ${clean.toString()}\
-            --qt-dir \$QT_PATH &&\
+        ./configure.py ${confParams} &&\
         ./make.py"
+
+    return this
+}
+
+def linuxBuildDesktop(String platform = 'native')
+{
     sh "cd desktop-apps/win-linux/package/linux &&\
          make clean &&\
          make deploy"
-    sh "cd document-builder-package &&\
-        make clean &&\
-        make deploy"
-    /*
-    sh "cd core && \
-        make deploy"
-    */
     publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
@@ -102,6 +109,15 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
         ]
     )
 
+    return this
+}
+
+def linuxBuildBuilder(String platform = 'native')
+{
+    sh "cd document-builder-package &&\
+         make clean &&\
+         make deploy"
+
     publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
@@ -113,33 +129,68 @@ def linuxBuild(String branch = 'master', String platform = 'native', Boolean cle
             reportTitles: ''
         ]
     )
-    /*
+
+    return this
+}
+
+def linuxBuildServer(String productName='documentserver')
+{
+    sh "cd document-server-package && \
+        export PRODUCT_NAME=${productName} && \
+        make clean && \
+        make deploy"
+
+    sh "cd Docker-DocumentServer && \
+        export PRODUCT_NAME=${productName} && \
+        make clean && \
+        make deploy"
+
+    return this
+}
+
+def linuxBuildCore()
+{
+    sh "cd core && \
+        make deploy"
+
+    return this
+}
+
+def linuxTest()
+{
     checkoutRepo('doc-builder-testing')
     sh "docker rmi doc-builder-testing || true"
     sh "cd doc-builder-testing &&\
         docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
-        docker run --rm doc-builder-testing parallel_rspec spec -n 2"
-    */
+        docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
+
     return this
 }
 
-def windowsBuild(String branch = 'master', String platform = 'native', Boolean clean = true)
+def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
 {
-    checkoutRepos(branch)
+    String confParams = "\
+        --module \"desktop builder core tests updmodule server\"\
+        --platform ${platform}\
+        --update false\
+        --branding r7\
+        --clean ${clean.toString()}\
+        --qt-dir \"C:\\Qt\\Qt5.9.8\\5.9.8\"\
+        --qt-dir-xp \"C:\\Qt\\Qt5.6.3\\5.6.3\""
+
+    if (noneFree) {
+        confParams = confParams.concat(" --sdkjs-addon sdkjs-comparison")
+    }
 
     bat "cd build_tools &&\
-            call python configure.py\
-            --module \"desktop builder core tests updmodule\"\
-            --platform ${platform}\
-            --sdkjs-addon comparison\
-            --update false\
-            --branch ${branch}\
-            --branding r7\
-            --clean ${clean.toString()}\
-            --qt-dir \"C:\\Qt\\Qt5.9.8\\5.9.8\"\
-            --qt-dir-xp \"C:\\Qt\\Qt5.6.3\\5.6.3\" &&\
+            call python configure.py ${confParams} &&\
             call python make.py"
 
+    return this
+}
+
+def windowsBuildDesktop (String platform)
+{
     bat "cd desktop-apps-ext &&\
             mingw32-make clean-package &&\
             mingw32-make deploy"
@@ -156,41 +207,59 @@ def windowsBuild(String branch = 'master', String platform = 'native', Boolean c
         ]
     )
 
-    if ( !platform.endsWith('_xp') ) {
-        bat "cd document-builder-package &&\
-            mingw32-make clean &&\
-            mingw32-make deploy"
+    return this
+}
 
-        /*
-        String winSdkVersion = '10.0.14393.0'
-        String platformType
-        
-        switch (platform) {
-            case 'win_64':
-                platformType = 'x64'
-                break
-            case 'win_32':
-                platformType = 'x86'
-                break
-            default:
-                platformType = ''
-        }
+def windowsBuildBuilder(String platform)
+{
+    bat "cd document-builder-package &&\
+        mingw32-make clean &&\
+        mingw32-make deploy"
 
-        bat "cd core && \
-            call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" ${platformType} ${winSdkVersion} && \
-            mingw32-make deploy"
-        */
+    publishHTML([
+            allowMissing: true,
+            alwaysLinkToLastBuild: false,
+            includes: 'index.html',
+            keepAll: true,
+            reportDir: 'document-builder-package',
+            reportFiles: 'index.html',
+            reportName: "DocumentBuilder(${platform})",
+            reportTitles: ''
+        ]
+    )
 
-        publishHTML([
-                allowMissing: true,
-                alwaysLinkToLastBuild: false,
-                includes: 'index.html',
-                keepAll: true,
-                reportDir: 'document-builder-package',
-                reportFiles: 'index.html',
-                reportName: "DocumentBuilder(${platform})",
-                reportTitles: ''
-            ]
-        )
+    return this
+}
+
+def windowsBuildServer(String productName='DocumentServer')
+{
+    bat "cd document-server-package && \
+        set \"PRODUCT_NAME=${productName}\" && \
+        mingw32-make clean && \
+        mingw32-make deploy"
+
+    return this
+}
+
+def windowsBuildCore(String platform)
+{
+    String winSdkVersion = '10.0.14393.0'
+    String platformType
+    
+    switch (platform) {
+        case 'win_64':
+            platformType = 'x64'
+            break
+        case 'win_32':
+            platformType = 'x86'
+            break
+        default:
+            platformType = ''
     }
+
+    bat "cd core && \
+        call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" ${platformType} ${winSdkVersion} && \
+        mingw32-make deploy"
+
+    return this
 }
