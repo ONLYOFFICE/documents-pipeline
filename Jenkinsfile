@@ -109,7 +109,7 @@ pipeline {
                      || params.desktopeditor
                      || params.documentserver
                      ) {
-                  utils.linuxBuild(platform, clean, false)
+                  utils.linuxBuild(platform, clean, true)
                   clean = false
                 }
                 if ( params.core ) {
@@ -157,7 +157,7 @@ pipeline {
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "win_64"
-                utils.windowsBuild(platform, params.clean, false)
+                utils.windowsBuild(platform, params.clean, true)
                 if ( params.core ) {
                   utils.windowsBuildCore(platform)
                 }
@@ -197,7 +197,7 @@ pipeline {
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "win_32"
-                utils.windowsBuild(platform, params.clean, false)
+                utils.windowsBuild(platform, params.clean, true)
                 if ( params.core ) {
                   utils.windowsBuildCore(platform)
                 }
@@ -228,7 +228,7 @@ pipeline {
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "win_64_xp"
-                utils.windowsBuild(platform, params.clean, false)
+                utils.windowsBuild(platform, params.clean, true)
                 if ( params.desktopeditor ) {
                   utils.windowsBuildDesktop(platform)
                 }
