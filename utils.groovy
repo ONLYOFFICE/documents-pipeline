@@ -193,9 +193,9 @@ def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneF
 
 def windowsBuildDesktop (String platform)
 {
-    bat "cd desktop-apps-ext &&\
+    bat "cd desktop-apps &&\
             mingw32-make clean-package &&\
-            mingw32-make deploy"
+            mingw32-make deploy -e BRANDING_DIR=../r7/desktop-apps"
 
     publishHTML([
             allowMissing: false,
