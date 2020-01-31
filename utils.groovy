@@ -29,7 +29,6 @@ def getReposList()
     repos.add('core')
     repos.add('core-fonts')
     repos.add('desktop-apps')
-    repos.add('desktop-apps-ext')
     repos.add('desktop-sdk')
     repos.add('dictionaries')
     repos.add('document-builder-package')
@@ -202,7 +201,7 @@ def windowsBuildDesktop (String platform)
             alwaysLinkToLastBuild: false,
             includes: 'index.html',
             keepAll: true,
-            reportDir: 'desktop-apps-ext/win-linux/package/windows',
+            reportDir: 'desktop-apps/win-linux/package/windows',
             reportFiles: 'index.html',
             reportName: "DesktopEditors(${platform})",
             reportTitles: ''
