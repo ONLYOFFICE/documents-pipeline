@@ -142,6 +142,7 @@ def linuxBuildServer(String productName='documentserver')
 
     sh "cd Docker-DocumentServer && \
         export PRODUCT_NAME=${productName} && \
+        export ONLYOFFICE_VALUE=ds && \
         make clean && \
         make deploy"
 
