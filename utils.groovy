@@ -36,6 +36,8 @@ def getReposList()
     repos.add('document-server-package')
     repos.add('r7')
     repos.add('sdkjs')
+    repos.add('sdkjs-comparison')
+    repos.add('sdkjs-content-controls')
     repos.add('sdkjs-plugins')
     repos.add('server')
     repos.add('web-apps')
@@ -82,7 +84,8 @@ def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFre
         --qt-dir \$QT_PATH"
 
     if (noneFree) {
-        confParams = confParams.concat(" --sdkjs-addon sdkjs-comparison")
+        confParams = confParams.concat(" --sdkjs-addon comparison")
+        confParams = confParams.concat(" --sdkjs-addon content-controls")
     }
 
     sh "cd build_tools && \
@@ -177,11 +180,12 @@ def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneF
         --branding r7\
         --branding-name R7-Office\
         --clean ${clean.toString()}\
-        --qt-dir \"C:\\Qt\\Qt5.9.8\\5.9.8\"\
-        --qt-dir-xp \"C:\\Qt\\Qt5.6.3\\5.6.3\""
+        --qt-dir \$QT_PATH\
+        --qt-dir-xp \$QT56_PATH"
 
     if (noneFree) {
-        confParams = confParams.concat(" --sdkjs-addon sdkjs-comparison")
+        confParams = confParams.concat(" --sdkjs-addon comparison")
+        confParams = confParams.concat(" --sdkjs-addon content-controls")
     }
 
     bat "cd build_tools &&\
