@@ -40,6 +40,7 @@ def getReposList()
     repos.add('sdkjs-plugins')
     repos.add('server')
     repos.add('web-apps')
+    repos.add('web-apps-mobile')
     repos.add('Docker-DocumentServer')
     repos.add('DocumentBuilder')
     return repos
@@ -78,6 +79,7 @@ def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFre
     if (noneFree) {
         confParams = confParams.concat(" --sdkjs-addon comparison")
         confParams = confParams.concat(" --sdkjs-addon content-controls")
+        confParams = confParams.concat(" --web-apps-addon mobile")
     }
 
     sh "cd build_tools && \
@@ -176,6 +178,7 @@ def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneF
     if (noneFree) {
         confParams = confParams.concat(" --sdkjs-addon comparison")
         confParams = confParams.concat(" --sdkjs-addon content-controls")
+        confParams = confParams.concat(" --web-apps-addon mobile")
     }
 
     bat "cd build_tools &&\
