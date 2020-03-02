@@ -174,8 +174,8 @@ def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneF
         --platform ${platform}\
         --update false\
         --clean ${clean.toString()}\
-        --qt-dir \"C:\\Qt\\Qt5.9.8\\5.9.8\"\
-        --qt-dir-xp \"C:\\Qt\\Qt5.6.3\\5.6.3\""
+        --qt-dir %QT_PATH%\
+        --qt-dir-xp %QT56_PATH%"
 
     if (noneFree) {
         confParams = confParams.concat(" --sdkjs-addon comparison")
