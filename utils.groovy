@@ -29,7 +29,6 @@ def getReposList()
     repos.add('core')
     repos.add('core-fonts')
     repos.add('desktop-apps')
-    repos.add('desktop-apps-ext')
     repos.add('desktop-sdk')
     repos.add('dictionaries')
     repos.add('document-builder-package')
@@ -37,9 +36,13 @@ def getReposList()
     repos.add('document-server-package')
     repos.add('r7')
     repos.add('sdkjs')
+    repos.add('sdkjs-comparison')
+    repos.add('sdkjs-content-controls')
     repos.add('sdkjs-plugins')
     repos.add('server')
+    repos.add('server-lockstorage')
     repos.add('web-apps')
+    repos.add('web-apps-mobile')
     repos.add('Docker-DocumentServer')
     repos.add('DocumentBuilder')
     return repos
@@ -83,7 +86,10 @@ def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFre
         --qt-dir \$QT_PATH"
 
     if (noneFree) {
-        confParams = confParams.concat(" --sdkjs-addon sdkjs-comparison")
+        confParams = confParams.concat(" --sdkjs-addon comparison")
+        confParams = confParams.concat(" --sdkjs-addon content-controls")
+        confParams = confParams.concat(" --server-addon lockstorage")
+        confParams = confParams.concat(" --web-apps-addon mobile")
     }
 
     sh "cd build_tools && \
@@ -143,6 +149,7 @@ def linuxBuildServer(String productName='documentserver')
 
     sh "cd Docker-DocumentServer && \
         export PRODUCT_NAME=${productName} && \
+        export ONLYOFFICE_VALUE=ds && \
         make clean && \
         make deploy"
 
@@ -177,11 +184,14 @@ def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneF
         --branding r7\
         --branding-name R7-Office\
         --clean ${clean.toString()}\
-        --qt-dir \"C:\\Qt\\Qt5.9.8\\5.9.8\"\
-        --qt-dir-xp \"C:\\Qt\\Qt5.6.3\\5.6.3\""
+        --qt-dir %QT_PATH%\
+        --qt-dir-xp %QT56_PATH%"
 
     if (noneFree) {
-        confParams = confParams.concat(" --sdkjs-addon sdkjs-comparison")
+        confParams = confParams.concat(" --sdkjs-addon comparison")
+        confParams = confParams.concat(" --sdkjs-addon content-controls")
+        confParams = confParams.concat(" --server-addon lockstorage")
+        confParams = confParams.concat(" --web-apps-addon mobile")
     }
 
     bat "cd build_tools &&\
@@ -202,7 +212,7 @@ def windowsBuildDesktop (String platform)
             alwaysLinkToLastBuild: false,
             includes: 'index.html',
             keepAll: true,
-            reportDir: 'desktop-apps-ext/win-linux/package/windows',
+            reportDir: 'desktop-apps/win-linux/package/windows',
             reportFiles: 'index.html',
             reportName: "DesktopEditors(${platform})",
             reportTitles: ''
