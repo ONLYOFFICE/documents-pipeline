@@ -68,7 +68,7 @@ pipeline {
     )
   }
   triggers {
-    cron('H 20 * * *')
+    cron('H 17 * * *')
   }
   stages {
     stage('Prepare') {
