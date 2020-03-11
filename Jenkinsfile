@@ -32,7 +32,7 @@ pipeline {
       name: 'win_32_xp'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build and publish \'core\' binaries',
       name: 'core'
     )
@@ -62,7 +62,7 @@ pipeline {
       name: 'documentserver_de'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Run test(Only on Linux)',
       name: 'test'
     )
@@ -81,6 +81,13 @@ pipeline {
             productVersion = pV.group(2)
           }
           env.PRODUCT_VERSION = productVersion
+        }
+        script {
+          env.COMPANY_NAME = "R7-Office"
+          env.PUBLISHER_NAME = "AO \"NOVYE KOMMUNIKACIONNYE TEHNOLOGII\""
+          env.PUBLISHER_URL = "http://r7-office.ru"
+          env.SUPPORT_URL = "http://support.r7-office.ru"
+          env.SUPPORT_MAIL = "support@r7-office.ru"
         }
       }
     }
@@ -102,7 +109,7 @@ pipeline {
                      || params.desktopeditor
                      || params.documentserver
                      ) {
-                  utils.linuxBuild(platform, clean, false)
+                  utils.linuxBuild(platform, clean, true)
                   clean = false
                 }
                 if ( params.core ) {
@@ -121,7 +128,9 @@ pipeline {
                   utils.linuxBuild(platform, clean, true)
                   if ( params.documentserver_ie ) {
                     utils.linuxBuildServer("documentserver-ie")
+                    /*
                     utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
+                    */
                   }
                   if ( params.documentserver_de ) {
                     utils.linuxBuildServer("documentserver-de")
@@ -138,7 +147,7 @@ pipeline {
           agent {
             node {
               label 'win_64'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64"
+              customWorkspace "C:\\r7\\${env.BRANCH_NAME}\\win_64"
             }
           }
           steps {
@@ -148,7 +157,7 @@ pipeline {
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "win_64"
-                utils.windowsBuild(platform, params.clean, false)
+                utils.windowsBuild(platform, params.clean, true)
                 if ( params.core ) {
                   utils.windowsBuildCore(platform)
                 }
@@ -178,7 +187,7 @@ pipeline {
           agent {
             node {
               label 'win_32'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32"
+              customWorkspace "C:\\r7\\${env.BRANCH_NAME}\\win_32"
             }
           }
           steps {
@@ -188,7 +197,7 @@ pipeline {
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "win_32"
-                utils.windowsBuild(platform, params.clean, false)
+                utils.windowsBuild(platform, params.clean, true)
                 if ( params.core ) {
                   utils.windowsBuildCore(platform)
                 }
@@ -206,7 +215,7 @@ pipeline {
           agent {
             node {
               label 'win_64_xp'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64_xp"
+              customWorkspace "C:\\x8\\${env.BRANCH_NAME}"
             }
           }
           environment {
@@ -219,7 +228,7 @@ pipeline {
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "win_64_xp"
-                utils.windowsBuild(platform, params.clean, false)
+                utils.windowsBuild(platform, params.clean, true)
                 if ( params.desktopeditor ) {
                   utils.windowsBuildDesktop(platform)
                 }
@@ -231,7 +240,7 @@ pipeline {
           agent {
             node {
               label 'win_32_xp'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32_xp"
+              customWorkspace "C:\\x4\\${env.BRANCH_NAME}"
             }
           }
           environment {

@@ -34,6 +34,7 @@ def getReposList()
     repos.add('document-builder-package')
     repos.add('document-server-integration')
     repos.add('document-server-package')
+    repos.add('r7')
     repos.add('sdkjs')
     repos.add('sdkjs-comparison')
     repos.add('sdkjs-content-controls')
@@ -50,7 +51,12 @@ def getReposList()
 def checkoutRepos(String branch = 'master')
 {    
     for (repo in getReposList()) {
-        checkoutRepo(repo, branch)
+        if( repo != 'r7' ) {
+            checkoutRepo(repo, branch)
+        }
+        else {
+            checkoutRepo(repo, branch, 'ASC-OFFICE')
+        }
     }
 
     return this
@@ -74,6 +80,8 @@ def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFre
         --module \"desktop builder core server\"\
         --platform ${platform}\
         --update false\
+        --branding r7\
+        --branding-name r7-office\
         --clean ${clean.toString()}\
         --qt-dir \$QT_PATH"
 
@@ -96,7 +104,6 @@ def linuxBuildDesktop(String platform = 'native')
     sh "cd desktop-apps/win-linux/package/linux &&\
          make clean &&\
          make deploy"
-
     publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
@@ -142,6 +149,7 @@ def linuxBuildServer(String productName='documentserver')
 
     sh "cd Docker-DocumentServer && \
         export PRODUCT_NAME=${productName} && \
+        export ONLYOFFICE_VALUE=ds && \
         make clean && \
         make deploy"
 
@@ -173,6 +181,8 @@ def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneF
         --module \"desktop builder core tests updmodule server\"\
         --platform ${platform}\
         --update false\
+        --branding r7\
+        --branding-name R7-Office\
         --clean ${clean.toString()}\
         --qt-dir %QT_PATH%\
         --qt-dir-xp %QT56_PATH%"
@@ -195,7 +205,7 @@ def windowsBuildDesktop (String platform)
 {
     bat "cd desktop-apps &&\
             mingw32-make clean-package &&\
-            mingw32-make deploy"
+            mingw32-make deploy -e BRANDING_DIR=../r7/desktop-apps"
 
     publishHTML([
             allowMissing: false,
