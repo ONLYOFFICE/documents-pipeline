@@ -17,17 +17,17 @@ pipeline {
       name: 'win_64'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build Windows x86 targets',
       name: 'win_32'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build Windows XP x64 targets',
       name: 'win_64_xp'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build Windows XP x86 targets',
       name: 'win_32_xp'
     )
@@ -42,12 +42,12 @@ pipeline {
       name: 'desktopeditor'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build and publish DocumentBuilder packages',
       name: 'documentbuilder'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build and publish DocumentServer packages',
       name: 'documentserver'
     )
@@ -57,7 +57,7 @@ pipeline {
       name: 'documentserver_ie'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build and publish DocumentServer-DE packages',
       name: 'documentserver_de'
     )
