@@ -2,7 +2,7 @@ pipeline {
   agent none
   parameters {
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Rebuild binaries from the \'core\' repo',
       name: 'clean'
     )
@@ -68,7 +68,7 @@ pipeline {
     )
   }
   triggers {
-    cron('H 20 * * *')
+    cron('H 17 * * *')
   }
   stages {
     stage('Prepare') {
