@@ -2,7 +2,7 @@ pipeline {
   agent none
   parameters {
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Rebuild binaries from the \'core\' repo',
       name: 'clean'
     )
