@@ -40,6 +40,7 @@ def getReposList()
     repos.add('sdkjs-content-controls')
     repos.add('sdkjs-plugins')
     repos.add('server')
+    repos.add('server-license')
     repos.add('server-lockstorage')
     repos.add('web-apps')
     repos.add('web-apps-mobile')
@@ -88,6 +89,7 @@ def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFre
     if (noneFree) {
         confParams = confParams.concat(" --sdkjs-addon comparison")
         confParams = confParams.concat(" --sdkjs-addon content-controls")
+        confParams = confParams.concat(" --server-addon license")
         confParams = confParams.concat(" --server-addon lockstorage")
         confParams = confParams.concat(" --web-apps-addon mobile")
     }
@@ -190,6 +192,7 @@ def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneF
     if (noneFree) {
         confParams = confParams.concat(" --sdkjs-addon comparison")
         confParams = confParams.concat(" --sdkjs-addon content-controls")
+        confParams = confParams.concat(" --server-addon license")
         confParams = confParams.concat(" --server-addon lockstorage")
         confParams = confParams.concat(" --web-apps-addon mobile")
     }
