@@ -67,7 +67,7 @@ pipeline {
       name: 'test'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Sign installer(Only on Windows)',
       name: 'signing'
     )
