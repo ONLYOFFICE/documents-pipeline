@@ -105,7 +105,7 @@ def linuxBuildDesktop(String platform = 'native')
 {
     sh "cd desktop-apps/win-linux/package/linux &&\
          make clean &&\
-         make deploy"
+         make deploy -e BRANDING_DIR=../../../../r7/desktop-apps/win-linux/package/linux"
     publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
