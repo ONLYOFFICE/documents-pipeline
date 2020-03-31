@@ -125,7 +125,7 @@ def linuxBuildBuilder(String platform = 'native')
 {
     sh "cd document-builder-package &&\
          make clean &&\
-         make deploy"
+         make deploy -e BRANDING_DIR=../r7/document-builder-package"
 
     publishHTML([
             allowMissing: false,
@@ -229,7 +229,7 @@ def windowsBuildBuilder(String platform)
 {
     bat "cd document-builder-package &&\
         mingw32-make clean &&\
-        mingw32-make deploy"
+        mingw32-make deploy -e BRANDING_DIR=../r7/document-builder-package"
 
     publishHTML([
             allowMissing: true,
