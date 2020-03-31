@@ -147,7 +147,7 @@ def linuxBuildServer(String productName='documentserver')
     sh "cd document-server-package && \
         export PRODUCT_NAME=${productName} && \
         make clean && \
-        make deploy"
+        make deploy -e BRANDING_DIR=../r7/document-server-package"
 
     sh "cd Docker-DocumentServer && \
         export PRODUCT_NAME=${productName} && \
@@ -251,7 +251,7 @@ def windowsBuildServer(String productName='DocumentServer')
     bat "cd document-server-package && \
         set \"PRODUCT_NAME=${productName}\" && \
         mingw32-make clean && \
-        mingw32-make deploy"
+        mingw32-make deploy -e BRANDING_DIR=../r7/document-server-package"
 
     return this
 }
