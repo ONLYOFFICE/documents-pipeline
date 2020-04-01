@@ -47,7 +47,7 @@ pipeline {
       name: 'documentbuilder'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build and publish DocumentServer packages',
       name: 'documentserver'
     )
@@ -57,7 +57,7 @@ pipeline {
       name: 'documentserver_ie'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build and publish DocumentServer-DE packages',
       name: 'documentserver_de'
     )
