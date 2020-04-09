@@ -69,10 +69,30 @@ def tagRepos(String tag)
 
     return this
 }
+
+def getModulesString()
+{
+    def modules = []
+    if ( params.core ) {
+        modules.add('core')
+    }
+    if ( params.desktopeditor ) {
+        modules.add('desktop')
+    }
+    if ( params.documentbuilder ) {
+        modules.add('builder')
+    }
+    if ( params.documentserver || params.documentserver_ie || params.documentserver_de ) {
+        modules.add('server')
+    }
+
+    return modules.join(" ")
+}
+
 def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
 {
     String confParams = "\
-        --module \"desktop builder core server\"\
+        --module \"${getModulesString()}\"\
         --platform ${platform}\
         --update false\
         --clean ${clean.toString()}\
