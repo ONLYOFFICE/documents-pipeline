@@ -147,6 +147,18 @@ def linuxBuildServer(String productName='documentserver')
         make clean && \
         make deploy"
 
+    publishHTML([
+            allowMissing: true,
+            alwaysLinkToLastBuild: false,
+            includes: 'index.html',
+            keepAll: true,
+            reportDir: 'document-server-package',
+            reportFiles: 'index.html',
+            reportName: "DocumentServer(${platform})",
+            reportTitles: ''
+        ]
+    )
+
     return this
 }
 
@@ -242,6 +254,18 @@ def windowsBuildServer(String productName='DocumentServer')
         set \"PRODUCT_NAME=${productName}\" && \
         mingw32-make clean && \
         mingw32-make deploy"
+
+    publishHTML([
+            allowMissing: true,
+            alwaysLinkToLastBuild: false,
+            includes: 'index.html',
+            keepAll: true,
+            reportDir: 'document-server-package',
+            reportFiles: 'index.html',
+            reportName: "DocumentServer(${platform})",
+            reportTitles: ''
+        ]
+    )
 
     return this
 }
