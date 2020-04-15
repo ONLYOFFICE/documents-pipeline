@@ -66,6 +66,11 @@ pipeline {
       description: 'Run test(Only on Linux)',
       name: 'test'
     )
+    booleanParam (
+      defaultValue: true,
+      description: 'Sign installer(Only on Windows)',
+      name: 'signing'
+    )
   }
   triggers {
     cron('H 17 * * *')
@@ -81,6 +86,10 @@ pipeline {
             productVersion = pV.group(2)
           }
           env.PRODUCT_VERSION = productVersion
+
+          if( params.signing ) {
+            env.ENABLE_SIGNING=1
+          }
         }
       }
     }
