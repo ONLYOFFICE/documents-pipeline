@@ -95,12 +95,9 @@ def getConfParams(String platform, Boolean clean, Boolean noneFree)
     confParams.add("--platform ${platform}")
     confParams.add("--update false")
     confParams.add("--clean ${clean.toString()}")
-    if (platform.startsWith("linux")) {
-        confParams.add("--qt-dir \$QT_PATH")
-    } else
-    if (platform.startsWith("win")) {
-        confParams.add("--qt-dir %QT_PATH%")
-        confParams.add("--qt-dir-xp %QT56_PATH%")
+    confParams.add("--qt-dir ${env.QT_PATH}")
+    if (platform.endsWith("_xp")) {
+        confParams.add("--qt-dir-xp ${env.QT56_PATH}")
     }
     if (noneFree) {
         confParams.add("--sdkjs-addon comparison")
