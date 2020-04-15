@@ -1,4 +1,4 @@
-def checkoutRepo(String repo, String branch = 'master', String company = 'ONLYOFFICE') {
+def checkoutRepo(String repo, String branch = 'master', String dir, String company = 'ONLYOFFICE') {
     checkout([
             $class: 'GitSCM',
             branches: [[
@@ -8,7 +8,7 @@ def checkoutRepo(String repo, String branch = 'master', String company = 'ONLYOF
             doGenerateSubmoduleConfigurations: false,
             extensions: [[
                     $class: 'RelativeTargetDirectory',
-                    relativeTargetDir: repo
+                    relativeTargetDir: dir
                 ]
             ],
             submoduleCfg: [],
@@ -34,10 +34,20 @@ def getReposList()
     repos.add('document-builder-package')
     repos.add('document-server-integration')
     repos.add('document-server-package')
+    repos.add('plugin-ocr')
+    repos.add('plugin-macros')
+    repos.add('plugin-highlightcode')
+    repos.add('plugin-photoeditor')
+    repos.add('plugin-youtube')
+    repos.add('plugin-speech')
+    repos.add('plugin-thesaurus')
+    repos.add('plugin-translator')
+    repos.add('plugin-autocomplete')
+    repos.add('plugin-easybib')
+    repos.add('plugin-wordpress')
     repos.add('sdkjs')
     repos.add('sdkjs-comparison')
     repos.add('sdkjs-content-controls')
-    repos.add('sdkjs-plugins')
     repos.add('server')
     repos.add('server-license')
     repos.add('server-lockstorage')
@@ -51,7 +61,8 @@ def getReposList()
 def checkoutRepos(String branch = 'master')
 {    
     for (repo in getReposList()) {
-        checkoutRepo(repo, branch)
+        String dir = !repo.startsWith("plugin-") ? repo : "sdkjs-plugins/${repo}"
+        checkoutRepo(repo, branch, dir)
     }
 
     return this
@@ -60,7 +71,8 @@ def checkoutRepos(String branch = 'master')
 def tagRepos(String tag)
 {
     for (repo in getReposList()) {
-        sh "cd ${repo} && \
+        String dir = !repo.startsWith("plugin-") ? repo : "sdkjs-plugins/${repo}"
+        sh "cd ${dir} && \
             git tag -l | xargs git tag -d && \
             git fetch --tags && \
             git tag ${tag} && \
