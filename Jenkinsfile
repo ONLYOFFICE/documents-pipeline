@@ -78,7 +78,7 @@ pipeline {
     )
     string (
       defaultValue: '',
-      description: 'Extra params',
+      description: 'configure.py extra params',
       name: 'extra_params'
     )
   }
