@@ -106,6 +106,9 @@ def getConfParams(String platform, Boolean clean, Boolean noneFree)
         confParams.add("--server-addon lockstorage")
         confParams.add("--web-apps-addon mobile")
     }
+    if (params.extra_params) {
+        confParams.add(params.extra_params)
+    }
 
     return confParams.join(' ')
 }
