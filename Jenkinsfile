@@ -7,27 +7,27 @@ pipeline {
       name: 'clean'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build Linux x64 targets',
       name: 'linux_64'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build Windows x64 targets',
       name: 'win_64'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build Windows x86 targets',
       name: 'win_32'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build Windows XP x64 targets',
       name: 'win_64_xp'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build Windows XP x86 targets',
       name: 'win_32_xp'
     )
@@ -42,7 +42,7 @@ pipeline {
       name: 'desktopeditor'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build and publish DocumentBuilder packages',
       name: 'documentbuilder'
     )
@@ -80,7 +80,7 @@ pipeline {
       steps {
         script {
           def branchName = env.BRANCH_NAME
-          def productVersion = "5.4.99"
+          def productVersion = "5.5.99"
           def pV = branchName =~ /^(release|hotfix)\\/v(.*)$/
           if(pV.find()) {
             productVersion = pV.group(2)
