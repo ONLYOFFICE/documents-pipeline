@@ -40,6 +40,7 @@ def getReposList()
     repos.add('sdkjs-content-controls')
     repos.add('sdkjs-plugins')
     repos.add('server')
+    repos.add('server-license')
     repos.add('server-lockstorage')
     repos.add('web-apps')
     repos.add('web-apps-mobile')
@@ -88,6 +89,7 @@ def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFre
     if (noneFree) {
         confParams = confParams.concat(" --sdkjs-addon comparison")
         confParams = confParams.concat(" --sdkjs-addon content-controls")
+        confParams = confParams.concat(" --server-addon license")
         confParams = confParams.concat(" --server-addon lockstorage")
         confParams = confParams.concat(" --web-apps-addon mobile")
     }
@@ -103,7 +105,7 @@ def linuxBuildDesktop(String platform = 'native')
 {
     sh "cd desktop-apps/win-linux/package/linux &&\
          make clean &&\
-         make deploy"
+         make deploy -e BRANDING_DIR=../../../../r7/desktop-apps/win-linux/package/linux"
     publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
@@ -123,7 +125,7 @@ def linuxBuildBuilder(String platform = 'native')
 {
     sh "cd document-builder-package &&\
          make clean &&\
-         make deploy"
+         make deploy -e BRANDING_DIR=../r7/document-builder-package"
 
     publishHTML([
             allowMissing: false,
@@ -145,7 +147,7 @@ def linuxBuildServer(String productName='documentserver')
     sh "cd document-server-package && \
         export PRODUCT_NAME=${productName} && \
         make clean && \
-        make deploy"
+        make deploy -e BRANDING_DIR=../r7/document-server-package"
 
     sh "cd Docker-DocumentServer && \
         export PRODUCT_NAME=${productName} && \
@@ -190,6 +192,7 @@ def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneF
     if (noneFree) {
         confParams = confParams.concat(" --sdkjs-addon comparison")
         confParams = confParams.concat(" --sdkjs-addon content-controls")
+        confParams = confParams.concat(" --server-addon license")
         confParams = confParams.concat(" --server-addon lockstorage")
         confParams = confParams.concat(" --web-apps-addon mobile")
     }
@@ -226,7 +229,7 @@ def windowsBuildBuilder(String platform)
 {
     bat "cd document-builder-package &&\
         mingw32-make clean &&\
-        mingw32-make deploy"
+        mingw32-make deploy -e BRANDING_DIR=../r7/document-builder-package"
 
     publishHTML([
             allowMissing: true,
@@ -248,7 +251,7 @@ def windowsBuildServer(String productName='DocumentServer')
     bat "cd document-server-package && \
         set \"PRODUCT_NAME=${productName}\" && \
         mingw32-make clean && \
-        mingw32-make deploy"
+        mingw32-make deploy -e BRANDING_DIR=../r7/document-server-package"
 
     return this
 }

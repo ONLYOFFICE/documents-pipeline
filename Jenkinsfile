@@ -2,7 +2,7 @@ pipeline {
   agent none
   parameters {
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Rebuild binaries from the \'core\' repo',
       name: 'clean'
     )
@@ -47,7 +47,7 @@ pipeline {
       name: 'documentbuilder'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build and publish DocumentServer packages',
       name: 'documentserver'
     )
@@ -57,7 +57,7 @@ pipeline {
       name: 'documentserver_ie'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Build and publish DocumentServer-DE packages',
       name: 'documentserver_de'
     )
@@ -66,21 +66,30 @@ pipeline {
       description: 'Run test(Only on Linux)',
       name: 'test'
     )
+    booleanParam (
+      defaultValue: true,
+      description: 'Sign installer(Only on Windows)',
+      name: 'signing'
+    )
   }
   triggers {
-    cron('H 20 * * *')
+    cron('H 17 * * *')
   }
   stages {
     stage('Prepare') {
       steps {
         script {
           def branchName = env.BRANCH_NAME
-          def productVersion = "1.4.99"
-          def pV = branchName =~ /^(release|hotfix)\\/v[\d]+.(.*)$/
+          def productVersion = "5.4.99"
+          def pV = branchName =~ /^(release|hotfix)\\/v(.*)$/
           if(pV.find()) {
-            productVersion = "1." + pV.group(2)
+            productVersion = pV.group(2)
           }
           env.PRODUCT_VERSION = productVersion
+
+          if( params.signing ) {
+            env.ENABLE_SIGNING=1
+          }
         }
         script {
           env.COMPANY_NAME = "R7-Office"
