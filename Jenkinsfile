@@ -76,6 +76,11 @@ pipeline {
       description: 'Sign installer(Only on Windows)',
       name: 'signing'
     )
+    string (
+      defaultValue: '',
+      description: 'configure.py extra params',
+      name: 'extra_params'
+    )
   }
   triggers {
     cron('H 17 * * *')
