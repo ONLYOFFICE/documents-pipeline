@@ -2,6 +2,11 @@ pipeline {
   agent none
   parameters {
     booleanParam (
+      defaultValue: false,
+      description: 'Wipe out current workspace',
+      name: 'wipe'
+    )
+    booleanParam (
       defaultValue: true,
       description: 'Rebuild binaries from the \'core\' repo',
       name: 'clean'
@@ -71,6 +76,11 @@ pipeline {
       description: 'Sign installer(Only on Windows)',
       name: 'signing'
     )
+    string (
+      defaultValue: '',
+      description: 'configure.py extra params',
+      name: 'extra_params'
+    )
   }
   triggers {
     cron('H 17 * * *')
@@ -102,6 +112,10 @@ pipeline {
               def utils = load "utils.groovy"
               
               if ( params.linux_64 ) {
+                if ( params.wipe ) {
+                  deleteDir()
+                }
+
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "linux_64"
@@ -154,6 +168,10 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_64 ) {
+                if ( params.wipe ) {
+                  deleteDir()
+                }
+
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "win_64"
@@ -194,6 +212,10 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_32 ) {
+                if ( params.wipe ) {
+                  deleteDir()
+                }
+
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "win_32"
@@ -225,6 +247,10 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_64_xp ) {
+                if ( params.wipe ) {
+                  deleteDir()
+                }
+
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "win_64_xp"
@@ -250,6 +276,10 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               if ( params.win_32_xp ) {
+                if ( params.wipe ) {
+                  deleteDir()
+                }
+
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "win_32_xp"
