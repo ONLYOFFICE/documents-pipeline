@@ -81,25 +81,54 @@ def tagRepos(String tag)
 
     return this
 }
-def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
-{
-    String confParams = "\
-        --module \"desktop builder core server\"\
-        --platform ${platform}\
-        --update false\
-        --clean ${clean.toString()}\
-        --qt-dir \$QT_PATH"
 
-    if (noneFree) {
-        confParams = confParams.concat(" --sdkjs-addon comparison")
-        confParams = confParams.concat(" --sdkjs-addon content-controls")
-        confParams = confParams.concat(" --server-addon license")
-        confParams = confParams.concat(" --server-addon lockstorage")
-        confParams = confParams.concat(" --web-apps-addon mobile")
+def getConfParams(String platform, Boolean clean, Boolean noneFree)
+{
+    def modules = []
+    if (params.core) {
+        modules.add('core')
+    }
+    if (params.desktopeditor) {
+        modules.add('desktop')
+    }
+    if (params.documentbuilder) {
+        modules.add('builder')
+    }
+    if (params.documentserver||params.documentserver_ie||params.documentserver_de) {
+        modules.add('server')
+    }
+    if (platform.startsWith("win")) {
+        modules.add('tests')
+        modules.add('updmodule')
     }
 
+    def confParams = []
+    confParams.add("--module \"${modules.join(' ')}\"")
+    confParams.add("--platform ${platform}")
+    confParams.add("--update false")
+    confParams.add("--clean ${clean.toString()}")
+    confParams.add("--qt-dir ${env.QT_PATH}")
+    if (platform.endsWith("_xp")) {
+        confParams.add("--qt-dir-xp ${env.QT56_PATH}")
+    }
+    if (noneFree) {
+        confParams.add("--sdkjs-addon comparison")
+        confParams.add("--sdkjs-addon content-controls")
+        confParams.add("--server-addon license")
+        confParams.add("--server-addon lockstorage")
+        confParams.add("--web-apps-addon mobile")
+    }
+    if (params.extra_params) {
+        confParams.add(params.extra_params)
+    }
+
+    return confParams.join(' ')
+}
+
+def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
+{
     sh "cd build_tools && \
-        ./configure.py ${confParams} &&\
+        ./configure.py ${getConfParams(platform, clean, noneFree)} &&\
         ./make.py"
 
     return this
@@ -159,6 +188,18 @@ def linuxBuildServer(String productName='documentserver')
         make clean && \
         make deploy"
 
+    publishHTML([
+            allowMissing: true,
+            alwaysLinkToLastBuild: false,
+            includes: 'index.html',
+            keepAll: true,
+            reportDir: 'document-server-package',
+            reportFiles: 'index.html',
+            reportName: "DocumentServer(${platform})",
+            reportTitles: ''
+        ]
+    )
+
     return this
 }
 
@@ -183,24 +224,8 @@ def linuxTest()
 
 def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
 {
-    String confParams = "\
-        --module \"desktop builder core tests updmodule server\"\
-        --platform ${platform}\
-        --update false\
-        --clean ${clean.toString()}\
-        --qt-dir %QT_PATH%\
-        --qt-dir-xp %QT56_PATH%"
-
-    if (noneFree) {
-        confParams = confParams.concat(" --sdkjs-addon comparison")
-        confParams = confParams.concat(" --sdkjs-addon content-controls")
-        confParams = confParams.concat(" --server-addon license")
-        confParams = confParams.concat(" --server-addon lockstorage")
-        confParams = confParams.concat(" --web-apps-addon mobile")
-    }
-
     bat "cd build_tools &&\
-            call python configure.py ${confParams} &&\
+            call python configure.py ${getConfParams(platform, clean, noneFree)} &&\
             call python make.py"
 
     return this
@@ -254,6 +279,18 @@ def windowsBuildServer(String productName='DocumentServer')
         set \"PRODUCT_NAME=${productName}\" && \
         mingw32-make clean && \
         mingw32-make deploy"
+
+    publishHTML([
+            allowMissing: true,
+            alwaysLinkToLastBuild: false,
+            includes: 'index.html',
+            keepAll: true,
+            reportDir: 'document-server-package',
+            reportFiles: 'index.html',
+            reportName: "DocumentServer(${platform})",
+            reportTitles: ''
+        ]
+    )
 
     return this
 }
