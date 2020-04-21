@@ -107,6 +107,10 @@ pipeline {
       parallel {
         stage('Linux 64-bit build') {
           agent { label 'linux_64' }
+          when {
+            expression { params.linux_64 }
+            beforeAgent true
+          }
           steps {
             script {
               def utils = load "utils.groovy"
@@ -164,6 +168,10 @@ pipeline {
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64"
             }
           }
+          when {
+            expression { params.win_64 }
+            beforeAgent true
+          }
           steps {
             script {
               def utils = load "utils.groovy"
@@ -208,6 +216,10 @@ pipeline {
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32"
             }
           }
+          when {
+            expression { params.win_32 }
+            beforeAgent true
+          }
           steps {
             script {
               def utils = load "utils.groovy"
@@ -240,6 +252,10 @@ pipeline {
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64_xp"
             }
           }
+          when {
+            expression { params.win_64_xp }
+            beforeAgent true
+          }
           environment {
             _WIN_XP = '1'
           }
@@ -268,6 +284,10 @@ pipeline {
               label 'win_32_xp'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32_xp"
             }
+          }
+          when {
+            expression { params.win_32_xp }
+            beforeAgent true
           }
           environment {
             _WIN_XP = '1'
