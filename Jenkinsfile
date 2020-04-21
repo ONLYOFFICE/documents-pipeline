@@ -115,48 +115,46 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               
-              if ( params.linux_64 ) {
-                if ( params.wipe ) {
-                  deleteDir()
-                }
+              if ( params.wipe ) {
+                deleteDir()
+              }
 
-                utils.checkoutRepos(env.BRANCH_NAME)
+              utils.checkoutRepos(env.BRANCH_NAME)
 
-                String platform = "linux_64"
-                Boolean clean = params.clean
-                if ( params.core
-                     || params.documentbuilder
-                     || params.desktopeditor
-                     || params.documentserver
-                     ) {
-                  utils.linuxBuild(platform, clean, false)
-                  clean = false
+              String platform = "linux_64"
+              Boolean clean = params.clean
+              if ( params.core
+                   || params.documentbuilder
+                   || params.desktopeditor
+                   || params.documentserver
+                   ) {
+                utils.linuxBuild(platform, clean, false)
+                clean = false
+              }
+              if ( params.core ) {
+                utils.linuxBuildCore()
+              }
+              if ( params.documentbuilder ) {
+                utils.linuxBuildBuilder(platform)
+              }
+              if ( params.desktopeditor ) {
+                utils.linuxBuildDesktop(platform)
+              }
+              if ( params.documentserver ) {
+                utils.linuxBuildServer()
+              }
+              if ( params.documentserver_ie || params.documentserver_de ) {
+                utils.linuxBuild(platform, clean, true)
+                if ( params.documentserver_ie ) {
+                  utils.linuxBuildServer("documentserver-ie")
+                  utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
                 }
-                if ( params.core ) {
-                  utils.linuxBuildCore()
+                if ( params.documentserver_de ) {
+                  utils.linuxBuildServer("documentserver-de")
                 }
-                if ( params.documentbuilder ) {
-                  utils.linuxBuildBuilder(platform)
-                }
-                if ( params.desktopeditor ) {
-                  utils.linuxBuildDesktop(platform)
-                }
-                if ( params.documentserver ) {
-                  utils.linuxBuildServer()
-                }
-                if ( params.documentserver_ie || params.documentserver_de ) {
-                  utils.linuxBuild(platform, clean, true)
-                  if ( params.documentserver_ie ) {
-                    utils.linuxBuildServer("documentserver-ie")
-                    utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
-                  }
-                  if ( params.documentserver_de ) {
-                    utils.linuxBuildServer("documentserver-de")
-                  }
-                }
-                if ( params.test ) {
-                  utils.linuxTest()
-                }
+              }
+              if ( params.test ) {
+                utils.linuxTest()
               }
             }
           }
@@ -175,35 +173,34 @@ pipeline {
           steps {
             script {
               def utils = load "utils.groovy"
-              if ( params.win_64 ) {
-                if ( params.wipe ) {
-                  deleteDir()
-                }
 
-                utils.checkoutRepos(env.BRANCH_NAME)
+              if ( params.wipe ) {
+                deleteDir()
+              }
 
-                String platform = "win_64"
-                utils.windowsBuild(platform, params.clean, false)
-                if ( params.core ) {
-                  utils.windowsBuildCore(platform)
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "win_64"
+              utils.windowsBuild(platform, params.clean, false)
+              if ( params.core ) {
+                utils.windowsBuildCore(platform)
+              }
+              if ( params.documentbuilder ) {
+                utils.windowsBuildBuilder(platform)
+              }
+              if ( params.desktopeditor ) {
+                utils.windowsBuildDesktop(platform)
+              }
+              if ( params.documentserver ) {
+                utils.windowsBuildServer()
+              }
+              if ( params.documentserver_ie || params.documentserver_de ) {
+                utils.windowsBuild(platform, false, true)
+                if ( params.documentserver_ie ) {
+                  utils.windowsBuildServer("DocumentServer-IE")
                 }
-                if ( params.documentbuilder ) {
-                  utils.windowsBuildBuilder(platform)
-                }
-                if ( params.desktopeditor ) {
-                  utils.windowsBuildDesktop(platform)
-                }
-                if ( params.documentserver ) {
-                  utils.windowsBuildServer()
-                }
-                if ( params.documentserver_ie || params.documentserver_de ) {
-                  utils.windowsBuild(platform, false, true)
-                  if ( params.documentserver_ie ) {
-                    utils.windowsBuildServer("DocumentServer-IE")
-                  }
-                  if ( params.documentserver_de ) {
-                    utils.windowsBuildServer("DocumentServer-DE")
-                  }
+                if ( params.documentserver_de ) {
+                  utils.windowsBuildServer("DocumentServer-DE")
                 }
               }
             }
@@ -223,24 +220,23 @@ pipeline {
           steps {
             script {
               def utils = load "utils.groovy"
-              if ( params.win_32 ) {
-                if ( params.wipe ) {
-                  deleteDir()
-                }
 
-                utils.checkoutRepos(env.BRANCH_NAME)
+              if ( params.wipe ) {
+                deleteDir()
+              }
 
-                String platform = "win_32"
-                utils.windowsBuild(platform, params.clean, false)
-                if ( params.core ) {
-                  utils.windowsBuildCore(platform)
-                }
-                if ( params.documentbuilder ) {
-                  utils.windowsBuildBuilder(platform)
-                }
-                if ( params.desktopeditor ) {
-                  utils.windowsBuildDesktop(platform)
-                }
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "win_32"
+              utils.windowsBuild(platform, params.clean, false)
+              if ( params.core ) {
+                utils.windowsBuildCore(platform)
+              }
+              if ( params.documentbuilder ) {
+                utils.windowsBuildBuilder(platform)
+              }
+              if ( params.desktopeditor ) {
+                utils.windowsBuildDesktop(platform)
               }
             }
           }
@@ -262,18 +258,17 @@ pipeline {
           steps {
             script {
               def utils = load "utils.groovy"
-              if ( params.win_64_xp ) {
-                if ( params.wipe ) {
-                  deleteDir()
-                }
 
-                utils.checkoutRepos(env.BRANCH_NAME)
+              if ( params.wipe ) {
+                deleteDir()
+              }
 
-                String platform = "win_64_xp"
-                utils.windowsBuild(platform, params.clean, false)
-                if ( params.desktopeditor ) {
-                  utils.windowsBuildDesktop(platform)
-                }
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "win_64_xp"
+              utils.windowsBuild(platform, params.clean, false)
+              if ( params.desktopeditor ) {
+                utils.windowsBuildDesktop(platform)
               }
             }
           }
@@ -295,18 +290,17 @@ pipeline {
           steps {
             script {
               def utils = load "utils.groovy"
-              if ( params.win_32_xp ) {
-                if ( params.wipe ) {
-                  deleteDir()
-                }
 
-                utils.checkoutRepos(env.BRANCH_NAME)
+              if ( params.wipe ) {
+                deleteDir()
+              }
 
-                String platform = "win_32_xp"
-                utils.windowsBuild(platform, params.clean, false)
-                if ( params.desktopeditor ) {
-                  utils.windowsBuildDesktop(platform)
-                }
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "win_32_xp"
+              utils.windowsBuild(platform, params.clean, false)
+              if ( params.desktopeditor ) {
+                utils.windowsBuildDesktop(platform)
               }
             }
           }
