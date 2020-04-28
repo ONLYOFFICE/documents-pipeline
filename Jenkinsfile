@@ -2,7 +2,7 @@ pipeline {
   agent none
   parameters {
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Rebuild binaries from the \'core\' repo',
       name: 'clean'
     )
@@ -262,7 +262,7 @@ pipeline {
                 utils.checkoutRepos(env.BRANCH_NAME)
 
                 String platform = "win_32_xp"
-                utils.windowsBuild(platform, params.clean, false)
+                utils.windowsBuild(platform, params.clean, true)
                 if ( params.desktopeditor ) {
                   utils.windowsBuildDesktop(platform)
                 }
