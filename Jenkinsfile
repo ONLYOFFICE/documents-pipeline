@@ -12,12 +12,12 @@ pipeline {
       name: 'clean'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Linux x64 targets',
       name: 'linux_64'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Windows x64 targets',
       name: 'win_64'
     )
