@@ -141,16 +141,16 @@ pipeline {
                 utils.linuxBuildDesktop(platform)
               }
               if ( params.documentserver ) {
-                utils.linuxBuildServer()
+                utils.linuxBuildServer(platform)
               }
               if ( params.documentserver_ie || params.documentserver_de ) {
                 utils.linuxBuild(platform, clean, true)
                 if ( params.documentserver_ie ) {
-                  utils.linuxBuildServer("documentserver-ie")
+                  utils.linuxBuildServer(platform, "documentserver-ie")
                   utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
                 }
                 if ( params.documentserver_de ) {
-                  utils.linuxBuildServer("documentserver-de")
+                  utils.linuxBuildServer(platform, "documentserver-de")
                 }
               }
               if ( params.test ) {
@@ -192,15 +192,15 @@ pipeline {
                 utils.windowsBuildDesktop(platform)
               }
               if ( params.documentserver ) {
-                utils.windowsBuildServer()
+                utils.windowsBuildServer(platform)
               }
               if ( params.documentserver_ie || params.documentserver_de ) {
                 utils.windowsBuild(platform, false, true)
                 if ( params.documentserver_ie ) {
-                  utils.windowsBuildServer("DocumentServer-IE")
+                  utils.windowsBuildServer(platform, "DocumentServer-IE")
                 }
                 if ( params.documentserver_de ) {
-                  utils.windowsBuildServer("DocumentServer-DE")
+                  utils.windowsBuildServer(platform, "DocumentServer-DE")
                 }
               }
             }
