@@ -164,7 +164,7 @@ def linuxBuildBuilder(String platform = 'native')
     return this
 }
 
-def linuxBuildServer(String productName='documentserver')
+def linuxBuildServer(String platform = 'native', String productName='documentserver')
 {
     sh "cd document-server-package && \
         export PRODUCT_NAME=${productName} && \
@@ -261,7 +261,7 @@ def windowsBuildBuilder(String platform)
     return this
 }
 
-def windowsBuildServer(String productName='DocumentServer')
+def windowsBuildServer(String platform = 'native', String productName='DocumentServer')
 {
     bat "cd document-server-package && \
         set \"PRODUCT_NAME=${productName}\" && \
