@@ -205,7 +205,7 @@ def linuxBuildCore()
 
 def linuxTest()
 {
-    checkoutRepo('doc-builder-testing')
+    checkoutRepo('doc-builder-testing', 'master', 'doc-builder-testing')
     sh "docker rmi doc-builder-testing || true"
     sh "cd doc-builder-testing &&\
         docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
