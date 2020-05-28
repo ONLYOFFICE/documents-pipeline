@@ -1,4 +1,4 @@
-def checkoutRepo(String repo, String branch = 'master', String company = 'ONLYOFFICE') {
+def checkoutRepo(String repo, String branch = 'master', String dir, String company = 'ONLYOFFICE') {
     checkout([
             $class: 'GitSCM',
             branches: [[
@@ -8,7 +8,7 @@ def checkoutRepo(String repo, String branch = 'master', String company = 'ONLYOF
             doGenerateSubmoduleConfigurations: false,
             extensions: [[
                     $class: 'RelativeTargetDirectory',
-                    relativeTargetDir: repo
+                    relativeTargetDir: dir
                 ]
             ],
             submoduleCfg: [],
@@ -39,6 +39,8 @@ def getReposList()
     repos.add('sdkjs-comparison')
     repos.add('sdkjs-content-controls')
     repos.add('sdkjs-plugins')
+    repos.add('plugin-zotero')
+    repos.add('plugin-mendeley')
     repos.add('server')
     repos.add('server-license')
     repos.add('server-lockstorage')
@@ -52,12 +54,9 @@ def getReposList()
 def checkoutRepos(String branch = 'master')
 {    
     for (repo in getReposList()) {
-        if( repo != 'r7' ) {
-            checkoutRepo(repo, branch)
-        }
-        else {
-            checkoutRepo(repo, branch, 'ASC-OFFICE')
-        }
+        String dir = !repo.startsWith("plugin-") ? repo : "sdkjs-plugins/${repo}"
+        String company = (repo != "r7") ? "ONLYOFFICE" : "ASC-OFFICE"
+        checkoutRepo(repo, branch, dir, company)
     }
 
     return this
@@ -66,7 +65,8 @@ def checkoutRepos(String branch = 'master')
 def tagRepos(String tag)
 {
     for (repo in getReposList()) {
-        sh "cd ${repo} && \
+        String dir = !repo.startsWith("plugin-") ? repo : "sdkjs-plugins/${repo}"
+        sh "cd ${dir} && \
             git tag -l | xargs git tag -d && \
             git fetch --tags && \
             git tag ${tag} && \
@@ -75,27 +75,54 @@ def tagRepos(String tag)
 
     return this
 }
-def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
-{
-    String confParams = "\
-        --module \"desktop builder core server\"\
-        --platform ${platform}\
-        --update false\
-        --branding r7\
-        --branding-name r7-office\
-        --clean ${clean.toString()}\
-        --qt-dir \$QT_PATH"
 
-    if (noneFree) {
-        confParams = confParams.concat(" --sdkjs-addon comparison")
-        confParams = confParams.concat(" --sdkjs-addon content-controls")
-        confParams = confParams.concat(" --server-addon license")
-        confParams = confParams.concat(" --server-addon lockstorage")
-        confParams = confParams.concat(" --web-apps-addon mobile")
+def getConfParams(String platform, Boolean clean, Boolean noneFree)
+{
+    def modules = []
+    if (params.core) {
+        modules.add('core')
+    }
+    if (params.desktopeditor) {
+        modules.add('desktop')
+    }
+    if (params.documentbuilder) {
+        modules.add('builder')
+    }
+    if (params.documentserver||params.documentserver_ie||params.documentserver_de) {
+        modules.add('server')
+    }
+    if (platform.startsWith("win")) {
+        modules.add('tests')
+        modules.add('updmodule')
     }
 
+    def confParams = []
+    confParams.add("--module \"${modules.join(' ')}\"")
+    confParams.add("--platform ${platform}")
+    confParams.add("--update false")
+    confParams.add("--clean ${clean.toString()}")
+    confParams.add("--qt-dir ${env.QT_PATH}")
+    if (platform.endsWith("_xp")) {
+        confParams.add("--qt-dir-xp ${env.QT56_PATH}")
+    }
+    if (noneFree) {
+        confParams.add("--sdkjs-addon comparison")
+        confParams.add("--sdkjs-addon content-controls")
+        confParams.add("--server-addon license")
+        confParams.add("--server-addon lockstorage")
+        confParams.add("--web-apps-addon mobile")
+    }
+    if (params.extra_params) {
+        confParams.add(params.extra_params)
+    }
+
+    return confParams.join(' ')
+}
+
+def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
+{
     sh "cd build_tools && \
-        ./configure.py ${confParams} &&\
+        ./configure.py ${getConfParams(platform, clean, noneFree)} &&\
         ./make.py"
 
     return this
@@ -142,7 +169,7 @@ def linuxBuildBuilder(String platform = 'native')
     return this
 }
 
-def linuxBuildServer(String productName='documentserver')
+def linuxBuildServer(String platform = 'native', String productName='documentserver')
 {
     sh "cd document-server-package && \
         export PRODUCT_NAME=${productName} && \
@@ -154,6 +181,18 @@ def linuxBuildServer(String productName='documentserver')
         export ONLYOFFICE_VALUE=ds && \
         make clean && \
         make deploy"
+
+    publishHTML([
+            allowMissing: true,
+            alwaysLinkToLastBuild: false,
+            includes: 'index.html',
+            keepAll: true,
+            reportDir: 'document-server-package',
+            reportFiles: 'index.html',
+            reportName: "DocumentServer(${platform})",
+            reportTitles: ''
+        ]
+    )
 
     return this
 }
@@ -168,7 +207,7 @@ def linuxBuildCore()
 
 def linuxTest()
 {
-    checkoutRepo('doc-builder-testing')
+    checkoutRepo('doc-builder-testing', 'master', 'doc-builder-testing')
     sh "docker rmi doc-builder-testing || true"
     sh "cd doc-builder-testing &&\
         docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
@@ -179,26 +218,8 @@ def linuxTest()
 
 def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
 {
-    String confParams = "\
-        --module \"desktop builder core tests updmodule server\"\
-        --platform ${platform}\
-        --update false\
-        --branding r7\
-        --branding-name R7-Office\
-        --clean ${clean.toString()}\
-        --qt-dir %QT_PATH%\
-        --qt-dir-xp %QT56_PATH%"
-
-    if (noneFree) {
-        confParams = confParams.concat(" --sdkjs-addon comparison")
-        confParams = confParams.concat(" --sdkjs-addon content-controls")
-        confParams = confParams.concat(" --server-addon license")
-        confParams = confParams.concat(" --server-addon lockstorage")
-        confParams = confParams.concat(" --web-apps-addon mobile")
-    }
-
     bat "cd build_tools &&\
-            call python configure.py ${confParams} &&\
+            call python configure.py ${getConfParams(platform, clean, noneFree)} &&\
             call python make.py"
 
     return this
@@ -246,12 +267,24 @@ def windowsBuildBuilder(String platform)
     return this
 }
 
-def windowsBuildServer(String productName='DocumentServer')
+def windowsBuildServer(String platform = 'native', String productName='DocumentServer')
 {
     bat "cd document-server-package && \
         set \"PRODUCT_NAME=${productName}\" && \
         mingw32-make clean && \
         mingw32-make deploy -e BRANDING_DIR=../r7/document-server-package"
+
+    publishHTML([
+            allowMissing: true,
+            alwaysLinkToLastBuild: false,
+            includes: 'index.html',
+            keepAll: true,
+            reportDir: 'document-server-package',
+            reportFiles: 'index.html',
+            reportName: "DocumentServer(${platform})",
+            reportTitles: ''
+        ]
+    )
 
     return this
 }
