@@ -2,17 +2,22 @@ pipeline {
   agent none
   parameters {
     booleanParam (
+      defaultValue: false,
+      description: 'Wipe out current workspace',
+      name: 'wipe'
+    )
+    booleanParam (
       defaultValue: true,
       description: 'Rebuild binaries from the \'core\' repo',
       name: 'clean'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Linux x64 targets',
       name: 'linux_64'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Windows x64 targets',
       name: 'win_64'
     )
@@ -71,6 +76,11 @@ pipeline {
       description: 'Sign installer(Only on Windows)',
       name: 'signing'
     )
+    string (
+      defaultValue: '',
+      description: 'configure.py extra params',
+      name: 'extra_params'
+    )
   }
   triggers {
     cron('H 17 * * *')
@@ -104,50 +114,56 @@ pipeline {
       parallel {
         stage('Linux 64-bit build') {
           agent { label 'linux_64' }
+          when {
+            expression { params.linux_64 }
+            beforeAgent true
+          }
           steps {
             script {
               def utils = load "utils.groovy"
               
-              if ( params.linux_64 ) {
-                utils.checkoutRepos(env.BRANCH_NAME)
+              if ( params.wipe ) {
+                deleteDir()
+              }
 
-                String platform = "linux_64"
-                Boolean clean = params.clean
-                if ( params.core
-                     || params.documentbuilder
-                     || params.desktopeditor
-                     || params.documentserver
-                     ) {
-                  utils.linuxBuild(platform, clean, true)
-                  clean = false
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "linux_64"
+              Boolean clean = params.clean
+              if ( params.core
+                   || params.documentbuilder
+                   || params.desktopeditor
+                   || params.documentserver
+                   ) {
+                utils.linuxBuild(platform, clean, true)
+                clean = false
+              }
+              if ( params.core ) {
+                utils.linuxBuildCore()
+              }
+              if ( params.documentbuilder ) {
+                utils.linuxBuildBuilder(platform)
+              }
+              if ( params.desktopeditor ) {
+                utils.linuxBuildDesktop(platform)
+              }
+              if ( params.documentserver ) {
+                utils.linuxBuildServer(platform)
+              }
+              if ( params.documentserver_ie || params.documentserver_de ) {
+                utils.linuxBuild(platform, clean, true)
+                if ( params.documentserver_ie ) {
+                  utils.linuxBuildServer(platform, "documentserver-ie")
+                  /*
+                  utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
+                  */
                 }
-                if ( params.core ) {
-                  utils.linuxBuildCore()
+                if ( params.documentserver_de ) {
+                  utils.linuxBuildServer(platform, "documentserver-de")
                 }
-                if ( params.documentbuilder ) {
-                  utils.linuxBuildBuilder(platform)
-                }
-                if ( params.desktopeditor ) {
-                  utils.linuxBuildDesktop(platform)
-                }
-                if ( params.documentserver ) {
-                  utils.linuxBuildServer()
-                }
-                if ( params.documentserver_ie || params.documentserver_de ) {
-                  utils.linuxBuild(platform, clean, true)
-                  if ( params.documentserver_ie ) {
-                    utils.linuxBuildServer("documentserver-ie")
-                    /*
-                    utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
-                    */
-                  }
-                  if ( params.documentserver_de ) {
-                    utils.linuxBuildServer("documentserver-de")
-                  }
-                }
-                if ( params.test ) {
-                  utils.linuxTest()
-                }
+              }
+              if ( params.test ) {
+                utils.linuxTest()
               }
             }
           }
@@ -159,34 +175,41 @@ pipeline {
               customWorkspace "C:\\r7\\${env.BRANCH_NAME}\\win_64"
             }
           }
+          when {
+            expression { params.win_64 }
+            beforeAgent true
+          }
           steps {
             script {
               def utils = load "utils.groovy"
-              if ( params.win_64 ) {
-                utils.checkoutRepos(env.BRANCH_NAME)
 
-                String platform = "win_64"
-                utils.windowsBuild(platform, params.clean, true)
-                if ( params.core ) {
-                  utils.windowsBuildCore(platform)
+              if ( params.wipe ) {
+                deleteDir()
+              }
+
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "win_64"
+              utils.windowsBuild(platform, params.clean, true)
+              if ( params.core ) {
+                utils.windowsBuildCore(platform)
+              }
+              if ( params.documentbuilder ) {
+                utils.windowsBuildBuilder(platform)
+              }
+              if ( params.desktopeditor ) {
+                utils.windowsBuildDesktop(platform)
+              }
+              if ( params.documentserver ) {
+                utils.windowsBuildServer(platform)
+              }
+              if ( params.documentserver_ie || params.documentserver_de ) {
+                utils.windowsBuild(platform, false, true)
+                if ( params.documentserver_ie ) {
+                  utils.windowsBuildServer(platform, "DocumentServer-IE")
                 }
-                if ( params.documentbuilder ) {
-                  utils.windowsBuildBuilder(platform)
-                }
-                if ( params.desktopeditor ) {
-                  utils.windowsBuildDesktop(platform)
-                }
-                if ( params.documentserver ) {
-                  utils.windowsBuildServer()
-                }
-                if ( params.documentserver_ie || params.documentserver_de ) {
-                  utils.windowsBuild(platform, false, true)
-                  if ( params.documentserver_ie ) {
-                    utils.windowsBuildServer("DocumentServer-IE")
-                  }
-                  if ( params.documentserver_de ) {
-                    utils.windowsBuildServer("DocumentServer-DE")
-                  }
+                if ( params.documentserver_de ) {
+                  utils.windowsBuildServer(platform, "DocumentServer-DE")
                 }
               }
             }
@@ -199,23 +222,30 @@ pipeline {
               customWorkspace "C:\\r7\\${env.BRANCH_NAME}\\win_32"
             }
           }
+          when {
+            expression { params.win_32 }
+            beforeAgent true
+          }
           steps {
             script {
               def utils = load "utils.groovy"
-              if ( params.win_32 ) {
-                utils.checkoutRepos(env.BRANCH_NAME)
 
-                String platform = "win_32"
-                utils.windowsBuild(platform, params.clean, true)
-                if ( params.core ) {
-                  utils.windowsBuildCore(platform)
-                }
-                if ( params.documentbuilder ) {
-                  utils.windowsBuildBuilder(platform)
-                }
-                if ( params.desktopeditor ) {
-                  utils.windowsBuildDesktop(platform)
-                }
+              if ( params.wipe ) {
+                deleteDir()
+              }
+
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "win_32"
+              utils.windowsBuild(platform, params.clean, true)
+              if ( params.core ) {
+                utils.windowsBuildCore(platform)
+              }
+              if ( params.documentbuilder ) {
+                utils.windowsBuildBuilder(platform)
+              }
+              if ( params.desktopeditor ) {
+                utils.windowsBuildDesktop(platform)
               }
             }
           }
@@ -227,20 +257,27 @@ pipeline {
               customWorkspace "C:\\x8\\${env.BRANCH_NAME}"
             }
           }
+          when {
+            expression { params.win_64_xp }
+            beforeAgent true
+          }
           environment {
             _WIN_XP = '1'
           }
           steps {
             script {
               def utils = load "utils.groovy"
-              if ( params.win_64_xp ) {
-                utils.checkoutRepos(env.BRANCH_NAME)
 
-                String platform = "win_64_xp"
-                utils.windowsBuild(platform, params.clean, true)
-                if ( params.desktopeditor ) {
-                  utils.windowsBuildDesktop(platform)
-                }
+              if ( params.wipe ) {
+                deleteDir()
+              }
+
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "win_64_xp"
+              utils.windowsBuild(platform, params.clean, true)
+              if ( params.desktopeditor ) {
+                utils.windowsBuildDesktop(platform)
               }
             }
           }
@@ -252,20 +289,27 @@ pipeline {
               customWorkspace "C:\\x4\\${env.BRANCH_NAME}"
             }
           }
+          when {
+            expression { params.win_32_xp }
+            beforeAgent true
+          }
           environment {
             _WIN_XP = '1'
           }
           steps {
             script {
               def utils = load "utils.groovy"
-              if ( params.win_32_xp ) {
-                utils.checkoutRepos(env.BRANCH_NAME)
 
-                String platform = "win_32_xp"
-                utils.windowsBuild(platform, params.clean, true)
-                if ( params.desktopeditor ) {
-                  utils.windowsBuildDesktop(platform)
-                }
+              if ( params.wipe ) {
+                deleteDir()
+              }
+
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "win_32_xp"
+              utils.windowsBuild(platform, params.clean, true)
+              if ( params.desktopeditor ) {
+                utils.windowsBuildDesktop(platform)
               }
             }
           }
