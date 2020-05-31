@@ -126,6 +126,9 @@ def getConfParams(String platform, Boolean clean, Boolean noneFree)
         confParams.add(params.extra_params)
     }
 
+    confParams.add("--branding r7")
+    confParams.add("--branding-name r7-office")
+
     return confParams.join(' ')
 }
 
