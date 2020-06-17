@@ -117,6 +117,9 @@ def getConfParams(String platform, Boolean clean, Boolean noneFree)
     if (noneFree) {
         confParams.add("--sdkjs-addon comparison")
         confParams.add("--sdkjs-addon content-controls")
+        if (params.desktopeditor) {
+            confParams.add("--sdkjs-addon disable-features")
+        }
         confParams.add("--server-addon license")
         confParams.add("--server-addon lockstorage")
         confParams.add("--web-apps-addon mobile")
