@@ -138,9 +138,11 @@ pipeline {
                 utils.linuxBuildBuilder(platform)
               }
               if ( params.desktopeditor ) {
+                utils.linuxBuild(platform, clean, "freemium")
                 utils.linuxBuildDesktop(platform)
               }
               if ( params.documentserver ) {
+                utils.linuxBuild(platform, clean)
                 utils.linuxBuildServer(platform)
               }
               if ( params.documentserver_ie || params.documentserver_de ) {
@@ -189,9 +191,11 @@ pipeline {
                 utils.windowsBuildBuilder(platform)
               }
               if ( params.desktopeditor ) {
+                utils.windowsBuild(platform, false, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
               if ( params.documentserver ) {
+                utils.windowsBuild(platform, false)
                 utils.windowsBuildServer(platform)
               }
               if ( params.documentserver_ie || params.documentserver_de ) {
@@ -236,6 +240,7 @@ pipeline {
                 utils.windowsBuildBuilder(platform)
               }
               if ( params.desktopeditor ) {
+                utils.windowsBuild(platform, false, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
             }
@@ -266,7 +271,7 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_64_xp"
-              utils.windowsBuild(platform, params.clean)
+              utils.windowsBuild(platform, params.clean, "freemium")
               if ( params.desktopeditor ) {
                 utils.windowsBuildDesktop(platform)
               }
@@ -298,7 +303,7 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_32_xp"
-              utils.windowsBuild(platform, params.clean)
+              utils.windowsBuild(platform, params.clean, "freemium")
               if ( params.desktopeditor ) {
                 utils.windowsBuildDesktop(platform)
               }
