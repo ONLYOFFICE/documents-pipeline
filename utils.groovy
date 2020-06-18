@@ -85,7 +85,7 @@ def tagRepos(String tag)
     return this
 }
 
-def getConfParams(String platform, Boolean clean, String [] addons)
+def getConfParams(String platform, Boolean clean, String license)
 {
     def modules = []
     if (params.core) {
@@ -114,10 +114,10 @@ def getConfParams(String platform, Boolean clean, String [] addons)
     if (platform.endsWith("_xp")) {
         confParams.add("--qt-dir-xp ${env.QT56_PATH}")
     }
-    if ("nonfree" in addons) {
+    if (license == "commercial" || license == "freemium") {
         confParams.add("--sdkjs-addon comparison")
         confParams.add("--sdkjs-addon content-controls")
-        if ("desktopeditor" in addons) {
+        if (license == "freemium") {
             confParams.add("--sdkjs-addon disable-features")
         }
         confParams.add("--server-addon license")
@@ -131,10 +131,10 @@ def getConfParams(String platform, Boolean clean, String [] addons)
     return confParams.join(' ')
 }
 
-def linuxBuild(String platform = 'native', Boolean clean = true, String [] addons = '')
+def linuxBuild(String platform = 'native', Boolean clean = true, String license = 'opensource')
 {
     sh "cd build_tools && \
-        ./configure.py ${getConfParams(platform, clean, addons)} &&\
+        ./configure.py ${getConfParams(platform, clean, license)} &&\
         ./make.py"
 
     return this
@@ -228,10 +228,10 @@ def linuxTest()
     return this
 }
 
-def windowsBuild(String platform = 'native', Boolean clean = true, String [] addons = '')
+def windowsBuild(String platform = 'native', Boolean clean = true, String license = 'opensource')
 {
     bat "cd build_tools &&\
-            call python configure.py ${getConfParams(platform, clean, addons)} &&\
+            call python configure.py ${getConfParams(platform, clean, license)} &&\
             call python make.py"
 
     return this

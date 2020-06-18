@@ -144,7 +144,7 @@ pipeline {
                 utils.linuxBuildServer(platform)
               }
               if ( params.documentserver_ie || params.documentserver_de ) {
-                utils.linuxBuild(platform, clean, "nonfree")
+                utils.linuxBuild(platform, clean, "commercial")
                 if ( params.documentserver_ie ) {
                   utils.linuxBuildServer(platform, "documentserver-ie")
                   utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
@@ -195,7 +195,7 @@ pipeline {
                 utils.windowsBuildServer(platform)
               }
               if ( params.documentserver_ie || params.documentserver_de ) {
-                utils.windowsBuild(platform, false, "nonfree")
+                utils.windowsBuild(platform, false, "commercial")
                 if ( params.documentserver_ie ) {
                   utils.windowsBuildServer(platform, "DocumentServer-IE")
                 }
