@@ -117,12 +117,12 @@ def getConfParams(String platform, Boolean clean, String license)
     if (license == "commercial" || license == "freemium") {
         confParams.add("--sdkjs-addon comparison")
         confParams.add("--sdkjs-addon content-controls")
-        if (license == "freemium") {
-            confParams.add("--sdkjs-addon disable-features")
-        }
         confParams.add("--server-addon license")
         confParams.add("--server-addon lockstorage")
         confParams.add("--web-apps-addon mobile")
+    }
+    if (license == "freemium") {
+        confParams.add("--sdkjs-addon disable-features")
     }
     if (params.extra_params) {
         confParams.add(params.extra_params)
