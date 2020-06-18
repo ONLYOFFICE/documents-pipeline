@@ -114,10 +114,10 @@ def getConfParams(String platform, Boolean clean, String [] addons)
     if (platform.endsWith("_xp")) {
         confParams.add("--qt-dir-xp ${env.QT56_PATH}")
     }
-    if (noneFree) {
+    if ("nonfree" in addons) {
         confParams.add("--sdkjs-addon comparison")
         confParams.add("--sdkjs-addon content-controls")
-        if (params.desktopeditor) {
+        if ("desktopeditor" in addons) {
             confParams.add("--sdkjs-addon disable-features")
         }
         confParams.add("--server-addon license")
