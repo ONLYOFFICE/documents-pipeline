@@ -85,7 +85,7 @@ def tagRepos(String tag)
     return this
 }
 
-def getConfParams(String platform, Boolean clean, Boolean noneFree)
+def getConfParams(String platform, Boolean clean, String [] addons)
 {
     def modules = []
     if (params.core) {
@@ -131,10 +131,10 @@ def getConfParams(String platform, Boolean clean, Boolean noneFree)
     return confParams.join(' ')
 }
 
-def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
+def linuxBuild(String platform = 'native', Boolean clean = true, String [] addons = '')
 {
     sh "cd build_tools && \
-        ./configure.py ${getConfParams(platform, clean, noneFree)} &&\
+        ./configure.py ${getConfParams(platform, clean, addons)} &&\
         ./make.py"
 
     return this
@@ -228,10 +228,10 @@ def linuxTest()
     return this
 }
 
-def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
+def windowsBuild(String platform = 'native', Boolean clean = true, String [] addons = '')
 {
     bat "cd build_tools &&\
-            call python configure.py ${getConfParams(platform, clean, noneFree)} &&\
+            call python configure.py ${getConfParams(platform, clean, addons)} &&\
             call python make.py"
 
     return this
