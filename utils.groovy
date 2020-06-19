@@ -34,7 +34,6 @@ def getReposList()
     repos.add('document-builder-package')
     repos.add('document-server-integration')
     repos.add('document-server-package')
-    repos.add('r7')
     repos.add('plugin-ocr')
     repos.add('plugin-macros')
     repos.add('plugin-highlightcode')
@@ -49,9 +48,11 @@ def getReposList()
     repos.add('plugin-zotero')
     repos.add('plugin-mendeley')
     repos.add('plugin-glavred')
+    repos.add('r7')
     repos.add('sdkjs')
     repos.add('sdkjs-comparison')
     repos.add('sdkjs-content-controls')
+    repos.add('sdkjs-pivot-tables')
     repos.add('server')
     repos.add('server-license')
     repos.add('server-lockstorage')
@@ -81,7 +82,7 @@ def tagRepos(String tag)
             git tag -l | xargs git tag -d && \
             git fetch --tags && \
             git tag ${tag} && \
-	        git push origin --tags"
+            git push origin --tags"
     }
 
     return this
@@ -111,6 +112,8 @@ def getConfParams(String platform, Boolean clean, Boolean noneFree)
     confParams.add("--module \"${modules.join(' ')}\"")
     confParams.add("--platform ${platform}")
     confParams.add("--update false")
+    confParams.add("--branding r7")
+    confParams.add("--branding-name R7-Office")
     confParams.add("--clean ${clean.toString()}")
     confParams.add("--qt-dir ${env.QT_PATH}")
     if (platform.endsWith("_xp")) {
@@ -119,6 +122,7 @@ def getConfParams(String platform, Boolean clean, Boolean noneFree)
     if (noneFree) {
         confParams.add("--sdkjs-addon comparison")
         confParams.add("--sdkjs-addon content-controls")
+        confParams.add("--sdkjs-addon pivot-tables")
         confParams.add("--server-addon license")
         confParams.add("--server-addon lockstorage")
         confParams.add("--web-apps-addon mobile")
@@ -147,6 +151,7 @@ def linuxBuildDesktop(String platform = 'native')
     sh "cd desktop-apps/win-linux/package/linux &&\
          make clean &&\
          make deploy -e BRANDING_DIR=../../../../r7/desktop-apps/win-linux/package/linux"
+
     publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
