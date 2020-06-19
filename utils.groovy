@@ -47,6 +47,7 @@ def getReposList()
     repos.add('plugin-wordpress')
     repos.add('plugin-zotero')
     repos.add('plugin-mendeley')
+    repos.add('plugin-glavred')
     repos.add('r7')
     repos.add('sdkjs')
     repos.add('sdkjs-comparison')
@@ -129,6 +130,9 @@ def getConfParams(String platform, Boolean clean, Boolean noneFree)
     if (params.extra_params) {
         confParams.add(params.extra_params)
     }
+
+    confParams.add("--branding r7")
+    confParams.add("--branding-name r7-office")
 
     return confParams.join(' ')
 }
