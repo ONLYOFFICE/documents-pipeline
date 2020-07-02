@@ -186,24 +186,34 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_64"
-              utils.windowsBuild(platform, params.clean)
-              if ( params.core ) {
-                utils.windowsBuildCore(platform)
-              }
-              if ( params.documentbuilder ) {
-                utils.windowsBuildBuilder(platform)
-              }
-              if ( params.documentserver ) {
-                utils.windowsBuildServer(platform)
+              Boolean clean = params.clean
+
+              if ( params.core
+                   || params.documentbuilder
+                   || params.documentserver
+                   ) {
+                utils.windowsBuild(platform, clean)
+                clean = false
+                if ( params.core ) {
+                  utils.windowsBuildCore(platform)
+                }
+                if ( params.documentbuilder ) {
+                  utils.windowsBuildBuilder(platform)
+                }
+                if ( params.documentserver ) {
+                  utils.windowsBuildServer(platform)
+                }
               }
 
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, false, "freemium")
+                utils.windowsBuild(platform, clean, "freemium")
+                clean = false
                 utils.windowsBuildDesktop(platform)
               }
 
               if ( params.documentserver_ie || params.documentserver_de ) {
-                utils.windowsBuild(platform, false, "commercial")
+                utils.windowsBuild(platform, clean, "commercial")
+                clean = false
                 if ( params.documentserver_ie ) {
                   utils.windowsBuildServer(platform, "DocumentServer-IE")
                 }
@@ -236,15 +246,22 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_32"
-              utils.windowsBuild(platform, params.clean)
-              if ( params.core ) {
-                utils.windowsBuildCore(platform)
+              Boolean clean = params.clean
+
+              if ( params.core || params.documentbuilder ) {
+                utils.windowsBuild(platform, clean)
+                clean = false
+                if ( params.core ) {
+                  utils.windowsBuildCore(platform)
+                }
+                if ( params.documentbuilder ) {
+                  utils.windowsBuildBuilder(platform)
+                }
               }
-              if ( params.documentbuilder ) {
-                utils.windowsBuildBuilder(platform)
-              }
+
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, false, "freemium")
+                utils.windowsBuild(platform, clean, "freemium")
+                clean = false
                 utils.windowsBuildDesktop(platform)
               }
             }
@@ -275,8 +292,8 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_64_xp"
-              utils.windowsBuild(platform, params.clean, "freemium")
               if ( params.desktopeditor ) {
+                utils.windowsBuild(platform, params.clean, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
             }
@@ -307,8 +324,8 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_32_xp"
-              utils.windowsBuild(platform, params.clean, "freemium")
               if ( params.desktopeditor ) {
+                utils.windowsBuild(platform, params.clean, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
             }
