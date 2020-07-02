@@ -88,16 +88,20 @@ def tagRepos(String tag)
 def getConfParams(String platform, Boolean clean, String license)
 {
     def modules = []
-    if (params.core) {
+    if (license == "opensource" && params.core) {
         modules.add('core')
     }
-    if (params.desktopeditor) {
+    if (license == "freemium" && params.desktopeditor) {
         modules.add('desktop')
     }
-    if (params.documentbuilder) {
+    if (license == "opensource" && params.documentbuilder) {
         modules.add('builder')
     }
-    if (params.documentserver||params.documentserver_ie||params.documentserver_de) {
+    if ((license == "opensource"
+        && params.documentserver)
+        || (license == "commercial"
+        && (params.documentserver_ie
+        || params.documentserver_de))) {
         modules.add('server')
     }
     if (platform.startsWith("win")) {
