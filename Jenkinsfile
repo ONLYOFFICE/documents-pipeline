@@ -123,30 +123,33 @@ pipeline {
 
               String platform = "linux_64"
               Boolean clean = params.clean
+
               if ( params.core
                    || params.documentbuilder
-                   || params.desktopeditor
                    || params.documentserver
                    ) {
                 utils.linuxBuild(platform, clean)
                 clean = false
+                if ( params.core ) {
+                  utils.linuxBuildCore()
+                }
+                if ( params.documentbuilder ) {
+                  utils.linuxBuildBuilder(platform)
+                }
+                if ( params.documentserver ) {
+                  utils.linuxBuildServer(platform)
+                }
               }
-              if ( params.core ) {
-                utils.linuxBuildCore()
-              }
-              if ( params.documentbuilder ) {
-                utils.linuxBuildBuilder(platform)
-              }
+
               if ( params.desktopeditor ) {
                 utils.linuxBuild(platform, clean, "freemium")
+                clean = false
                 utils.linuxBuildDesktop(platform)
               }
-              if ( params.documentserver ) {
-                utils.linuxBuild(platform, clean)
-                utils.linuxBuildServer(platform)
-              }
+
               if ( params.documentserver_ie || params.documentserver_de ) {
                 utils.linuxBuild(platform, clean, "commercial")
+                clean = false
                 if ( params.documentserver_ie ) {
                   utils.linuxBuildServer(platform, "documentserver-ie")
                   utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
@@ -190,14 +193,15 @@ pipeline {
               if ( params.documentbuilder ) {
                 utils.windowsBuildBuilder(platform)
               }
+              if ( params.documentserver ) {
+                utils.windowsBuildServer(platform)
+              }
+
               if ( params.desktopeditor ) {
                 utils.windowsBuild(platform, false, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
-              if ( params.documentserver ) {
-                utils.windowsBuild(platform, false)
-                utils.windowsBuildServer(platform)
-              }
+
               if ( params.documentserver_ie || params.documentserver_de ) {
                 utils.windowsBuild(platform, false, "commercial")
                 if ( params.documentserver_ie ) {
