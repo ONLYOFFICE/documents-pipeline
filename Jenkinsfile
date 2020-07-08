@@ -191,7 +191,11 @@ pipeline {
 
               } else if (params.action_type == 'protect_release') {
 
+                utils.protectRelease(params.release_type + "/" + params.release_vesion)
+
               } else if (params.action_type == 'unprotect_release') {
+
+                utils.unprotectRelease(params.release_type + "/" + params.release_vesion)
 
               }
             }

@@ -88,6 +88,41 @@ def tagRepos(String tag)
     return this
 }
 
+def protectRelease(String branch)
+{
+    for (repo in getReposList()) {
+        sh """cd ${repo.dir}
+            echo '{
+                "required_status_checks": null,
+                "enforce_admins": true,
+                "required_pull_request_reviews": null,
+                "restrictions": {
+                    "users": [],
+                    "teams": [
+                        "dep-application-development-admins"
+                    ]
+                }
+            }' | \
+            hub api -X PUT \
+                repos/${repo.owner}/${repo.name}/branches/${branch}/protection \
+                --input -
+        """
+    }
+    return this
+}
+
+def unprotectRelease(String branch)
+{
+    for (repo in getReposList()) {
+        sh """cd ${repo.dir}
+            hub api -X DELETE \
+                repos/${repo.owner}/${repo.name}/branches/${branch}/protection || \
+            true
+        """
+    }
+    return this
+}
+
 def getConfParams(String platform, Boolean clean, String license)
 {
     def modules = []
