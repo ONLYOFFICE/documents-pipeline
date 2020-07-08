@@ -136,51 +136,63 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               
-              if ( params.wipe ) {
-                deleteDir()
-              }
+              if (params.action_type == 'build') {
 
-              utils.checkoutRepos(env.BRANCH_NAME)
+                if ( params.wipe ) {
+                  deleteDir()
+                }
 
-              String platform = "linux_64"
-              Boolean clean = params.clean
+                utils.checkoutRepos(env.BRANCH_NAME)
 
-              if ( params.core
-                   || params.documentbuilder
-                   || params.documentserver
-                   ) {
-                utils.linuxBuild(platform, clean)
-                clean = false
-                if ( params.core ) {
-                  utils.linuxBuildCore()
-                }
-                if ( params.documentbuilder ) {
-                  utils.linuxBuildBuilder(platform)
-                }
-                if ( params.documentserver ) {
-                  utils.linuxBuildServer(platform)
-                }
-              }
+                String platform = "linux_64"
+                Boolean clean = params.clean
 
-              if ( params.desktopeditor ) {
-                utils.linuxBuild(platform, clean, "freemium")
-                clean = false
-                utils.linuxBuildDesktop(platform)
-              }
+                if ( params.core
+                     || params.documentbuilder
+                     || params.documentserver
+                     ) {
+                  utils.linuxBuild(platform, clean)
+                  clean = false
+                  if ( params.core ) {
+                    utils.linuxBuildCore()
+                  }
+                  if ( params.documentbuilder ) {
+                    utils.linuxBuildBuilder(platform)
+                  }
+                  if ( params.documentserver ) {
+                    utils.linuxBuildServer(platform)
+                  }
+                }
 
-              if ( params.documentserver_ie || params.documentserver_de ) {
-                utils.linuxBuild(platform, clean, "commercial")
-                clean = false
-                if ( params.documentserver_ie ) {
-                  utils.linuxBuildServer(platform, "documentserver-ie")
-                  utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
+                if ( params.desktopeditor ) {
+                  utils.linuxBuild(platform, clean, "freemium")
+                  clean = false
+                  utils.linuxBuildDesktop(platform)
                 }
-                if ( params.documentserver_de ) {
-                  utils.linuxBuildServer(platform, "documentserver-de")
+
+                if ( params.documentserver_ie || params.documentserver_de ) {
+                  utils.linuxBuild(platform, clean, "commercial")
+                  clean = false
+                  if ( params.documentserver_ie ) {
+                    utils.linuxBuildServer(platform, "documentserver-ie")
+                    utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
+                  }
+                  if ( params.documentserver_de ) {
+                    utils.linuxBuildServer(platform, "documentserver-de")
+                  }
                 }
-              }
-              if ( params.test ) {
-                utils.linuxTest()
+                if ( params.test ) {
+                  utils.linuxTest()
+                }
+
+              } else if (params.action_type == 'create_release') {
+
+              } else if (params.action_type == 'finish_release') {
+
+              } else if (params.action_type == 'protect_release') {
+
+              } else if (params.action_type == 'unprotect_release') {
+
               }
             }
           }
