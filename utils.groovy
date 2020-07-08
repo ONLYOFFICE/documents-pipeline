@@ -1,4 +1,4 @@
-def checkoutRepo(String repo, String branch = 'master', String dir, String company = 'ONLYOFFICE') {
+def checkoutRepo(String repo, String branch = 'master', String dir = repo, String company = 'ONLYOFFICE') {
     checkout([
             $class: 'GitSCM',
             branches: [[
@@ -223,7 +223,7 @@ def linuxBuildCore()
 
 def linuxTest()
 {
-    checkoutRepo('doc-builder-testing', 'master', 'doc-builder-testing')
+    checkoutRepo('doc-builder-testing', 'master')
     sh "docker rmi doc-builder-testing || true"
     sh "cd doc-builder-testing &&\
         docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
