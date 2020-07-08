@@ -88,10 +88,12 @@ def tagRepos(String tag)
     return this
 }
 
-def createRelease(String branch)
+def createRelease(String branch, String baseBranch)
 {
     for (repo in getReposList()) {
         sh """cd ${repo.dir}
+            git checkout ${baseBranch}
+            git pull origin ${baseBranch} --ff-only
             git checkout -b ${branch}
             git push origin ${branch}
         """

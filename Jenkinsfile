@@ -187,14 +187,14 @@ pipeline {
 
               } else if (params.action_type == 'create_release') {
 
+                utils.checkoutRepos(env.BRANCH_NAME)
                 String baseBranch
                 if (params.release_type == 'hotfix') {
                   baseBranch = 'master'
                 } else if (params.release_type == 'release') {
                   baseBranch = 'develop'
                 }
-                utils.checkoutRepos(baseBranch)
-                utils.createRelease(params.release_type + '/' + params.release_vesion)
+                utils.createRelease(params.release_type + '/' + params.release_vesion, baseBranch)
 
               } else if (params.action_type == 'finish_release') {
 
