@@ -88,6 +88,17 @@ def tagRepos(String tag)
     return this
 }
 
+def createRelease(String branch)
+{
+    for (repo in getReposList()) {
+        sh """cd ${repo.dir}
+            git checkout -b ${branch}
+            git push origin ${branch}
+        """
+    }
+    return this
+}
+
 def protectRelease(String branch)
 {
     for (repo in getReposList()) {

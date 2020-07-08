@@ -187,15 +187,24 @@ pipeline {
 
               } else if (params.action_type == 'create_release') {
 
+                String baseBranch
+                if (params.release_type == 'hotfix') {
+                  baseBranch = 'master'
+                } else if (params.release_type == 'release') {
+                  baseBranch = 'develop'
+                }
+                utils.checkoutRepos(baseBranch)
+                utils.createRelease(params.release_type + '/' + params.release_vesion)
+
               } else if (params.action_type == 'finish_release') {
 
               } else if (params.action_type == 'protect_release') {
 
-                utils.protectRelease(params.release_type + "/" + params.release_vesion)
+                utils.protectRelease(params.release_type + '/' + params.release_vesion)
 
               } else if (params.action_type == 'unprotect_release') {
 
-                utils.unprotectRelease(params.release_type + "/" + params.release_vesion)
+                utils.unprotectRelease(params.release_type + '/' + params.release_vesion)
 
               }
             }
