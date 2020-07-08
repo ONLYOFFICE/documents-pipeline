@@ -198,6 +198,11 @@ pipeline {
 
               } else if (params.action_type == 'finish_release') {
 
+                utils.checkoutRepos(env.BRANCH_NAME)
+                utils.mergeRelease(params.release_type + '/' + params.release_vesion, 'master')
+                utils.mergeRelease(params.release_type + '/' + params.release_vesion, 'develop')
+                utils.deleteRelease(params.release_type + '/' + params.release_vesion)
+
               } else if (params.action_type == 'protect_release') {
 
                 utils.protectRelease(params.release_type + '/' + params.release_vesion)
