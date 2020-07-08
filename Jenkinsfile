@@ -1,6 +1,27 @@
 pipeline {
   agent none
   parameters {
+    choice (
+      choices: [
+        'build',
+        'create_release',
+        'finish_release',
+        'protect_release',
+        'unprotect_release'
+      ],
+      description: 'Action type',
+      name: 'action_type'
+    )
+    choice (
+      choices: ['hotfix', 'release'],
+      description: 'Release type',
+      name: 'release_type'
+    )
+    string (
+      defaultValue: 'v0.0.0',
+      description: 'Release version',
+      name: 'release_vesion'
+    )
     booleanParam (
       defaultValue: false,
       description: 'Wipe out current workspace',
@@ -172,7 +193,7 @@ pipeline {
             }
           }
           when {
-            expression { params.win_64 }
+            expression { params.win_64 && params.action_type == 'build' }
             beforeAgent true
           }
           steps {
@@ -232,7 +253,7 @@ pipeline {
             }
           }
           when {
-            expression { params.win_32 }
+            expression { params.win_32 && params.action_type == 'build' }
             beforeAgent true
           }
           steps {
@@ -275,7 +296,7 @@ pipeline {
             }
           }
           when {
-            expression { params.win_64_xp }
+            expression { params.win_64_xp && params.action_type == 'build' }
             beforeAgent true
           }
           environment {
@@ -307,7 +328,7 @@ pipeline {
             }
           }
           when {
-            expression { params.win_32_xp }
+            expression { params.win_32_xp && params.action_type == 'build' }
             beforeAgent true
           }
           environment {
