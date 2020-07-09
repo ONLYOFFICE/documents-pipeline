@@ -1,0 +1,93 @@
+pipeline {
+  agent none
+  parameters {
+    choice (
+      choices: [
+        'none',
+        'create_release',
+        'finish_release',
+        'protect_release',
+        'unprotect_release'
+      ],
+      description: 'Action type',
+      name: 'action_type'
+    )
+    choice (
+      choices: ['hotfix', 'release'],
+      description: 'Release type',
+      name: 'release_type'
+    )
+    string (
+      defaultValue: 'v0.0.0',
+      description: 'Release version',
+      name: 'release_vesion'
+    )
+  }
+  stages {
+    stage('Flow') {
+      agent {
+        label 'linux_64'
+      }
+      stages {
+        stage('Create Release') {
+          when {
+            expression { params.action_type == 'create_release' }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              utils.checkoutRepos(env.BRANCH_NAME)
+              String baseBranch
+              if (params.release_type == 'hotfix') {
+                baseBranch = 'master'
+              } else if (params.release_type == 'release') {
+                baseBranch = 'develop'
+              }
+              utils.createRelease(params.release_type + '/' + params.release_vesion, baseBranch)
+            }
+          }
+        }
+        stage('Finish Release') {
+          when {
+            expression { params.action_type == 'finish_release' }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              utils.checkoutRepos(env.BRANCH_NAME)
+              utils.mergeRelease(params.release_type + '/' + params.release_vesion, 'master')
+              utils.mergeRelease(params.release_type + '/' + params.release_vesion, 'develop')
+              utils.deleteRelease(params.release_type + '/' + params.release_vesion)
+            }
+          }
+        }
+        stage('Protect Release') {
+          when {
+            expression { params.action_type == 'protect_release' }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              utils.protectRelease(params.release_type + '/' + params.release_vesion)
+            }
+          }
+        }
+        stage('Unprotect Release') {
+          when {
+            expression { params.action_type == 'unprotect_release' }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              utils.unprotectRelease(params.release_type + '/' + params.release_vesion)
+            }
+          }
+        }
+      }
+    }
+  }
+}

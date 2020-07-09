@@ -1,27 +1,6 @@
 pipeline {
   agent none
   parameters {
-    choice (
-      choices: [
-        'build',
-        'create_release',
-        'finish_release',
-        'protect_release',
-        'unprotect_release'
-      ],
-      description: 'Action type',
-      name: 'action_type'
-    )
-    choice (
-      choices: ['hotfix', 'release'],
-      description: 'Release type',
-      name: 'release_type'
-    )
-    string (
-      defaultValue: 'v0.0.0',
-      description: 'Release version',
-      name: 'release_vesion'
-    )
     booleanParam (
       defaultValue: false,
       description: 'Wipe out current workspace',
@@ -136,81 +115,51 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               
-              if (params.action_type == 'build') {
+              if ( params.wipe ) {
+                deleteDir()
+              }
 
-                if ( params.wipe ) {
-                  deleteDir()
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "linux_64"
+              Boolean clean = params.clean
+
+              if ( params.core
+                   || params.documentbuilder
+                   || params.documentserver
+                   ) {
+                utils.linuxBuild(platform, clean)
+                clean = false
+                if ( params.core ) {
+                  utils.linuxBuildCore()
                 }
-
-                utils.checkoutRepos(env.BRANCH_NAME)
-
-                String platform = "linux_64"
-                Boolean clean = params.clean
-
-                if ( params.core
-                     || params.documentbuilder
-                     || params.documentserver
-                     ) {
-                  utils.linuxBuild(platform, clean)
-                  clean = false
-                  if ( params.core ) {
-                    utils.linuxBuildCore()
-                  }
-                  if ( params.documentbuilder ) {
-                    utils.linuxBuildBuilder(platform)
-                  }
-                  if ( params.documentserver ) {
-                    utils.linuxBuildServer(platform)
-                  }
+                if ( params.documentbuilder ) {
+                  utils.linuxBuildBuilder(platform)
                 }
-
-                if ( params.desktopeditor ) {
-                  utils.linuxBuild(platform, clean, "freemium")
-                  clean = false
-                  utils.linuxBuildDesktop(platform)
+                if ( params.documentserver ) {
+                  utils.linuxBuildServer(platform)
                 }
+              }
 
-                if ( params.documentserver_ie || params.documentserver_de ) {
-                  utils.linuxBuild(platform, clean, "commercial")
-                  clean = false
-                  if ( params.documentserver_ie ) {
-                    utils.linuxBuildServer(platform, "documentserver-ie")
-                    utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
-                  }
-                  if ( params.documentserver_de ) {
-                    utils.linuxBuildServer(platform, "documentserver-de")
-                  }
+              if ( params.desktopeditor ) {
+                utils.linuxBuild(platform, clean, "freemium")
+                clean = false
+                utils.linuxBuildDesktop(platform)
+              }
+
+              if ( params.documentserver_ie || params.documentserver_de ) {
+                utils.linuxBuild(platform, clean, "commercial")
+                clean = false
+                if ( params.documentserver_ie ) {
+                  utils.linuxBuildServer(platform, "documentserver-ie")
+                  utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
                 }
-                if ( params.test ) {
-                  utils.linuxTest()
+                if ( params.documentserver_de ) {
+                  utils.linuxBuildServer(platform, "documentserver-de")
                 }
-
-              } else if (params.action_type == 'create_release') {
-
-                utils.checkoutRepos(env.BRANCH_NAME)
-                String baseBranch
-                if (params.release_type == 'hotfix') {
-                  baseBranch = 'master'
-                } else if (params.release_type == 'release') {
-                  baseBranch = 'develop'
-                }
-                utils.createRelease(params.release_type + '/' + params.release_vesion, baseBranch)
-
-              } else if (params.action_type == 'finish_release') {
-
-                utils.checkoutRepos(env.BRANCH_NAME)
-                utils.mergeRelease(params.release_type + '/' + params.release_vesion, 'master')
-                utils.mergeRelease(params.release_type + '/' + params.release_vesion, 'develop')
-                utils.deleteRelease(params.release_type + '/' + params.release_vesion)
-
-              } else if (params.action_type == 'protect_release') {
-
-                utils.protectRelease(params.release_type + '/' + params.release_vesion)
-
-              } else if (params.action_type == 'unprotect_release') {
-
-                utils.unprotectRelease(params.release_type + '/' + params.release_vesion)
-
+              }
+              if ( params.test ) {
+                utils.linuxTest()
               }
             }
           }
@@ -223,7 +172,7 @@ pipeline {
             }
           }
           when {
-            expression { params.win_64 && params.action_type == 'build' }
+            expression { params.win_64 }
             beforeAgent true
           }
           steps {
@@ -283,7 +232,7 @@ pipeline {
             }
           }
           when {
-            expression { params.win_32 && params.action_type == 'build' }
+            expression { params.win_32 }
             beforeAgent true
           }
           steps {
@@ -326,7 +275,7 @@ pipeline {
             }
           }
           when {
-            expression { params.win_64_xp && params.action_type == 'build' }
+            expression { params.win_64_xp }
             beforeAgent true
           }
           environment {
@@ -358,7 +307,7 @@ pipeline {
             }
           }
           when {
-            expression { params.win_32_xp && params.action_type == 'build' }
+            expression { params.win_32_xp }
             beforeAgent true
           }
           environment {
