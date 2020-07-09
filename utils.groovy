@@ -117,33 +117,33 @@ def createRelease(String branch, String baseBranch)
     return this
 }
 
-def mergeRelease(String branch, String baseBranch)
+def finishRelease(String branch)
 {
     for (repo in getReposList()) {
-        sh """cd ${repo.dir}
-            git checkout ${branch}
-            git pull origin ${branch} --ff-only
-            hub pull-request \
-                -b ${baseBranch} \
-                -m "Merge branch ${branch} into ${baseBranch}"
-            git checkout ${baseBranch}
-            git pull origin ${baseBranch} --ff-only
-            git merge ${branch} \
-                --no-edit --no-ff \
-                -m "Merge branch ${branch} into ${baseBranch}"
-            git push origin ${baseBranch}
-        """
-    }
-    return this
-}
+        echo repo.owner + '/' + repo.name
+        dir (repo.dir) {
+            sh """
+                for baseBranch in master develop; do
+                    git checkout ${branch}
+                    git pull origin ${branch} --ff-only || \
+                    exit 0
+                    hub pull-request \
+                        -b \$baseBranch \
+                        -m \"Merge branch ${branch} into \$baseBranch\" || \
+                    exit 0
+                    git checkout \$baseBranch
+                    git pull origin \$baseBranch --ff-only
+                    git merge ${branch} \
+                        --no-edit --no-ff \
+                        -m \"Merge branch ${branch} into \$baseBranch\" || \
+                    exit 0
+                    git push origin \$baseBranch
+                done
 
-def deleteRelease(String branch)
-{
-    for (repo in getReposList()) {
-        sh """cd ${repo.dir}
-            git branch -d ${branch}
-            git push origin -d ${branch}
-        """
+                git branch -D ${branch}
+                git push origin -d ${branch}
+            """
+        }
     }
     return this
 }

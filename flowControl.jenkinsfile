@@ -66,9 +66,7 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               utils.checkoutRepos(env.BRANCH_NAME)
-              utils.mergeRelease(params.release_type + '/' + params.release_vesion, 'master')
-              utils.mergeRelease(params.release_type + '/' + params.release_vesion, 'develop')
-              utils.deleteRelease(params.release_type + '/' + params.release_vesion)
+              utils.finishRelease(params.release_type + '/' + params.release_vesion)
             }
           }
         }
