@@ -107,6 +107,9 @@ def createRelease(String branch, String baseBranch)
         echo repo.owner + '/' + repo.name
         dir (repo.dir) {
             sh """
+                if [ \$(git branch -a | grep '${branch}' | wc -c) -ne 0 ]; then
+                    exit 0
+                fi
                 git checkout ${baseBranch}
                 git pull origin ${baseBranch} --ff-only
                 git checkout -B ${branch}
