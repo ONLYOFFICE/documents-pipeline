@@ -88,6 +88,19 @@ def tagRepos(String tag)
     return this
 }
 
+def printBranches()
+{
+    for (repo in getReposList()) {
+        echo repo.owner + '/' + repo.name
+        sh """
+            hub api -X GET /repos/${repo.owner}/${repo.name}/branches | \
+            jq -c '.[] | { name, protected }' || \
+            true
+        """
+    }
+    return this
+}
+
 def createRelease(String branch, String baseBranch)
 {
     for (repo in getReposList()) {

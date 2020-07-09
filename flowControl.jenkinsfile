@@ -3,7 +3,7 @@ pipeline {
   parameters {
     choice (
       choices: [
-        'none',
+        'print_branches',
         'create_release',
         'finish_release',
         'protect_release',
@@ -29,6 +29,18 @@ pipeline {
         label 'linux_64'
       }
       stages {
+        stage('Print Branches') {
+          when {
+            expression { params.action_type == 'print_branches' }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              utils.printBranches()
+            }
+          }
+        }
         stage('Create Release') {
           when {
             expression { params.action_type == 'create_release' }
