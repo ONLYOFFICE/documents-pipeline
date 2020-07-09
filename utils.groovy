@@ -151,7 +151,7 @@ def finishRelease(String branch)
 def protectRelease(String branch)
 {
     for (repo in getReposList()) {
-        sh """cd ${repo.dir}
+        sh """
             echo '{
                 "required_status_checks": null,
                 "enforce_admins": true,
@@ -165,7 +165,8 @@ def protectRelease(String branch)
             }' | \
             hub api -X PUT \
                 repos/${repo.owner}/${repo.name}/branches/${branch}/protection \
-                --input -
+                --input - || \
+            true
         """
     }
     return this
@@ -174,7 +175,7 @@ def protectRelease(String branch)
 def unprotectRelease(String branch)
 {
     for (repo in getReposList()) {
-        sh """cd ${repo.dir}
+        sh """
             hub api -X DELETE \
                 repos/${repo.owner}/${repo.name}/branches/${branch}/protection || \
             true
