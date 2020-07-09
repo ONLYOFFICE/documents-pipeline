@@ -104,12 +104,15 @@ def printBranches()
 def createRelease(String branch, String baseBranch)
 {
     for (repo in getReposList()) {
-        sh """cd ${repo.dir}
-            git checkout ${baseBranch}
-            git pull origin ${baseBranch} --ff-only
-            git checkout -b ${branch}
-            git push origin ${branch}
-        """
+        echo repo.owner + '/' + repo.name
+        dir (repo.dir) {
+            sh """
+                git checkout ${baseBranch}
+                git pull origin ${baseBranch} --ff-only
+                git checkout -B ${branch}
+                git push origin ${branch}
+            """
+        }
     }
     return this
 }
