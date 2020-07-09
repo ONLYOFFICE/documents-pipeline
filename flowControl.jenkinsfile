@@ -1,5 +1,5 @@
 pipeline {
-  agent none
+  agent { label 'linux_64' }
   parameters {
     choice (
       choices: [
@@ -25,10 +25,7 @@ pipeline {
   }
   stages {
     stage('Flow') {
-      agent {
-        label 'linux_64'
-      }
-      stages {
+      parallel {
         stage('Print Branches') {
           when {
             expression { params.action_type == 'print_branches' }
