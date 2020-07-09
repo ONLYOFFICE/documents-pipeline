@@ -126,23 +126,29 @@ def finishRelease(String branch)
         echo repo.owner + '/' + repo.name
         dir (repo.dir) {
             sh """
-                for baseBranch in master develop; do
-                    git checkout ${branch}
-                    git pull origin ${branch} --ff-only || \
+                if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
                     exit 0
+                fi
+                merged=0
+                for baseBranch in master develop; do
+                    git checkout -f ${branch}
+                    git pull origin ${branch} --ff-only
                     hub pull-request \
                         -b \$baseBranch \
                         -m \"Merge branch ${branch} into \$baseBranch\" || \
-                    exit 0
+                    true
                     git checkout \$baseBranch
                     git pull origin \$baseBranch --ff-only
                     git merge ${branch} \
                         --no-edit --no-ff \
                         -m \"Merge branch ${branch} into \$baseBranch\" || \
-                    exit 0
+                    continue
                     git push origin \$baseBranch
+                    merged=\$((merged+1))
                 done
-
+                if [ \$merged -ne 2 ]; then
+                    exit 0
+                fi
                 git branch -D ${branch}
                 git push origin -d ${branch}
             """
