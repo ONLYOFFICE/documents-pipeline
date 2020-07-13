@@ -95,7 +95,7 @@ def printBranches()
     for (repo in getReposList()) {
         echo repo.owner + '/' + repo.name
         sh """
-            hub api -X GET /repos/${repo.owner}/${repo.name}/branches | \
+            gh api -X GET repos/${repo.owner}/${repo.name}/branches | \
             jq -c '.[] | { name, protected }' || \
             true
         """
@@ -135,9 +135,10 @@ def finishRelease(String branch)
                 for baseBranch in master develop; do
                     git checkout -f ${branch}
                     git pull origin ${branch} --ff-only
-                    hub pull-request \
-                        -b \$baseBranch \
-                        -m \"Merge branch ${branch} into \$baseBranch\" || \
+                    gh pr create \
+                        --base \$baseBranch \
+                        --title \"Merge branch ${branch} into \$baseBranch\"
+                        --body \"\" || \
                     true
                     git checkout \$baseBranch
                     git pull origin \$baseBranch --ff-only
@@ -174,7 +175,7 @@ def protectRelease(String branch)
                     ]
                 }
             }' | \
-            hub api -X PUT \
+            gh api -X PUT \
                 repos/${repo.owner}/${repo.name}/branches/${branch}/protection \
                 --input - || \
             true
@@ -187,7 +188,7 @@ def unprotectRelease(String branch)
 {
     for (repo in getReposList()) {
         sh """
-            hub api -X DELETE \
+            gh api -X DELETE \
                 repos/${repo.owner}/${repo.name}/branches/${branch}/protection || \
             true
         """
