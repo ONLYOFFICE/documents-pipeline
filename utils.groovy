@@ -137,7 +137,7 @@ def finishRelease(String branch)
                     git pull origin ${branch} --ff-only
                     gh pr create \
                         --base \$baseBranch \
-                        --title \"Merge branch ${branch} into \$baseBranch\"
+                        --title \"Merge branch ${branch} into \$baseBranch\" \
                         --body \"\" || \
                     true
                     git checkout \$baseBranch
