@@ -46,7 +46,7 @@ pipeline {
           steps {
             script {
               def utils = load "utils.groovy"
-              utils.checkoutRepos(env.BRANCH_NAME)
+              utils.checkoutRepos('master')
               String baseBranch
               if (params.release_type == 'hotfix') {
                 baseBranch = 'master'
@@ -65,7 +65,7 @@ pipeline {
           steps {
             script {
               def utils = load "utils.groovy"
-              utils.checkoutRepos(env.BRANCH_NAME)
+              utils.checkoutRepos('master')
               utils.finishRelease(params.release_type + '/' + params.release_vesion)
             }
           }
