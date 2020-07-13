@@ -93,8 +93,7 @@ def tagRepos(String tag)
 def printBranches()
 {
     for (repo in getReposList()) {
-        echo repo.owner + '/' + repo.name
-        sh """
+        sh label: "${repo.owner}/${repo.name}: branches", script: """
             gh api -X GET repos/${repo.owner}/${repo.name}/branches | \
             jq -c '.[] | { name, protected }' || \
             true
@@ -106,9 +105,8 @@ def printBranches()
 def createRelease(String branch, String baseBranch)
 {
     for (repo in getReposList()) {
-        echo repo.owner + '/' + repo.name
         dir (repo.dir) {
-            sh """
+            sh label: "${repo.owner}/${repo.name}: create ${branch}", script: """
                 if [ \$(git branch -a | grep 'develop' | wc -c) -eq 0 ]; then
                     git checkout master
                     git checkout -b develop
@@ -130,9 +128,8 @@ def createRelease(String branch, String baseBranch)
 def finishRelease(String branch)
 {
     for (repo in getReposList()) {
-        echo repo.owner + '/' + repo.name
         dir (repo.dir) {
-            sh """
+            sh label: "${repo.owner}/${repo.name}: finish ${branch}", script: """
                 if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
                     exit 0
                 fi
@@ -167,7 +164,7 @@ def finishRelease(String branch)
 def protectRelease(String branch)
 {
     for (repo in getReposList()) {
-        sh """
+        sh label: "${repo.owner}/${repo.name}: protect ${branch}", script: """
             echo '{
                 "required_status_checks": null,
                 "enforce_admins": true,
@@ -191,7 +188,7 @@ def protectRelease(String branch)
 def unprotectRelease(String branch)
 {
     for (repo in getReposList()) {
-        sh """
+        sh label: "${repo.owner}/${repo.name}: unprotect ${branch}", script: """
             gh api -X DELETE \
                 repos/${repo.owner}/${repo.name}/branches/${branch}/protection || \
             true
