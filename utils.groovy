@@ -149,11 +149,10 @@ def finishRelease(String branch)
                     git push origin \$baseBranch
                     merged=\$((merged+1))
                 done
-                if [ \$merged -ne 2 ]; then
-                    exit 0
+                if [ \$merged -eq 2 ]; then
+                    git branch -D ${branch}
+                    git push origin -d ${branch}
                 fi
-                git branch -D ${branch}
-                git push origin -d ${branch}
             """
         }
     }
