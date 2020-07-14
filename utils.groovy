@@ -193,7 +193,8 @@ def finishRelease(String branch, String extraBranch)
                     done
                     if [ \$merge -eq \$mergeTotal ]; then
                         gh api -X DELETE \
-                            repos/${repo.owner}/${repo.name}/branches/${branch}/protection
+                            repos/${repo.owner}/${repo.name}/branches/${branch}/protection || \
+                        true
                         git branch -D ${branch}
                         git push origin -d ${branch}
                     else
