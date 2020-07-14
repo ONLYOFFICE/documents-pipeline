@@ -92,112 +92,181 @@ def tagRepos(String tag)
 
 def printBranches()
 {
+    def success = 0
+    def repos = getReposList().size()
     for (repo in getReposList()) {
-        sh label: "${repo.owner}/${repo.name}: branches", script: """
-            gh api -X GET repos/${repo.owner}/${repo.name}/branches | \
-            jq -c '.[] | { name, protected }' || \
-            true
-        """
+        def ret = sh (
+            label: "${repo.owner}/${repo.name}: branches",
+            script: """
+                gh api -X GET repos/${repo.owner}/${repo.name}/branches | \
+                jq -c '.[] | { name, protected }'
+            """,
+            returnStatus: true
+        )
+        if (ret == 0) {
+            success++
+        }
+    }
+
+    if (success == 0) {
+        currentBuild.result = "FAILURE"
+    } else if (success != repos) {
+        currentBuild.result = "UNSTABLE"
     }
     return this
 }
 
 def createRelease(String branch, String baseBranch)
 {
+    def success = 0
+    def repos = getReposList().size()
     for (repo in getReposList()) {
         dir (repo.dir) {
-            sh label: "${repo.owner}/${repo.name}: create ${branch}", script: """
-                if [ \$(git branch -a | grep 'develop' | wc -c) -eq 0 ]; then
-                    git checkout master
-                    git checkout -b develop
-                    git push origin develop
-                fi
-                if [ \$(git branch -a | grep '${branch}' | wc -c) -ne 0 ]; then
-                    exit 0
-                fi
-                git checkout ${baseBranch}
-                git pull origin ${baseBranch} --ff-only
-                git checkout -B ${branch}
-                git push origin ${branch}
-            """
+            def ret = sh (
+                label: "${repo.owner}/${repo.name}: create ${branch}",
+                script: """
+                    if [ \$(git branch -a | grep 'develop' | wc -c) -eq 0 ]; then
+                        git checkout -f master
+                        git checkout -b develop
+                        git push origin develop
+                    fi
+                    if [ \$(git branch -a | grep '${branch}' | wc -c) -ne 0 ]; then
+                        exit 0
+                    fi
+                    git checkout -f ${baseBranch}
+                    git pull origin ${baseBranch} --ff-only
+                    git checkout -B ${branch}
+                    git push origin ${branch}
+                """,
+                returnStatus: true
+            )
         }
+        if (ret == 0) {
+            success++
+        }
+    }
+
+    if (success == 0) {
+        currentBuild.result = "FAILURE"
+    } else if (success != repos) {
+        currentBuild.result = "UNSTABLE"
     }
     return this
 }
 
 def finishRelease(String branch)
 {
+    def success = 0
+    def repos = getReposList().size()
     for (repo in getReposList()) {
         dir (repo.dir) {
-            def ret = sh label: "${repo.owner}/${repo.name}: finish ${branch}", script: """
-                if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
-                    exit 0
-                fi
-                merged=0
-                for baseBranch in master develop; do
-                    git checkout -f ${branch}
-                    git pull origin ${branch} --ff-only
-                    gh pr create \
-                        --base \$baseBranch \
-                        --title \"Merge branch ${branch} into \$baseBranch\" \
-                        --body \"\" || \
-                    true
-                    git checkout \$baseBranch
-                    git pull origin \$baseBranch --ff-only
-                    git merge ${branch} \
-                        --no-edit --no-ff \
-                        -m \"Merge branch ${branch} into \$baseBranch\" || \
-                    continue
-                    git push origin \$baseBranch
-                    merged=\$((merged+1))
-                done
-                if [ \$merged -eq 2 ]; then
-                    git branch -D ${branch}
-                    git push origin -d ${branch}
-                else
-                    exit 2
-                fi
-            """, returnStatus: true
-            if (ret != 0) {
-                currentBuild.result = "UNSTABLE"
-            }
+            def ret = sh (
+                label: "${repo.owner}/${repo.name}: finish ${branch}",
+                script: """
+                    if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
+                        exit 0
+                    fi
+                    merged=0
+                    for baseBranch in master develop; do
+                        git checkout -f ${branch}
+                        git pull origin ${branch} --ff-only
+                        gh pr create \
+                            --base \$baseBranch \
+                            --title \"Merge branch ${branch} into \$baseBranch\" \
+                            --body \"\" || \
+                        true
+                        git checkout \$baseBranch
+                        git pull origin \$baseBranch --ff-only
+                        git merge ${branch} \
+                            --no-edit --no-ff \
+                            -m \"Merge branch ${branch} into \$baseBranch\" || \
+                        continue
+                        git push origin \$baseBranch
+                        merged=\$((merged+1))
+                    done
+                    if [ \$merged -eq 2 ]; then
+                        git branch -D ${branch}
+                        git push origin -d ${branch}
+                    else
+                        exit 2
+                    fi
+                """,
+                returnStatus: true
+            )
         }
+        if (ret == 0) {
+            success++
+        }
+    }
+
+    if (success == 0) {
+        currentBuild.result = "FAILURE"
+    } else if (success != repos) {
+        currentBuild.result = "UNSTABLE"
     }
     return this
 }
 
 def protectRelease(String branch)
 {
+    def success = 0
+    def repos = getReposList().size()
     for (repo in getReposList()) {
-        sh label: "${repo.owner}/${repo.name}: protect ${branch}", script: """
-            echo '{
-                "required_status_checks": null,
-                "enforce_admins": true,
-                "required_pull_request_reviews": null,
-                "restrictions": {
-                    "users": [],
-                    "teams": [
-                        "dep-application-development-admins"
-                    ]
-                }
-            }' | \
-            gh api -X PUT \
-                repos/${repo.owner}/${repo.name}/branches/${branch}/protection \
-                --input - || \
-            true
-        """
+        def ret = sh (
+            label: "${repo.owner}/${repo.name}: protect ${branch}",
+            script: """
+                echo '{
+                    "required_status_checks": null,
+                    "enforce_admins": true,
+                    "required_pull_request_reviews": null,
+                    "restrictions": {
+                        "users": [],
+                        "teams": [
+                            "dep-application-development-admins"
+                        ]
+                    }
+                }' | \
+                gh api -X PUT \
+                    repos/${repo.owner}/${repo.name}/branches/${branch}/protection \
+                    --input -
+            """,
+            returnStatus: true
+        )
+        if (ret == 0) {
+            success++
+        }
+    }
+
+    if (success == 0) {
+        currentBuild.result = "FAILURE"
+    } else if (success != repos) {
+        currentBuild.result = "UNSTABLE"
     }
     return this
 }
 
 def unprotectRelease(String branch)
 {
+    def success = 0
+    def repos = getReposList().size()
     for (repo in getReposList()) {
-        sh label: "${repo.owner}/${repo.name}: unprotect ${branch}", script: """
-            gh api -X DELETE \
-                repos/${repo.owner}/${repo.name}/branches/${branch}/protection || \
-            true
-        """
+        def ret = sh (
+            label: "${repo.owner}/${repo.name}: unprotect ${branch}",
+            script: """
+                gh api -X DELETE \
+                    repos/${repo.owner}/${repo.name}/branches/${branch}/protection
+            """,
+            returnStatus: true
+        )
+        if (ret == 0) {
+            success++
+        }
+    }
+
+    if (success == 0) {
+        currentBuild.result = "FAILURE"
+    } else if (success != repos) {
+        currentBuild.result = "UNSTABLE"
     }
     return this
 }
