@@ -9,7 +9,7 @@ pipeline {
     choice (
       choices: [
         'print_branches',
-        'create_release',
+        'start_release',
         'finish_release',
         'protect_release',
         'unprotect_release'
@@ -53,9 +53,9 @@ pipeline {
             }
           }
         }
-        stage('Create Release') {
+        stage('Start Release') {
           when {
-            expression { params.action_type == 'create_release' }
+            expression { params.action_type == 'start_release' }
             beforeAgent true
           }
           steps {
@@ -68,7 +68,7 @@ pipeline {
               } else if (params.release_type == 'release') {
                 baseBranch = 'develop'
               }
-              utils.createRelease(params.release_type + '/' + params.release_vesion, baseBranch)
+              utils.startRelease(params.release_type + '/' + params.release_vesion, baseBranch)
             }
           }
         }

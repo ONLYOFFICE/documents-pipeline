@@ -116,14 +116,14 @@ def printBranches()
     return this
 }
 
-def createRelease(String branch, String baseBranch)
+def startRelease(String branch, String baseBranch)
 {
     def success = 0
     def repos = getReposList().size()
     for (repo in getReposList()) {
         dir (repo.dir) {
             def ret = sh (
-                label: "${repo.owner}/${repo.name}: create ${branch}",
+                label: "${repo.owner}/${repo.name}: start ${branch}",
                 script: """
                     if [ \$(git branch -a | grep 'develop' | wc -c) -eq 0 ]; then
                         git checkout -f master
