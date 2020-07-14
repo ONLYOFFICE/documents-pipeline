@@ -140,9 +140,9 @@ def startRelease(String branch, String baseBranch)
                 """,
                 returnStatus: true
             )
-        }
-        if (ret == 0) {
-            success++
+            if (ret == 0) {
+                success++
+            }
         }
     }
 
@@ -193,9 +193,9 @@ def finishRelease(String branch)
                 """,
                 returnStatus: true
             )
-        }
-        if (ret == 0) {
-            success++
+            if (ret == 0) {
+                success++
+            }
         }
     }
 
