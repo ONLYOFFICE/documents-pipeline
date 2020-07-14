@@ -167,12 +167,13 @@ def finishRelease(String branch, String extraBranch)
                         exit 0
                     fi
                     merge=0
-                    if [ \$(echo -n '${extraBranch}' | wc -c) -eq 0 ]; then
-                        mergeTotal=2
-                        baseBranches=\"master develop\"
-                    else
+                    if [ \$(echo -n '${extraBranch}' | wc -c) -ne 0 ] \
+                    && [ \$(git branch -a | grep '${extraBranch}' | wc -c) -ne 0 ]; then
                         mergeTotal=3
                         baseBranches=\"master develop ${extraBranch}\"
+                    else
+                        mergeTotal=2
+                        baseBranches=\"master develop\"
                     fi
                     for baseBranch in \$baseBranches; do
                         git checkout -f ${branch}
