@@ -185,6 +185,8 @@ def finishRelease(String branch)
                         merged=\$((merged+1))
                     done
                     if [ \$merged -eq 2 ]; then
+                        gh api -X DELETE \
+                            repos/${repo.owner}/${repo.name}/branches/${branch}/protection
                         git branch -D ${branch}
                         git push origin -d ${branch}
                     else
