@@ -34,6 +34,7 @@ pipeline {
         script {
           if (params.wipe) {
             deleteDir()
+            checkout scm
           }
         }
       }
