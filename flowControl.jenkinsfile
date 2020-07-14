@@ -1,6 +1,11 @@
 pipeline {
   agent { label 'linux_64' }
   parameters {
+    booleanParam (
+      defaultValue: false,
+      description: 'Wipe out current workspace',
+      name: 'wipe'
+    )
     choice (
       choices: [
         'print_branches',
@@ -24,6 +29,15 @@ pipeline {
     )
   }
   stages {
+    stage('Prepare') {
+      steps {
+        script {
+          if (params.wipe) {
+            deleteDir()
+          }
+        }
+      }
+    }
     stage('Flow') {
       parallel {
         stage('Print Branches') {
