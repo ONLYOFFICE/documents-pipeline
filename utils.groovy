@@ -129,7 +129,7 @@ def finishRelease(String branch)
 {
     for (repo in getReposList()) {
         dir (repo.dir) {
-            sh label: "${repo.owner}/${repo.name}: finish ${branch}", script: """
+            def ret = sh label: "${repo.owner}/${repo.name}: finish ${branch}", script: """
                 if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
                     exit 0
                 fi
@@ -154,8 +154,13 @@ def finishRelease(String branch)
                 if [ \$merged -eq 2 ]; then
                     git branch -D ${branch}
                     git push origin -d ${branch}
+                else
+                    exit 2
                 fi
-            """
+            """, returnStatus: true
+            if (ret != 0) {
+                currentBuild.result = "UNSTABLE"
+            }
         }
     }
     return this
