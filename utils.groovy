@@ -154,7 +154,7 @@ def startRelease(String branch, String baseBranch)
     return this
 }
 
-def finishRelease(String branch)
+def finishRelease(String branch, String extraBranch)
 {
     def success = 0
     def repos = getReposList().size()
@@ -166,8 +166,15 @@ def finishRelease(String branch)
                     if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
                         exit 0
                     fi
-                    merged=0
-                    for baseBranch in master develop; do
+                    merge=0
+                    if [ \$(echo -n '${extraBranch}' | wc -c) -eq 0 ]; then
+                        mergeTotal=2
+                        baseBranches=\"master develop\"
+                    else
+                        mergeTotal=3
+                        baseBranches=\"master develop ${extraBranch}\"
+                    fi
+                    for baseBranch in \$baseBranches; do
                         git checkout -f ${branch}
                         git pull origin ${branch} --ff-only
                         gh pr create \
@@ -182,9 +189,9 @@ def finishRelease(String branch)
                             -m \"Merge branch ${branch} into \$baseBranch\" || \
                         continue
                         git push origin \$baseBranch
-                        merged=\$((merged+1))
+                        merge=\$((merge + 1))
                     done
-                    if [ \$merged -eq 2 ]; then
+                    if [ \$merge -eq \$mergeTotal ]; then
                         gh api -X DELETE \
                             repos/${repo.owner}/${repo.name}/branches/${branch}/protection
                         git branch -D ${branch}

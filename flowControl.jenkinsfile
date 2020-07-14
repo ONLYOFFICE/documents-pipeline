@@ -27,6 +27,11 @@ pipeline {
       description: 'Release version',
       name: 'release_vesion'
     )
+    string (
+      defaultValue: '',
+      description: 'Extra branch (for hotfix merge only)',
+      name: 'extra_branch'
+    )
   }
   stages {
     stage('Prepare') {
@@ -81,7 +86,11 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               utils.checkoutRepos('master')
-              utils.finishRelease(params.release_type + '/' + params.release_vesion)
+              if (params.release_type == 'hotfix') {
+                utils.finishRelease(params.release_type + '/' + params.release_vesion, params.extra_branch)
+              } else {
+                utils.finishRelease(params.release_type + '/' + params.release_vesion)
+              }
             }
           }
         }
