@@ -166,10 +166,8 @@ def finishRelease(String branch, String extraBranch)
                     fi
                     baseBranches=('master' 'develop')
                     merge=0
-                    mergeTotal=2
                     if [ \$(echo -n '${extraBranch}' | wc -c) -ne 0 ] \
                     && [ \$(git branch -a | grep '${extraBranch}' | wc -c) -ne 0 ]; then
-                        ((++mergeTotal))
                         baseBranches+=('${extraBranch}')
                     fi
                     for baseBranch in \${baseBranches[*]}; do
@@ -189,7 +187,7 @@ def finishRelease(String branch, String extraBranch)
                         git push origin \$baseBranch
                         ((++merge))
                     done
-                    if [ \$merge -eq \$mergeTotal ]; then
+                    if [ \$merge -eq \${#baseBranches[@]} ]; then
                         gh api -X DELETE \
                             repos/${repo.owner}/${repo.name}/branches/${branch}/protection || \
                         true
