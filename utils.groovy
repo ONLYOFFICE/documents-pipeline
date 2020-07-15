@@ -160,20 +160,19 @@ def finishRelease(String branch, String extraBranch)
         dir (repo.dir) {
             def ret = sh (
                 label: "${repo.owner}/${repo.name}: finish ${branch}",
-                script: """
+                script: """#!/bin/bash -xe
                     if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
                         exit 0
                     fi
+                    baseBranches=('master' 'develop')
                     merge=0
+                    mergeTotal=2
                     if [ \$(echo -n '${extraBranch}' | wc -c) -ne 0 ] \
                     && [ \$(git branch -a | grep '${extraBranch}' | wc -c) -ne 0 ]; then
-                        mergeTotal=3
-                        baseBranches=\"master develop ${extraBranch}\"
-                    else
-                        mergeTotal=2
-                        baseBranches=\"master develop\"
+                        ((++mergeTotal))
+                        baseBranches+=('${extraBranch}')
                     fi
-                    for baseBranch in \$baseBranches; do
+                    for baseBranch in \${baseBranches[*]}; do
                         git checkout -f ${branch}
                         git pull origin ${branch} --ff-only
                         gh pr create \
@@ -188,7 +187,7 @@ def finishRelease(String branch, String extraBranch)
                             -m \"Merge branch ${branch} into \$baseBranch\" || \
                         continue
                         git push origin \$baseBranch
-                        merge=\$((merge + 1))
+                        ((++merge))
                     done
                     if [ \$merge -eq \$mergeTotal ]; then
                         gh api -X DELETE \
