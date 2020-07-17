@@ -132,7 +132,7 @@ def startRelease(String branch, String baseBranch)
                         exit 0
                     fi
                     git checkout -f ${baseBranch}
-                    git pull origin ${baseBranch} --ff-only
+                    git pull origin ${baseBranch}
                     git checkout -B ${branch}
                     git push origin ${branch}
                 """,
