@@ -45,7 +45,7 @@ pipeline {
             deleteDir()
             checkout scm
           }
-          def branch = params.release_type + '/' + params.release_vesion
+          branch = params.release_type + '/' + params.release_vesion
         }
       }
     }
