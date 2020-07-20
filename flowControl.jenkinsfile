@@ -45,6 +45,7 @@ pipeline {
             deleteDir()
             checkout scm
           }
+          def branch = params.release_type + '/' + params.release_vesion
         }
       }
     }
@@ -70,7 +71,7 @@ pipeline {
           steps {
             script {
               def utils = load "utils.groovy"
-              utils.unprotectRelease(params.release_type + '/' + params.release_vesion)
+              utils.unprotectRelease(branch)
             }
           }
         }
@@ -89,9 +90,9 @@ pipeline {
               } else if (params.release_type == 'release') {
                 baseBranch = 'develop'
               }
-              utils.startRelease(params.release_type + '/' + params.release_vesion, baseBranch)
+              utils.startRelease(branch, baseBranch)
               if (params.protect_branch) {
-                utils.protectRelease(params.release_type + '/' + params.release_vesion)
+                utils.protectRelease(branch)
               }
             }
           }
@@ -106,9 +107,9 @@ pipeline {
               def utils = load "utils.groovy"
               utils.checkoutRepos('master')
               if (params.release_type == 'hotfix') {
-                utils.finishRelease(params.release_type + '/' + params.release_vesion, params.extra_branch)
+                utils.finishRelease(branch, params.extra_branch)
               } else {
-                utils.finishRelease(params.release_type + '/' + params.release_vesion)
+                utils.finishRelease(branch)
               }
             }
           }
