@@ -132,7 +132,7 @@ def startRelease(String branch, String baseBranch)
                         exit 0
                     fi
                     git checkout -f ${baseBranch}
-                    git pull origin ${baseBranch}
+                    git pull --ff-only origin ${baseBranch}
                     git checkout -B ${branch}
                     git push origin ${branch}
                 """,
@@ -172,14 +172,14 @@ def finishRelease(String branch, String extraBranch)
                     fi
                     for baseBranch in \${baseBranches[*]}; do
                         git checkout -f ${branch}
-                        git pull origin ${branch} --ff-only
+                        git pull --ff-only origin ${branch}
                         gh pr create \
                             --base \$baseBranch \
                             --title \"Merge branch ${branch} into \$baseBranch\" \
                             --body \"\" || \
                         true
                         git checkout \$baseBranch
-                        git pull origin \$baseBranch --ff-only
+                        git pull --ff-only origin \$baseBranch
                         git merge ${branch} \
                             --no-edit --no-ff \
                             -m \"Merge branch ${branch} into \$baseBranch\" || \
@@ -192,7 +192,7 @@ def finishRelease(String branch, String extraBranch)
                             repos/${repo.owner}/${repo.name}/branches/${branch}/protection || \
                         true
                         git branch -D ${branch}
-                        git push origin -d ${branch}
+                        git push --delete origin ${branch}
                     else
                         exit 2
                     fi
