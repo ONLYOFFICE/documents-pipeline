@@ -230,7 +230,7 @@ def protectRelease(String branch)
                     "restrictions": {
                         "users": [],
                         "teams": [
-                            "dep-application-development-admins"
+                            "dep-application-development-leads"
                         ]
                     }
                 }' | \
