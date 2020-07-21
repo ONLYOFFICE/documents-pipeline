@@ -59,7 +59,7 @@ pipeline {
           steps {
             script {
               def utils = load "utils.groovy"
-              utils.printBranches()
+              utils.printReposBranches()
             }
           }
         }
@@ -90,10 +90,7 @@ pipeline {
               } else if (params.release_type == 'release') {
                 baseBranch = 'develop'
               }
-              utils.startRelease(branch, baseBranch)
-              if (params.protect_branch) {
-                utils.protectRelease(branch)
-              }
+              utils.startRelease(branch, baseBranch, params.protect_branch)
             }
           }
         }
@@ -106,11 +103,11 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               utils.checkoutRepos('master')
+              String extraBranch
               if (params.release_type == 'hotfix') {
-                utils.finishRelease(branch, params.extra_branch)
-              } else {
-                utils.finishRelease(branch)
+                extraBranch = params.extra_branch
               }
+              utils.finishRelease(branch, extraBranch)
             }
           }
         }
