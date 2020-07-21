@@ -11,7 +11,6 @@ pipeline {
         'print_branches',
         'start_release',
         'finish_release',
-        'protect_release',
         'unprotect_release'
       ],
       description: 'Action type',
@@ -27,6 +26,11 @@ pipeline {
       description: 'Release version',
       name: 'release_vesion'
     )
+    booleanParam (
+      defaultValue: true,
+      description: 'Protect branch (for start_release only)',
+      name: 'protect_branch'
+    )
     string (
       defaultValue: '',
       description: 'Extra branch (for hotfix merge only)',
@@ -41,6 +45,7 @@ pipeline {
             deleteDir()
             checkout scm
           }
+          branch = params.release_type + '/' + params.release_vesion
         }
       }
     }
@@ -54,7 +59,19 @@ pipeline {
           steps {
             script {
               def utils = load "utils.groovy"
-              utils.printBranches()
+              utils.printReposBranches()
+            }
+          }
+        }
+        stage('Unprotect Release') {
+          when {
+            expression { params.action_type == 'unprotect_release' }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              utils.unprotectRelease(branch)
             }
           }
         }
@@ -73,7 +90,7 @@ pipeline {
               } else if (params.release_type == 'release') {
                 baseBranch = 'develop'
               }
-              utils.startRelease(params.release_type + '/' + params.release_vesion, baseBranch)
+              utils.startRelease(branch, baseBranch, params.protect_branch)
             }
           }
         }
@@ -86,35 +103,11 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               utils.checkoutRepos('master')
+              String extraBranch
               if (params.release_type == 'hotfix') {
-                utils.finishRelease(params.release_type + '/' + params.release_vesion, params.extra_branch)
-              } else {
-                utils.finishRelease(params.release_type + '/' + params.release_vesion)
+                extraBranch = params.extra_branch
               }
-            }
-          }
-        }
-        stage('Protect Release') {
-          when {
-            expression { params.action_type == 'protect_release' }
-            beforeAgent true
-          }
-          steps {
-            script {
-              def utils = load "utils.groovy"
-              utils.protectRelease(params.release_type + '/' + params.release_vesion)
-            }
-          }
-        }
-        stage('Unprotect Release') {
-          when {
-            expression { params.action_type == 'unprotect_release' }
-            beforeAgent true
-          }
-          steps {
-            script {
-              def utils = load "utils.groovy"
-              utils.unprotectRelease(params.release_type + '/' + params.release_vesion)
+              utils.finishRelease(branch, extraBranch)
             }
           }
         }
