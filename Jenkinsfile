@@ -120,7 +120,7 @@ pipeline {
               }
 
               if ( params.clean && params.desktopeditor ) {
-                dir (getReposList().find { it.name == 'desktop-apps' }.dir) {
+                dir (utils.getReposList().find { it.name == 'desktop-apps' }.dir) {
                   deleteDir()
                 }
               }
@@ -190,7 +190,7 @@ pipeline {
               }
 
               if ( params.clean && params.desktopeditor ) {
-                dir (getReposList().find { it.name == 'desktop-apps' }.dir) {
+                dir (utils.getReposList().find { it.name == 'desktop-apps' }.dir) {
                   deleteDir()
                 }
               }
@@ -256,7 +256,7 @@ pipeline {
               }
 
               if ( params.clean && params.desktopeditor ) {
-                dir (getReposList().find { it.name == 'desktop-apps' }.dir) {
+                dir (utils.getReposList().find { it.name == 'desktop-apps' }.dir) {
                   deleteDir()
                 }
               }
@@ -308,7 +308,7 @@ pipeline {
               }
 
               if ( params.clean && params.desktopeditor ) {
-                dir (getReposList().find { it.name == 'desktop-apps' }.dir) {
+                dir (utils.getReposList().find { it.name == 'desktop-apps' }.dir) {
                   deleteDir()
                 }
               }
@@ -346,7 +346,7 @@ pipeline {
               }
 
               if ( params.clean && params.desktopeditor ) {
-                dir (getReposList().find { it.name == 'desktop-apps' }.dir) {
+                dir (utils.getReposList().find { it.name == 'desktop-apps' }.dir) {
                   deleteDir()
                 }
               }
