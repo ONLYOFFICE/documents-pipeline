@@ -119,6 +119,12 @@ pipeline {
                 deleteDir()
               }
 
+              if ( params.clean && params.desktopeditor ) {
+                dir (getReposList().find { it.name == 'desktop-apps' }.dir) {
+                  deleteDir()
+                }
+              }
+
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "linux_64"
@@ -183,6 +189,12 @@ pipeline {
                 deleteDir()
               }
 
+              if ( params.clean && params.desktopeditor ) {
+                dir (getReposList().find { it.name == 'desktop-apps' }.dir) {
+                  deleteDir()
+                }
+              }
+
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_64"
@@ -243,6 +255,12 @@ pipeline {
                 deleteDir()
               }
 
+              if ( params.clean && params.desktopeditor ) {
+                dir (getReposList().find { it.name == 'desktop-apps' }.dir) {
+                  deleteDir()
+                }
+              }
+
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_32"
@@ -289,6 +307,12 @@ pipeline {
                 deleteDir()
               }
 
+              if ( params.clean && params.desktopeditor ) {
+                dir (getReposList().find { it.name == 'desktop-apps' }.dir) {
+                  deleteDir()
+                }
+              }
+
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_64_xp"
@@ -319,6 +343,12 @@ pipeline {
 
               if ( params.wipe ) {
                 deleteDir()
+              }
+
+              if ( params.clean && params.desktopeditor ) {
+                dir (getReposList().find { it.name == 'desktop-apps' }.dir) {
+                  deleteDir()
+                }
               }
 
               utils.checkoutRepos(env.BRANCH_NAME)
