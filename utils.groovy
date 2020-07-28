@@ -107,7 +107,12 @@ def protectBranch(String branch, Map repo)
         label: "${repo.owner}/${repo.name}: protect ${branch}",
         script: """
             echo '{
-                "required_status_checks": null,
+                "required_status_checks": {
+                    "strict": true,
+                    "contexts": [
+                        "continuous-integration/travis-ci"
+                    ]
+                },
                 "enforce_admins": true,
                 "required_pull_request_reviews": null,
                 "restrictions": {
