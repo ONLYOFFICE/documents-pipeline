@@ -1,4 +1,4 @@
-def checkoutRepo(String repo, String branch = 'master', String dir, String company = 'ONLYOFFICE') {
+def checkoutRepo(String repo, String branch = 'master', String dir = repo, String company = 'ONLYOFFICE') {
     checkout([
             $class: 'GitSCM',
             branches: [[
@@ -22,52 +22,57 @@ def checkoutRepo(String repo, String branch = 'master', String dir, String compa
 
 return this
 
+def getRepoMap(String name, String dir = name, String owner = 'ONLYOFFICE')
+{
+    return [owner: owner, name: name, dir: dir]
+}
+
 def getReposList()
 {
     def repos = []
-    repos.add('build_tools')
-    repos.add('core')
-    repos.add('core-fonts')
-    repos.add('desktop-apps')
-    repos.add('desktop-sdk')
-    repos.add('dictionaries')
-    repos.add('document-builder-package')
-    repos.add('document-server-integration')
-    repos.add('document-server-package')
-    repos.add('r7')
-    repos.add('plugin-ocr')
-    repos.add('plugin-macros')
-    repos.add('plugin-highlightcode')
-    repos.add('plugin-photoeditor')
-    repos.add('plugin-youtube')
-    repos.add('plugin-speech')
-    repos.add('plugin-thesaurus')
-    repos.add('plugin-translator')
-    repos.add('plugin-autocomplete')
-    repos.add('plugin-easybib')
-    repos.add('plugin-wordpress')
-    repos.add('plugin-zotero')
-    repos.add('plugin-mendeley')
-    repos.add('plugin-glavred')
-    repos.add('sdkjs')
-    repos.add('sdkjs-comparison')
-    repos.add('sdkjs-content-controls')
-    repos.add('server')
-    repos.add('server-license')
-    repos.add('server-lockstorage')
-    repos.add('web-apps')
-    repos.add('web-apps-mobile')
-    repos.add('Docker-DocumentServer')
-    repos.add('DocumentBuilder')
+    repos.add(getRepoMap('build_tools'))
+    repos.add(getRepoMap('core'))
+    repos.add(getRepoMap('core-fonts'))
+    repos.add(getRepoMap('desktop-apps'))
+    repos.add(getRepoMap('desktop-sdk'))
+    repos.add(getRepoMap('dictionaries'))
+    repos.add(getRepoMap('document-builder-package'))
+    repos.add(getRepoMap('document-server-integration'))
+    repos.add(getRepoMap('document-server-package'))
+    repos.add(getRepoMap('r7', 'r7', 'ASC-OFFICE'))
+    repos.add(getRepoMap('documents-pipeline'))
+    repos.add(getRepoMap('plugin-ocr',           'sdkjs-plugins/plugin-ocr'))
+    repos.add(getRepoMap('plugin-macros',        'sdkjs-plugins/plugin-macros'))
+    repos.add(getRepoMap('plugin-highlightcode', 'sdkjs-plugins/plugin-highlightcode'))
+    repos.add(getRepoMap('plugin-photoeditor',   'sdkjs-plugins/plugin-photoeditor'))
+    repos.add(getRepoMap('plugin-youtube',       'sdkjs-plugins/plugin-youtube'))
+    repos.add(getRepoMap('plugin-speech',        'sdkjs-plugins/plugin-speech'))
+    repos.add(getRepoMap('plugin-thesaurus',     'sdkjs-plugins/plugin-thesaurus'))
+    repos.add(getRepoMap('plugin-translator',    'sdkjs-plugins/plugin-translator'))
+    repos.add(getRepoMap('plugin-autocomplete',  'sdkjs-plugins/plugin-autocomplete'))
+    repos.add(getRepoMap('plugin-easybib',       'sdkjs-plugins/plugin-easybib'))
+    repos.add(getRepoMap('plugin-wordpress',     'sdkjs-plugins/plugin-wordpress'))
+    repos.add(getRepoMap('plugin-zotero',        'sdkjs-plugins/plugin-zotero'))
+    repos.add(getRepoMap('plugin-mendeley',      'sdkjs-plugins/plugin-mendeley'))
+    repos.add(getRepoMap('plugin-glavred',       'sdkjs-plugins/plugin-glavred'))
+    repos.add(getRepoMap('sdkjs'))
+    repos.add(getRepoMap('sdkjs-comparison'))
+    repos.add(getRepoMap('sdkjs-content-controls'))
+    repos.add(getRepoMap('sdkjs-disable-features'))
+    repos.add(getRepoMap('server'))
+    repos.add(getRepoMap('server-license'))
+    repos.add(getRepoMap('server-lockstorage'))
+    repos.add(getRepoMap('web-apps'))
+    repos.add(getRepoMap('web-apps-mobile'))
+    repos.add(getRepoMap('Docker-DocumentServer'))
+    repos.add(getRepoMap('DocumentBuilder'))
     return repos
 }
 
 def checkoutRepos(String branch = 'master')
 {    
     for (repo in getReposList()) {
-        String dir = !repo.startsWith("plugin-") ? repo : "sdkjs-plugins/${repo}"
-        String company = (repo != "r7") ? "ONLYOFFICE" : "ASC-OFFICE"
-        checkoutRepo(repo, branch, dir, company)
+        checkoutRepo(repo.name, branch, repo.dir, repo.owner)
     }
 
     return this
@@ -76,8 +81,7 @@ def checkoutRepos(String branch = 'master')
 def tagRepos(String tag)
 {
     for (repo in getReposList()) {
-        String dir = !repo.startsWith("plugin-") ? repo : "sdkjs-plugins/${repo}"
-        sh "cd ${dir} && \
+        sh "cd ${repo.dir} && \
             git tag -l | xargs git tag -d && \
             git fetch --tags && \
             git tag ${tag} && \
@@ -87,19 +91,243 @@ def tagRepos(String tag)
     return this
 }
 
-def getConfParams(String platform, Boolean clean, Boolean noneFree)
+def printBranches(String branch, Map repo)
+{
+    return sh (
+        label: "${repo.owner}/${repo.name}: branches",
+        script: """
+            gh api -X GET repos/${repo.owner}/${repo.name}/branches | \
+            jq -c '.[] | { name, protected }'
+        """,
+        returnStatus: true
+    )
+}
+
+def protectBranch(String branch, Map repo)
+{
+    return sh (
+        label: "${repo.owner}/${repo.name}: protect ${branch}",
+        script: """
+            echo '{
+                "required_status_checks": {
+                    "strict": true,
+                    "contexts": [
+                        "continuous-integration/travis-ci"
+                    ]
+                },
+                "enforce_admins": true,
+                "required_pull_request_reviews": null,
+                "restrictions": {
+                    "users": [],
+                    "teams": [
+                        "dep-application-development-leads"
+                    ]
+                }
+            }' | \
+            gh api -X PUT \
+                repos/${repo.owner}/${repo.name}/branches/${branch}/protection \
+                --input -
+        """,
+        returnStatus: true
+    )
+}
+
+def unprotectBranch(String branch, Map repo)
+{
+    return sh (
+        label: "${repo.owner}/${repo.name}: unprotect ${branch}",
+        script: """
+            gh api -X DELETE \
+                repos/${repo.owner}/${repo.name}/branches/${branch}/protection
+        """,
+        returnStatus: true
+    )
+}
+
+def createBranch(String branch, String baseBranch, Map repo)
+{
+    return sh (
+        label: "${repo.owner}/${repo.name}: start ${branch}",
+        script: """
+            if [ \$(git branch -a | grep 'develop' | wc -c) -eq 0 ]; then
+                git checkout -f master
+                git checkout -b develop
+                git push origin develop
+            fi
+            if [ \$(git branch -a | grep '${branch}' | wc -c) -ne 0 ]; then
+                exit 0
+            fi
+            git checkout -f ${baseBranch}
+            git pull --ff-only origin ${baseBranch}
+            git checkout -B ${branch}
+            git push origin ${branch}
+        """,
+        returnStatus: true
+    )
+}
+
+def mergeBranch(String branch, String extraBranch, Map repo)
+{
+    return sh (
+        label: "${repo.owner}/${repo.name}: finish ${branch}",
+        script: """#!/bin/bash -xe
+            if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
+                exit 0
+            fi
+            baseBranches=('master' 'develop')
+            merge=0
+            if [ \$(echo -n '${extraBranch}' | wc -c) -ne 0 ] \
+            && [ \$(git branch -a | grep '${extraBranch}' | wc -c) -ne 0 ]; then
+                baseBranches+=('${extraBranch}')
+            fi
+            for baseBranch in \${baseBranches[*]}; do
+                git checkout -f ${branch}
+                git pull --ff-only origin ${branch}
+                gh pr create \
+                    --base \$baseBranch \
+                    --title \"Merge branch ${branch} into \$baseBranch\" \
+                    --body \"\" || \
+                true
+                git checkout \$baseBranch
+                git pull --ff-only origin \$baseBranch
+                git merge ${branch} \
+                    --no-edit --no-ff \
+                    -m \"Merge branch ${branch} into \$baseBranch\" || \
+                continue
+                git push origin \$baseBranch
+                ((++merge))
+            done
+            if [ \$merge -ne \${#baseBranches[@]} ]; then
+                exit 2
+            fi
+        """,
+        returnStatus: true
+    )
+}
+
+def deleteBranch(String branch, Map repo)
+{
+    return sh (
+        label: "${repo.owner}/${repo.name}: delete ${branch}",
+        script: """
+            if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
+                exit 0
+            fi
+            git branch -D ${branch}
+            git push --delete origin ${branch}
+        """,
+        returnStatus: true
+    )
+}
+
+def setBuildStatus(Integer success, Integer total)
+{
+    if (success == 0) {
+        currentBuild.result = "FAILURE"
+    } else if (success != total) {
+        currentBuild.result = "UNSTABLE"
+    } else if (success == total) {
+        currentBuild.result = "SUCCESS"
+    }
+    return this
+}
+
+def printReposBranches()
+{
+    def success = 0
+    def total = getReposList().size()
+    for (repo in getReposList()) {
+        def ret = printBranches(branch, repo)
+        if (ret == 0) { success++ }
+    }
+    setBuildStatus(success, total)
+    return this
+}
+
+def protectRelease(String branch)
+{
+    def success = 0
+    def total = getReposList().size()
+    for (repo in getReposList()) {
+        def ret = protectBranch(branch, repo)
+        if (ret == 0) { success++ }
+    }
+    setBuildStatus(success, total)
+    return this
+}
+
+def unprotectRelease(String branch)
+{
+    def success = 0
+    def total = getReposList().size()
+    for (repo in getReposList()) {
+        def ret = unprotectBranch(branch, repo)
+        if (ret == 0) { success++ }
+    }
+    setBuildStatus(success, total)
+    return this
+}
+
+def startRelease(String branch, String baseBranch, Boolean protect)
+{
+    def success = 0
+    def total = getReposList().size()
+    for (repo in getReposList()) {
+        dir (repo.dir) {
+            def retC = createBranch(branch, baseBranch, repo)
+            if (protect) {
+                def retP = protectBranch(branch, repo)
+                if (retC == 0 && retP == 0) { success++ }
+            } else {
+                if (retC == 0) { success++ }
+            }
+        }
+    }
+    setBuildStatus(success, total)
+    return this
+}
+
+def finishRelease(String branch, String extraBranch)
+{
+    def success = 0
+    def total = getReposList().size()
+    for (repo in getReposList()) {
+        dir (repo.dir) {
+            def retM = mergeBranch(branch, extraBranch, repo)
+            if (retM == 0) {
+                def retU = unprotectBranch(branch, repo)
+                def retD = deleteBranch(branch, repo)
+                if (retD == 0) { success++ }
+            }
+        }
+    }
+    setBuildStatus(success, total)
+    return this
+}
+
+def getConfParams(String platform, Boolean clean, String license)
 {
     def modules = []
-    if (params.core) {
-        modules.add('core')
+    if (license == "opensource") {
+        if(params.core) {
+            modules.add('core')
+        }
+        // Add module to build to enforce clean it on build
+        if(params.desktopeditor && clean) {
+            modules.add('desktop')
+        }
+        if (params.documentbuilder) {
+            modules.add('builder')
+        }
     }
-    if (params.desktopeditor) {
+    if (license == "freemium" && params.desktopeditor) {
         modules.add('desktop')
     }
-    if (params.documentbuilder) {
-        modules.add('builder')
-    }
-    if (params.documentserver||params.documentserver_ie||params.documentserver_de) {
+    if ((license == "opensource"
+        && params.documentserver)
+        || (license == "commercial"
+        && (params.documentserver_ie
+        || params.documentserver_de))) {
         modules.add('server')
     }
     if (platform.startsWith("win")) {
@@ -116,12 +344,15 @@ def getConfParams(String platform, Boolean clean, Boolean noneFree)
     if (platform.endsWith("_xp")) {
         confParams.add("--qt-dir-xp ${env.QT56_PATH}")
     }
-    if (noneFree) {
+    if (license == "commercial" || license == "freemium") {
         confParams.add("--sdkjs-addon comparison")
         confParams.add("--sdkjs-addon content-controls")
         confParams.add("--server-addon license")
         confParams.add("--server-addon lockstorage")
         confParams.add("--web-apps-addon mobile")
+    }
+    if (license == "freemium") {
+        confParams.add("--sdkjs-addon-desktop disable-features")
     }
     if (params.extra_params) {
         confParams.add(params.extra_params)
@@ -133,10 +364,10 @@ def getConfParams(String platform, Boolean clean, Boolean noneFree)
     return confParams.join(' ')
 }
 
-def linuxBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
+def linuxBuild(String platform = 'native', Boolean clean = true, String license = 'opensource')
 {
     sh "cd build_tools && \
-        ./configure.py ${getConfParams(platform, clean, noneFree)} &&\
+        ./configure.py ${getConfParams(platform, clean, license)} &&\
         ./make.py"
 
     return this
@@ -221,7 +452,7 @@ def linuxBuildCore()
 
 def linuxTest()
 {
-    checkoutRepo('doc-builder-testing', 'master', 'doc-builder-testing')
+    checkoutRepo('doc-builder-testing', 'master')
     sh "docker rmi doc-builder-testing || true"
     sh "cd doc-builder-testing &&\
         docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
@@ -230,10 +461,10 @@ def linuxTest()
     return this
 }
 
-def windowsBuild(String platform = 'native', Boolean clean = true, Boolean noneFree = false)
+def windowsBuild(String platform = 'native', Boolean clean = true, String license = 'opensource')
 {
     bat "cd build_tools &&\
-            call python configure.py ${getConfParams(platform, clean, noneFree)} &&\
+            call python configure.py ${getConfParams(platform, clean, license)} &&\
             call python make.py"
 
     return this
