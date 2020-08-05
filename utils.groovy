@@ -109,9 +109,7 @@ def protectBranch(String branch, Map repo)
             echo '{
                 "required_status_checks": {
                     "strict": true,
-                    "contexts": [
-                        "continuous-integration/travis-ci"
-                    ]
+                    "contexts": []
                 },
                 "enforce_admins": true,
                 "required_pull_request_reviews": null,
