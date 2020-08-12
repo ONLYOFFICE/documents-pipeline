@@ -94,7 +94,7 @@ def printBranches(String branch, Map repo)
     return sh (
         label: "${repo.owner}/${repo.name}: branches",
         script: """
-            gh api -X GET repos/${repo.owner}/${repo.name}/branches | \
+            gh api -X GET repos/${repo.owner}/${repo.name}/branches?per_page=100 | \
             jq -c '.[] | { name, protected }'
         """,
         returnStatus: true
