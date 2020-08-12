@@ -39,7 +39,6 @@ def getReposList()
     repos.add(getRepoMap('document-builder-package'))
     repos.add(getRepoMap('document-server-integration'))
     repos.add(getRepoMap('document-server-package'))
-    repos.add(getRepoMap('r7', 'r7', 'ASC-OFFICE'))
     repos.add(getRepoMap('documents-pipeline'))
     repos.add(getRepoMap('plugin-ocr',           'sdkjs-plugins/plugin-ocr'))
     repos.add(getRepoMap('plugin-macros',        'sdkjs-plugins/plugin-macros'))
@@ -55,10 +54,12 @@ def getReposList()
     repos.add(getRepoMap('plugin-zotero',        'sdkjs-plugins/plugin-zotero'))
     repos.add(getRepoMap('plugin-mendeley',      'sdkjs-plugins/plugin-mendeley'))
     repos.add(getRepoMap('plugin-glavred',       'sdkjs-plugins/plugin-glavred'))
+    repos.add(getRepoMap('r7', 'r7', 'ASC-OFFICE'))
     repos.add(getRepoMap('sdkjs'))
     repos.add(getRepoMap('sdkjs-comparison'))
     repos.add(getRepoMap('sdkjs-content-controls'))
     repos.add(getRepoMap('sdkjs-disable-features'))
+    repos.add(getRepoMap('sdkjs-pivot-tables'))
     repos.add(getRepoMap('server'))
     repos.add(getRepoMap('server-license'))
     repos.add(getRepoMap('server-lockstorage'))
@@ -85,7 +86,7 @@ def tagRepos(String tag)
             git tag -l | xargs git tag -d && \
             git fetch --tags && \
             git tag ${tag} && \
-	        git push origin --tags"
+            git push origin --tags"
     }
 
     return this
@@ -339,6 +340,8 @@ def getConfParams(String platform, Boolean clean, String license)
     confParams.add("--module \"${modules.join(' ')}\"")
     confParams.add("--platform ${platform}")
     confParams.add("--update false")
+    confParams.add("--branding r7")
+    confParams.add("--branding-name R7-Office")
     confParams.add("--clean ${clean.toString()}")
     confParams.add("--qt-dir ${env.QT_PATH}")
     if (platform.endsWith("_xp")) {
@@ -347,6 +350,7 @@ def getConfParams(String platform, Boolean clean, String license)
     if (license == "commercial" || license == "freemium") {
         confParams.add("--sdkjs-addon comparison")
         confParams.add("--sdkjs-addon content-controls")
+        confParams.add("--sdkjs-addon pivot-tables")
         confParams.add("--server-addon license")
         confParams.add("--server-addon lockstorage")
         confParams.add("--web-apps-addon mobile")
@@ -378,6 +382,7 @@ def linuxBuildDesktop(String platform = 'native')
     sh "cd desktop-apps/win-linux/package/linux &&\
          make clean &&\
          make deploy -e BRANDING_DIR=../../../../r7/desktop-apps/win-linux/package/linux"
+
     publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
