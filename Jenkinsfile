@@ -47,7 +47,7 @@ pipeline {
       name: 'desktopeditor'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build and publish DocumentBuilder packages',
       name: 'documentbuilder'
     )
