@@ -72,7 +72,7 @@ pipeline {
       name: 'documentserver_de'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Run test(Only on Linux)',
       name: 'test'
     )
