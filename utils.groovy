@@ -549,3 +549,34 @@ def windowsBuildCore(String platform)
 
     return this
 }
+
+def androidBuild(String branch = 'master', String config = 'release')
+{
+    def dockerRunOptions = []
+    dockerRunOptions.add('-e BUILD_BRANCH='+branch)
+    dockerRunOptions.add('-e BUILD_CONFIG='+config)
+    dockerRunOptions.add('-v '+env.WORKSPACE+':/home/user')
+    dockerRunOptions.add('--name android-core-builder')
+
+    docker.image('onlyoffice/android-core-builder:latest').withRun(dockerRunOptions.join(' ')) { c ->
+        sh "docker logs -f ${c.id}"
+    }
+
+    sh """#!/bin/bash -xe
+        archive_dir=\$(pwd)/android
+        archive=\$archive_dir/android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip
+
+        if [ -d \$archive_dir ]; then
+            while read -r file; do
+                rm -fv \"\$archive_dir/\$file\"
+            done <<< \$(ls -1t \$archive_dir | tail -n +4)
+        else
+            mkdir -p \$archive_dir
+        fi
+
+        cd build_tools/out && \
+        zip -r \$archive ./*
+    """
+
+    return this
+}
