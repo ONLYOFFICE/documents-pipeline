@@ -380,7 +380,7 @@ pipeline {
           }
         }
         stage('Android build') {
-          agent { label 'android' }
+          agent { label 'linux_64' }
           when {
             expression { params.android && params.core }
             beforeAgent true
