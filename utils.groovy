@@ -553,33 +553,35 @@ def windowsBuildCore(String platform)
 def androidBuild(String branch = 'master', String config = 'release')
 {
     def dockerRunOptions = []
-    dockerRunOptions.add('-e BUILD_BRANCH='+branch)
-    dockerRunOptions.add('-e BUILD_CONFIG='+config)
-    dockerRunOptions.add('-v '+env.WORKSPACE+':/home/user')
-    dockerRunOptions.add('--name android-core-builder')
+    dockerRunOptions.add("-e BUILD_BRANCH=${branch}")
+    dockerRunOptions.add("-e BUILD_CONFIG=${config}")
+    dockerRunOptions.add("-v ${env.WORKSPACE}/android:/home/user")
+    dockerRunOptions.add("--name android-core-builder")
+
+    sh """#!/bin/bash -xe
+        [[ ! -d android ]] && mkdir android
+        cd android
+
+        rm -rfv build_tools/out
+
+        if [[ -d artifacts ]]; then
+            for file in \$(ls -1t artifacts | tail -n +4); do
+                rm -fv \"artifacts/\${file}\"
+            done
+        else
+            mkdir -p artifacts
+        fi
+    """
 
     docker.image('onlyoffice/android-core-builder:latest').withRun(dockerRunOptions.join(' ')) { c ->
         sh "docker logs -f ${c.id}"
     }
 
-    sh """#!/bin/bash -xe
-        archive_dir=\$(pwd)/android
-        archive=\$archive_dir/android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip
-
-        if [ -d \$archive_dir ]; then
-            while read -r file; do
-                rm -fv \"\$archive_dir/\$file\"
-            done <<< \$(ls -1t \$archive_dir | tail -n +4)
-        else
-            mkdir -p \$archive_dir
-        fi
-
-        cd build_tools/out && \
-        zip -r \$archive ./*
-    """
+    sh "cd android/build_tools/out && \
+        zip -r ../../artifacts/android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip ./android* ./js"
 
     archiveArtifacts(
-        artifacts: "android/android-libs-${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}.zip",
+        artifacts: "android/artifacts/android-libs-${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}.zip",
         onlyIfSuccessful: true
     )
 
