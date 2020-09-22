@@ -578,5 +578,10 @@ def androidBuild(String branch = 'master', String config = 'release')
         zip -r \$archive ./*
     """
 
+    archiveArtifacts(
+        artifacts: "android/android-libs-${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}.zip",
+        onlyIfSuccessful: true
+    )
+
     return this
 }
