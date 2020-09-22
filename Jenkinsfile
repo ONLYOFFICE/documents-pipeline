@@ -37,6 +37,11 @@ pipeline {
       name: 'win_32_xp'
     )
     booleanParam (
+      defaultValue: false,
+      description: 'Build Android targets',
+      name: 'android'
+    )
+    booleanParam (
       defaultValue: true,
       description: 'Build and publish \'core\' binaries',
       name: 'core'
@@ -371,6 +376,22 @@ pipeline {
                 utils.windowsBuild(platform, params.clean, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
+            }
+          }
+        }
+        stage('Android build') {
+          agent { label 'linux_64' }
+          when {
+            expression { params.android && params.core }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              
+              if (params.wipe) { deleteDir() }
+
+              utils.androidBuild(env.BRANCH_NAME)
             }
           }
         }
