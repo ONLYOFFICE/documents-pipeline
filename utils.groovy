@@ -573,6 +573,10 @@ def androidBuild(String branch = 'master', String config = 'release')
         fi
     """
 
+    if (params.wipe) {
+        sh "docker image rm -f onlyoffice/android-core-builder"
+    }
+
     docker.image('onlyoffice/android-core-builder:latest').withRun(dockerRunOptions.join(' ')) { c ->
         sh "docker logs -f ${c.id}"
     }
