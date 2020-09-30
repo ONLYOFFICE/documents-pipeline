@@ -549,3 +549,45 @@ def windowsBuildCore(String platform)
 
     return this
 }
+
+def androidBuild(String branch = 'master', String config = 'release')
+{
+    def dockerRunOptions = []
+    dockerRunOptions.add("-e BUILD_BRANCH=${branch}")
+    dockerRunOptions.add("-e BUILD_CONFIG=${config}")
+    dockerRunOptions.add("-v ${env.WORKSPACE}/android:/home/user")
+    dockerRunOptions.add("--name android-core-builder")
+
+    sh """#!/bin/bash -xe
+        [[ ! -d android ]] && mkdir android
+        cd android
+
+        rm -rfv build_tools/out
+
+        if [[ -d artifacts ]]; then
+            for file in \$(ls -1t artifacts | tail -n +4); do
+                rm -fv \"artifacts/\${file}\"
+            done
+        else
+            mkdir -p artifacts
+        fi
+    """
+
+    if (params.wipe) {
+        sh "docker image rm -f onlyoffice/android-core-builder"
+    }
+
+    docker.image('onlyoffice/android-core-builder:latest').withRun(dockerRunOptions.join(' ')) { c ->
+        sh "docker logs -f ${c.id}"
+    }
+
+    sh "cd android/build_tools/out && \
+        zip -r ../../artifacts/android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip ./android* ./js"
+
+    archiveArtifacts(
+        artifacts: "android/artifacts/android-libs-${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}.zip",
+        onlyIfSuccessful: true
+    )
+
+    return this
+}

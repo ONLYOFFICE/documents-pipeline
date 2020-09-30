@@ -22,19 +22,24 @@ pipeline {
       name: 'win_64'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Windows x86 targets',
       name: 'win_32'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Windows XP x64 targets',
       name: 'win_64_xp'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Windows XP x86 targets',
       name: 'win_32_xp'
+    )
+    booleanParam (
+      defaultValue: false,
+      description: 'Build Android targets',
+      name: 'android'
     )
     booleanParam (
       defaultValue: true,
@@ -52,7 +57,7 @@ pipeline {
       name: 'documentbuilder'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build and publish DocumentServer packages',
       name: 'documentserver'
     )
@@ -67,12 +72,12 @@ pipeline {
       name: 'documentserver_ie'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build and publish DocumentServer-DE packages',
       name: 'documentserver_de'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Run test(Only on Linux)',
       name: 'test'
     )
@@ -371,6 +376,22 @@ pipeline {
                 utils.windowsBuild(platform, params.clean, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
+            }
+          }
+        }
+        stage('Android build') {
+          agent { label 'linux_64' }
+          when {
+            expression { params.android && params.core }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              
+              if (params.wipe) { deleteDir() }
+
+              utils.androidBuild(env.BRANCH_NAME)
             }
           }
         }
