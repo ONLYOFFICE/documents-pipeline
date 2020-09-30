@@ -57,6 +57,7 @@ def getReposList()
     repos.add(getRepoMap('sdkjs-comparison'))
     repos.add(getRepoMap('sdkjs-content-controls'))
     repos.add(getRepoMap('sdkjs-disable-features'))
+    repos.add(getRepoMap('sdkjs-pivot-tables'))
     repos.add(getRepoMap('server'))
     repos.add(getRepoMap('server-license'))
     repos.add(getRepoMap('server-lockstorage'))
@@ -341,6 +342,7 @@ def getConfParams(String platform, Boolean clean, String license)
     if (license == "commercial" || license == "freemium") {
         confParams.add("--sdkjs-addon comparison")
         confParams.add("--sdkjs-addon content-controls")
+        confParams.add("--sdkjs-addon pivot-tables")
         confParams.add("--server-addon license")
         confParams.add("--server-addon lockstorage")
         confParams.add("--web-apps-addon mobile")
@@ -544,6 +546,48 @@ def windowsBuildCore(String platform)
     bat "cd core && \
         call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" ${platformType} ${winSdkVersion} && \
         mingw32-make deploy"
+
+    return this
+}
+
+def androidBuild(String branch = 'master', String config = 'release')
+{
+    def dockerRunOptions = []
+    dockerRunOptions.add("-e BUILD_BRANCH=${branch}")
+    dockerRunOptions.add("-e BUILD_CONFIG=${config}")
+    dockerRunOptions.add("-v ${env.WORKSPACE}/android:/home/user")
+    dockerRunOptions.add("--name android-core-builder")
+
+    sh """#!/bin/bash -xe
+        [[ ! -d android ]] && mkdir android
+        cd android
+
+        rm -rfv build_tools/out
+
+        if [[ -d artifacts ]]; then
+            for file in \$(ls -1t artifacts | tail -n +4); do
+                rm -fv \"artifacts/\${file}\"
+            done
+        else
+            mkdir -p artifacts
+        fi
+    """
+
+    if (params.wipe) {
+        sh "docker image rm -f onlyoffice/android-core-builder"
+    }
+
+    docker.image('onlyoffice/android-core-builder:latest').withRun(dockerRunOptions.join(' ')) { c ->
+        sh "docker logs -f ${c.id}"
+    }
+
+    sh "cd android/build_tools/out && \
+        zip -r ../../artifacts/android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip ./android* ./js"
+
+    archiveArtifacts(
+        artifacts: "android/artifacts/android-libs-${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}.zip",
+        onlyIfSuccessful: true
+    )
 
     return this
 }

@@ -37,6 +37,11 @@ pipeline {
       name: 'win_32_xp'
     )
     booleanParam (
+      defaultValue: false,
+      description: 'Build Android targets',
+      name: 'android'
+    )
+    booleanParam (
       defaultValue: true,
       description: 'Build and publish \'core\' binaries',
       name: 'core'
@@ -72,7 +77,7 @@ pipeline {
       name: 'documentserver_de'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: false,
       description: 'Run test(Only on Linux)',
       name: 'test'
     )
@@ -95,7 +100,7 @@ pipeline {
       steps {
         script {
           def branchName = env.BRANCH_NAME
-          def productVersion = "5.4.99"
+          def productVersion = "6.0.99"
           def pV = branchName =~ /^(release|hotfix)\\/v(.*)$/
           if(pV.find()) {
             productVersion = pV.group(2)
@@ -371,6 +376,22 @@ pipeline {
                 utils.windowsBuild(platform, params.clean, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
+            }
+          }
+        }
+        stage('Android build') {
+          agent { label 'linux_64' }
+          when {
+            expression { params.android && params.core }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              
+              if (params.wipe) { deleteDir() }
+
+              utils.androidBuild(env.BRANCH_NAME)
             }
           }
         }
