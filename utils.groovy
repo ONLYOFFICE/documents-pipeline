@@ -281,7 +281,7 @@ def startRelease(String branch, String baseBranch, Boolean protect)
     if (success > 0) {
         telegramSend(
             message: "Branch `${branch}` created from `${baseBranch}` [[${success}/${total}]]",
-            chatId: -432877744
+            chatId: -1001346473906
         )
     }
     return this
@@ -311,7 +311,7 @@ def finishRelease(String branch, String extraBranch)
         }
         telegramSend(
             message: telegramMessage,
-            chatId: -432877744
+            chatId: -1001346473906
         )
     }
     return this
