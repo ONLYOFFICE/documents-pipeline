@@ -279,10 +279,7 @@ def startRelease(String branch, String baseBranch, Boolean protect)
     }
     setBuildStatus(success, total)
     if (success > 0) {
-        telegramSend(
-            message: "Branch `${branch}` created from `${baseBranch}` [[${success}/${total}]]",
-            chatId: -1001346473906
-        )
+        tgSendGroup("Branch `${branch}` created from `${baseBranch}` [[${success}/${total}]]")
     }
     return this
 }
@@ -303,17 +300,19 @@ def finishRelease(String branch, String extraBranch)
     }
     setBuildStatus(success, total)
     if (success > 0) {
-        String telegramMessage
-        if (extraBranch == null) {
-            telegramMessage = "Branch `${branch}` merged into `master` and `develop` [[${success}/${total}]]"
-        } else {
-            telegramMessage = "Branch `${branch}` merged into `master`, `develop` and `${extraBranch}` [[${success}/${total}]]"
-        }
-        telegramSend(
-            message: telegramMessage,
-            chatId: -1001346473906
-        )
+        String tgBranches = "`master`, `develop`"
+        if (extraBranch != null) { tgBranches += ", `${extraBranch}`" }
+        tgSendGroup("Branch `${branch}` merged into ${tgBranches} [[${success}/${total}]]")
     }
+    return this
+}
+
+def tgSendGroup(String message)
+{
+    telegramSend(
+        message: message,
+        chatId: -1001346473906
+    )
     return this
 }
 
