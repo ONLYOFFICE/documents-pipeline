@@ -1,0 +1,53 @@
+pipeline {
+  agent none
+  parameters {
+    string (
+      defaultValue: '',
+      description: 'Branch name',
+      name: 'branch'
+    )
+  }
+  stages {
+    stage('Clean workspace') {
+      parallel {
+        stage('Windows 64-bit clean') {
+          agent { label 'win_64' }
+          steps {
+            cleanWorkspace("C:\\oo\\${params.branch}\\win_64")
+          }
+        }
+        stage('Windows 32-bit clean') {
+          agent { label 'win_32' }
+          steps {
+            cleanWorkspace("C:\\oo\\${params.branch}\\win_32")
+          }
+        }
+        stage('Windows XP 64-bit clean') {
+          agent { label 'win_64_xp' }
+          steps {
+            cleanWorkspace("C:\\oo\\${params.branch}\\win_64_xp")
+          }
+        }
+        stage('Windows XP 32-bit clean') {
+          agent { label 'win_32_xp' }
+          steps {
+            cleanWorkspace("C:\\oo\\${params.branch}\\win_32_xp")
+          }
+        }
+      }
+      when {
+        expression { !params.branch.isEmpty() }
+      }
+    }
+  }
+}
+
+def cleanWorkspace(String workspaceDir) {
+  dir (workspaceDir) {
+    deleteDir()
+  }
+  dir (workspaceDir+"@tmp") {
+    deleteDir()
+  }
+  return this
+}
