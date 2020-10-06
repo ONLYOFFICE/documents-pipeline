@@ -13,25 +13,25 @@ pipeline {
         stage('Windows 64-bit clean') {
           agent { label 'win_64' }
           steps {
-            cleanWorkspace("C:\\oo\\${params.branch}\\win_64")
+            cleanWorkspace("C:/oo/${params.branch}")
           }
         }
         stage('Windows 32-bit clean') {
           agent { label 'win_32' }
           steps {
-            cleanWorkspace("C:\\oo\\${params.branch}\\win_32")
+            cleanWorkspace("C:/oo/${params.branch}")
           }
         }
         stage('Windows XP 64-bit clean') {
           agent { label 'win_64_xp' }
           steps {
-            cleanWorkspace("C:\\oo\\${params.branch}\\win_64_xp")
+            cleanWorkspace("C:/oo/${params.branch}")
           }
         }
         stage('Windows XP 32-bit clean') {
           agent { label 'win_32_xp' }
           steps {
-            cleanWorkspace("C:\\oo\\${params.branch}\\win_32_xp")
+            cleanWorkspace("C:/oo/${params.branch}")
           }
         }
       }
