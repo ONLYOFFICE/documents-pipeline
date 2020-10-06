@@ -1,53 +1,28 @@
-pipeline {
-  agent none
-  parameters {
-    string (
-      defaultValue: '',
-      description: 'Branch name',
-      name: 'branch'
-    )
-  }
-  stages {
-    stage('Clean workspace') {
-      parallel {
-        stage('Windows 64-bit clean') {
-          agent { label 'win_64' }
-          steps {
-            cleanWorkspace("C:/oo/${params.branch}")
+def winCleanStages(ArrayList labels) {
+  def nodes = [:]
+
+  labels.each { label ->
+    nodesByLabel(label).each {
+      nodes["${label} ${it}"] = { ->
+        node(it) {
+          stage("${label} ${it}") {
+            dir ("C:/oo/${params.branch}/${label}") {
+              deleteDir()
+            }
+            dir ("C:/oo/${params.branch}/${label}@tmp") {
+              deleteDir()
+            }
           }
         }
-        stage('Windows 32-bit clean') {
-          agent { label 'win_32' }
-          steps {
-            cleanWorkspace("C:/oo/${params.branch}")
-          }
-        }
-        stage('Windows XP 64-bit clean') {
-          agent { label 'win_64_xp' }
-          steps {
-            cleanWorkspace("C:/oo/${params.branch}")
-          }
-        }
-        stage('Windows XP 32-bit clean') {
-          agent { label 'win_32_xp' }
-          steps {
-            cleanWorkspace("C:/oo/${params.branch}")
-          }
-        }
-      }
-      when {
-        expression { !params.branch.isEmpty() }
       }
     }
   }
+
+  return nodes
 }
 
-def cleanWorkspace(String workspaceDir) {
-  dir (workspaceDir) {
-    deleteDir()
+stage("Clean workspace") {
+  if (!params.branch.isEmpty()) {
+    parallel winCleanStages(['win_64', 'win_32', 'win_64_xp', 'win_32_xp'])
   }
-  dir (workspaceDir+"@tmp") {
-    deleteDir()
-  }
-  return this
 }
