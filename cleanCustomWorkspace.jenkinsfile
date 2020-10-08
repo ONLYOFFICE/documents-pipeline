@@ -21,8 +21,25 @@ def winCleanStages(ArrayList labels) {
   return nodes
 }
 
-stage("Clean workspace") {
-  if (!params.branch.isEmpty()) {
-    parallel winCleanStages(['win_64', 'win_32', 'win_64_xp', 'win_32_xp'])
+pipeline {
+  agent none
+  parameters {
+    string (
+      defaultValue: '',
+      description: 'Branch name',
+      name: 'branch'
+    )
+  }
+  stages {
+    stage('Clean workspace') {
+      steps {
+        script {
+          parallel winCleanStages(['win_64', 'win_32', 'win_64_xp', 'win_32_xp'])
+        }
+      }
+      when {
+        expression { !params.branch.isEmpty() }
+      }
+    }
   }
 }
