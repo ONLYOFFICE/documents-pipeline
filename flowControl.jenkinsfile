@@ -119,7 +119,7 @@ pipeline {
       script {
         if (params.action_type == 'finish_release') {
           build (
-            job: 'clean-custom-ws',
+            job: 'onlyoffice-clean-custom-ws',
             parameters: [
               string (name: 'branch', value: branch)
             ],
