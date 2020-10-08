@@ -94,6 +94,11 @@ pipeline {
           def pV = branchName =~ /^(release|hotfix)\\/v(.*)$/
           if(pV.find()) {
             productVersion = pV.group(2)
+          } else {
+            pV = branchName =~ /^(master)$/
+            if(pV.find()) {
+              productVersion = "6.0.0"
+            }
           }
           env.PRODUCT_VERSION = productVersion
 
