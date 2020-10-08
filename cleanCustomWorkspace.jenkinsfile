@@ -1,4 +1,4 @@
-def winCleanStages(ArrayList labels) {
+def winCleanStages(ArrayList labels, String branch) {
   def nodes = [:]
 
   labels.each { label ->
@@ -6,10 +6,10 @@ def winCleanStages(ArrayList labels) {
       nodes["${label} ${it}"] = { ->
         node(it) {
           stage("${label} ${it}") {
-            dir ("C:/oo/${params.branch}/${label}") {
+            dir ("C:/oo/${branch}/${label}") {
               deleteDir()
             }
-            dir ("C:/oo/${params.branch}/${label}@tmp") {
+            dir ("C:/oo/${branch}/${label}@tmp") {
               deleteDir()
             }
           }
@@ -34,7 +34,7 @@ pipeline {
     stage('Clean workspace') {
       steps {
         script {
-          parallel winCleanStages(['win_64', 'win_32', 'win_64_xp', 'win_32_xp'])
+          parallel winCleanStages(['win_64', 'win_32', 'win_64_xp', 'win_32_xp'], params.branch)
         }
       }
       when {
