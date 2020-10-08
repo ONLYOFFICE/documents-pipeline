@@ -1,0 +1,45 @@
+pipeline {
+  agent none
+  parameters {
+    string (
+      defaultValue: '',
+      description: 'Branch name',
+      name: 'branch'
+    )
+  }
+  stages {
+    stage('Clean workspace') {
+      steps {
+        script {
+          parallel winCleanStages(['win_64', 'win_32', 'win_64_xp', 'win_32_xp'], params.branch)
+        }
+      }
+      when {
+        expression { !params.branch.isEmpty() }
+      }
+    }
+  }
+}
+
+def winCleanStages(ArrayList labels, String branch) {
+  def nodes = [:]
+
+  labels.each { label ->
+    nodesByLabel(label).each {
+      nodes["${label} ${it}"] = { ->
+        node(it) {
+          stage("${label} ${it}") {
+            dir ("C:/oo/${branch}/${label}") {
+              deleteDir()
+            }
+            dir ("C:/oo/${branch}/${label}@tmp") {
+              deleteDir()
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return nodes
+}
