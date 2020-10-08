@@ -1,26 +1,3 @@
-def winCleanStages(ArrayList labels, String branch) {
-  def nodes = [:]
-
-  labels.each { label ->
-    nodesByLabel(label).each {
-      nodes["${label} ${it}"] = { ->
-        node(it) {
-          stage("${label} ${it}") {
-            dir ("C:/oo/${branch}/${label}") {
-              deleteDir()
-            }
-            dir ("C:/oo/${branch}/${label}@tmp") {
-              deleteDir()
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return nodes
-}
-
 pipeline {
   agent none
   parameters {
@@ -42,4 +19,27 @@ pipeline {
       }
     }
   }
+}
+
+def winCleanStages(ArrayList labels, String branch) {
+  def nodes = [:]
+
+  labels.each { label ->
+    nodesByLabel(label).each {
+      nodes["${label} ${it}"] = { ->
+        node(it) {
+          stage("${label} ${it}") {
+            dir ("C:/oo/${branch}/${label}") {
+              deleteDir()
+            }
+            dir ("C:/oo/${branch}/${label}@tmp") {
+              deleteDir()
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return nodes
 }
