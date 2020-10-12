@@ -22,7 +22,7 @@ pipeline {
       name: 'win_64'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Windows x86 targets',
       name: 'win_32'
     )
@@ -160,7 +160,7 @@ pipeline {
               }
 
               if ( params.desktopeditor ) {
-                utils.linuxBuild(platform, clean, "freemium")
+                utils.linuxBuild(platform, clean, "commercial")
                 clean = false
                 utils.linuxBuildDesktop(platform)
               }
@@ -232,7 +232,7 @@ pipeline {
               }
 
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, clean, "freemium")
+                utils.windowsBuild(platform, clean, "commercial")
                 clean = false
                 utils.windowsBuildDesktop(platform)
               }
@@ -292,7 +292,7 @@ pipeline {
               }
 
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, clean, "freemium")
+                utils.windowsBuild(platform, clean, "commercial")
                 clean = false
                 utils.windowsBuildDesktop(platform)
               }
@@ -331,7 +331,7 @@ pipeline {
 
               String platform = "win_64_xp"
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, params.clean, "freemium")
+                utils.windowsBuild(platform, params.clean, "commercial")
                 utils.windowsBuildDesktop(platform)
               }
             }
@@ -369,7 +369,7 @@ pipeline {
 
               String platform = "win_32_xp"
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, params.clean, "freemium")
+                utils.windowsBuild(platform, params.clean, "commercial")
                 utils.windowsBuildDesktop(platform)
               }
             }
