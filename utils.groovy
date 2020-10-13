@@ -328,7 +328,6 @@ def getConfParams(String platform, Boolean clean, String license)
     }
     if (platform.startsWith("win")) {
         modules.add('tests')
-        modules.add('updmodule')
     }
 
     def confParams = []
@@ -340,17 +339,9 @@ def getConfParams(String platform, Boolean clean, String license)
     if (platform.endsWith("_xp")) {
         confParams.add("--qt-dir-xp ${env.QT56_PATH}")
     }
-    if (license == "commercial" || license == "freemium") {
-        confParams.add("--sdkjs-addon comparison")
-        confParams.add("--sdkjs-addon content-controls")
-        confParams.add("--sdkjs-addon pivot-tables")
-        confParams.add("--sdkjs-addon sheet-views")
-        confParams.add("--server-addon license")
-        confParams.add("--server-addon lockstorage")
-        confParams.add("--web-apps-addon mobile")
-    }
-    if (license == "freemium") {
-        confParams.add("--sdkjs-addon-desktop disable-features")
+    if (false) {
+        confParams.add("--branding onlyoffice")
+        confParams.add("--branding-url https://github.com/ONLYOFFICE/onlyoffice.git")
     }
     if (params.extra_params) {
         confParams.add(params.extra_params)
