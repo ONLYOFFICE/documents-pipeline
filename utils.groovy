@@ -317,7 +317,7 @@ def getConfParams(String platform, Boolean clean, String license)
             modules.add('builder')
         }
     }
-    if (license == "freemium" && params.desktopeditor) {
+    if (license == "commercial" && params.desktopeditor) {
         modules.add('desktop')
     }
     if ((license == "opensource"
