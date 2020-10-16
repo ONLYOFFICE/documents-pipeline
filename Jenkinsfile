@@ -37,7 +37,7 @@ pipeline {
       name: 'win_32_xp'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Android targets',
       name: 'android'
     )
