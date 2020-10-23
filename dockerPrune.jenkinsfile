@@ -1,0 +1,45 @@
+pipeline {
+  agent none
+  parameters {
+    string (
+      defaultValue: '168h',
+      description: 'Until filter',
+      name: 'until'
+    )
+  }
+  triggers {
+    cron('@weekly')
+  }
+  stages {
+    stage('Docker Prune') {
+      steps {
+        script {
+          parallel dockerPruneStages(['linux'])
+        }
+      }
+    }
+  }
+}
+
+def dockerPruneStages(ArrayList labels) {
+  def nodes = [:]
+
+  labels.each { label ->
+    nodesByLabel(label).each {
+      nodes["${label} ${it}"] = { ->
+        node(it) {
+          stage("${label} ${it}") {
+            String pruneSystem = "docker system prune -f -a"
+            if (!params.until.isEmpty()) { pruneSystem += " --filter until=${params.until}" }
+            String pruneVolumes = "docker volume prune -f"
+
+            sh pruneSystem
+            sh pruneVolumes
+          }
+        }
+      }
+    }
+  }
+
+  return nodes
+}
