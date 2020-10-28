@@ -22,17 +22,17 @@ pipeline {
       name: 'win_64'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Windows x86 targets',
       name: 'win_32'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Windows XP x64 targets',
       name: 'win_64_xp'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Windows XP x86 targets',
       name: 'win_32_xp'
     )
@@ -94,6 +94,11 @@ pipeline {
           def pV = branchName =~ /^(release|hotfix)\\/v(.*)$/
           if(pV.find()) {
             productVersion = pV.group(2)
+          } else {
+            pV = branchName =~ /^(master)$/
+            if(pV.find()) {
+              productVersion = "6.0.0"
+            }
           }
           env.PRODUCT_VERSION = productVersion
 
@@ -155,7 +160,7 @@ pipeline {
               }
 
               if ( params.desktopeditor ) {
-                utils.linuxBuild(platform, clean, "freemium")
+                utils.linuxBuild(platform, clean, "commercial")
                 clean = false
                 utils.linuxBuildDesktop(platform)
               }
@@ -227,7 +232,7 @@ pipeline {
               }
 
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, clean, "freemium")
+                utils.windowsBuild(platform, clean, "commercial")
                 clean = false
                 utils.windowsBuildDesktop(platform)
               }
@@ -287,7 +292,7 @@ pipeline {
               }
 
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, clean, "freemium")
+                utils.windowsBuild(platform, clean, "commercial")
                 clean = false
                 utils.windowsBuildDesktop(platform)
               }
@@ -326,7 +331,7 @@ pipeline {
 
               String platform = "win_64_xp"
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, params.clean, "freemium")
+                utils.windowsBuild(platform, params.clean, "commercial")
                 utils.windowsBuildDesktop(platform)
               }
             }
@@ -364,7 +369,7 @@ pipeline {
 
               String platform = "win_32_xp"
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, params.clean, "freemium")
+                utils.windowsBuild(platform, params.clean, "commercial")
                 utils.windowsBuildDesktop(platform)
               }
             }
