@@ -114,4 +114,19 @@ pipeline {
       }
     }
   }
+  post {
+    success {
+      script {
+        if (params.action_type == 'finish_release') {
+          build (
+            job: 'onlyoffice-clean-custom-ws',
+            parameters: [
+              string (name: 'branch', value: branch)
+            ],
+            wait: false
+          )
+        }
+      }
+    }
+  }
 }
