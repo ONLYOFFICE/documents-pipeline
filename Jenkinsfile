@@ -27,12 +27,12 @@ pipeline {
       name: 'win_32'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Windows XP x64 targets',
       name: 'win_64_xp'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Windows XP x86 targets',
       name: 'win_32_xp'
     )
