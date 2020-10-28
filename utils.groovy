@@ -95,7 +95,7 @@ def printBranches(String branch, Map repo)
     return sh (
         label: "${repo.owner}/${repo.name}: branches",
         script: """
-            gh api -X GET repos/${repo.owner}/${repo.name}/branches | \
+            gh api -X GET repos/${repo.owner}/${repo.name}/branches?per_page=100 | \
             jq -c '.[] | { name, protected }'
         """,
         returnStatus: true
@@ -278,6 +278,9 @@ def startRelease(String branch, String baseBranch, Boolean protect)
         }
     }
     setBuildStatus(success, total)
+    if (success > 0) {
+        tgSendGroup("Branch `${branch}` created from `${baseBranch}` [[${success}/${total}]]")
+    }
     return this
 }
 
@@ -296,6 +299,20 @@ def finishRelease(String branch, String extraBranch)
         }
     }
     setBuildStatus(success, total)
+    if (success > 0) {
+        String tgBranches = "`master`, `develop`"
+        if (extraBranch != null) { tgBranches += ", `${extraBranch}`" }
+        tgSendGroup("Branch `${branch}` merged into ${tgBranches} [[${success}/${total}]]")
+    }
+    return this
+}
+
+def tgSendGroup(String message)
+{
+    telegramSend(
+        message: message,
+        chatId: -1001346473906
+    )
     return this
 }
 
