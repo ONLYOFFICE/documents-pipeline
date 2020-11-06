@@ -285,9 +285,9 @@ def mergeRelease(String branch)
 {
     def success = 0
     def total = getReposList().size()
+    def baseBranches = ['master']
     for (repo in getReposList()) {
         dir (repo.dir) {
-            def baseBranches = ['master']
             def retM = mergeBranch(branch, baseBranches, repo)
             if (retM == 0) { success++ }
         }
@@ -303,12 +303,12 @@ def finishRelease(String branch, String extraBranch = '')
 {
     def success = 0
     def total = getReposList().size()
+    def baseBranches = ['master', 'develop']
+    if (!extraBranch.isEmpty()) {
+        baseBranches.add(extraBranch)
+    }
     for (repo in getReposList()) {
         dir (repo.dir) {
-            def baseBranches = ['master', 'develop']
-            if (!extraBranch.isEmpty()) {
-                baseBranches.add(extraBranch)
-            }
             def retM = mergeBranch(branch, baseBranches, repo)
             if (retM == 0) {
                 def retU = unprotectBranch(branch, repo)
@@ -319,8 +319,7 @@ def finishRelease(String branch, String extraBranch = '')
     }
     setBuildStatus(success, total)
     if (success > 0) {
-        String tgBranches = "`master`, `develop`"
-        if (extraBranch != null) { tgBranches += ", `${extraBranch}`" }
+        String tgBranches = baseBranches.collect({"`$it`"}).join(', ')
         tgSendGroup("Branch `${branch}` merged into ${tgBranches} [[${success}/${total}]]")
     }
     return this
