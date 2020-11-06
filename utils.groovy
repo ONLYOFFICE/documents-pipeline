@@ -160,38 +160,34 @@ def createBranch(String branch, String baseBranch, Map repo)
     )
 }
 
-def mergeBranch(String branch, String extraBranch, Map repo)
+def mergeBranch(String branch, ArrayList baseBranches, Map repo)
 {
     return sh (
-        label: "${repo.owner}/${repo.name}: finish ${branch}",
+        label: "${repo.owner}/${repo.name}: merge ${branch} to ${baseBranches.join(', ')}",
         script: """#!/bin/bash -xe
             if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
                 exit 0
             fi
-            baseBranches=('master' 'develop')
+            base_branches=(${baseBranches.join(' ')})
             merge=0
-            if [ \$(echo -n '${extraBranch}' | wc -c) -ne 0 ] \
-            && [ \$(git branch -a | grep '${extraBranch}' | wc -c) -ne 0 ]; then
-                baseBranches+=('${extraBranch}')
-            fi
-            for baseBranch in \${baseBranches[*]}; do
+            for base in \${base_branches[*]}; do
                 git checkout -f ${branch}
                 git pull --ff-only origin ${branch}
                 gh pr create \
-                    --base \$baseBranch \
-                    --title \"Merge branch ${branch} into \$baseBranch\" \
+                    --base \$base \
+                    --title \"Merge branch ${branch} into \$base\" \
                     --body \"\" || \
                 true
-                git checkout \$baseBranch
-                git pull --ff-only origin \$baseBranch
+                git checkout \$base
+                git pull --ff-only origin \$base
                 git merge ${branch} \
                     --no-edit --no-ff \
-                    -m \"Merge branch ${branch} into \$baseBranch\" || \
+                    -m \"Merge branch ${branch} into \$base\" || \
                 continue
-                git push origin \$baseBranch
+                git push origin \$base
                 ((++merge))
             done
-            if [ \$merge -ne \${#baseBranches[@]} ]; then
+            if [ \$merge -ne \${#base_branches[@]} ]; then
                 exit 2
             fi
         """,
@@ -284,13 +280,35 @@ def startRelease(String branch, String baseBranch, Boolean protect)
     return this
 }
 
-def finishRelease(String branch, String extraBranch)
+def mergeRelease(String branch)
 {
     def success = 0
     def total = getReposList().size()
+    def baseBranches = ['master']
     for (repo in getReposList()) {
         dir (repo.dir) {
-            def retM = mergeBranch(branch, extraBranch, repo)
+            def retM = mergeBranch(branch, baseBranches, repo)
+            if (retM == 0) { success++ }
+        }
+    }
+    setBuildStatus(success, total)
+    if (success > 0) {
+        tgSendGroup("Branch `${branch}` merged into `master` [[${success}/${total}]]")
+    }
+    return this
+}
+
+def finishRelease(String branch, String extraBranch = '')
+{
+    def success = 0
+    def total = getReposList().size()
+    def baseBranches = ['master', 'develop']
+    if (!extraBranch.isEmpty()) {
+        baseBranches.add(extraBranch)
+    }
+    for (repo in getReposList()) {
+        dir (repo.dir) {
+            def retM = mergeBranch(branch, baseBranches, repo)
             if (retM == 0) {
                 def retU = unprotectBranch(branch, repo)
                 def retD = deleteBranch(branch, repo)
@@ -300,8 +318,7 @@ def finishRelease(String branch, String extraBranch)
     }
     setBuildStatus(success, total)
     if (success > 0) {
-        String tgBranches = "`master`, `develop`"
-        if (extraBranch != null) { tgBranches += ", `${extraBranch}`" }
+        String tgBranches = baseBranches.collect({"`$it`"}).join(', ')
         tgSendGroup("Branch `${branch}` merged into ${tgBranches} [[${success}/${total}]]")
     }
     return this
