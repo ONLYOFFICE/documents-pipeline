@@ -58,6 +58,11 @@ pipeline {
     )
     booleanParam (
       defaultValue: true,
+      description: 'Build and publish DocumentServer-EE packages',
+      name: 'documentserver_ee'
+    )
+    booleanParam (
+      defaultValue: true,
       description: 'Build and publish DocumentServer-IE packages',
       name: 'documentserver_ie'
     )
@@ -168,6 +173,9 @@ pipeline {
               if ( params.documentserver_ie || params.documentserver_de ) {
                 utils.linuxBuild(platform, clean, "commercial")
                 clean = false
+                if ( params.documentserver_ee ) {
+                  utils.linuxBuildServer(platform, "documentserver-ee")
+                }
                 if ( params.documentserver_ie ) {
                   utils.linuxBuildServer(platform, "documentserver-ie")
                   /*
@@ -240,6 +248,9 @@ pipeline {
               if ( params.documentserver_ie || params.documentserver_de ) {
                 utils.windowsBuild(platform, clean, "commercial")
                 clean = false
+                if ( params.documentserver_ee ) {
+                  utils.windowsBuildServer(platform, "DocumentServer-EE")
+                }
                 if ( params.documentserver_ie ) {
                   utils.windowsBuildServer(platform, "DocumentServer-IE")
                 }
