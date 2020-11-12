@@ -53,16 +53,24 @@ String branchName
 
 def winCleanStages(ArrayList labels, String branch) {
   def nodes = [:]
+  String cleanDir
 
   labels.each { label ->
     nodesByLabel(label).each {
       nodes["${label} ${it}"] = { ->
         node(it) {
           stage("${label} ${it}") {
-            dir ("C:/r7/${branch}/${label}") {
+            if (label == 'win_64_xp') {
+              cleanDir = "C:/x8/${branch}"
+            } else if (label == 'win_32_xp') {
+              cleanDir = "C:/x4/${branch}"
+            } else {
+              cleanDir = "C:/r7/${branch}/${label}"
+            }
+            dir (cleanDir) {
               deleteDir()
             }
-            dir ("C:/r7/${branch}/${label}@tmp") {
+            dir (cleanDir + "@tmp") {
               deleteDir()
             }
           }
