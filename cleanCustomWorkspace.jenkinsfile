@@ -23,16 +23,18 @@ pipeline {
 
 def winCleanStages(ArrayList labels, String branch) {
   def nodes = [:]
+  String cleanDir
 
   labels.each { label ->
     nodesByLabel(label).each {
       nodes["${label} ${it}"] = { ->
         node(it) {
           stage("${label} ${it}") {
-            dir ("C:/oo/${branch}/${label}") {
+            cleanDir = "C:/oo/${branch}/${label}"
+            dir (cleanDir) {
               deleteDir()
             }
-            dir ("C:/oo/${branch}/${label}@tmp") {
+            dir (cleanDir + "@tmp") {
               deleteDir()
             }
           }
