@@ -170,7 +170,7 @@ pipeline {
                 utils.linuxBuildDesktop(platform)
               }
 
-              if ( params.documentserver_ie || params.documentserver_de ) {
+              if ( params.documentserver_ee || params.documentserver_ie || params.documentserver_de ) {
                 utils.linuxBuild(platform, clean, "commercial")
                 clean = false
                 if ( params.documentserver_ee ) {
@@ -245,7 +245,7 @@ pipeline {
                 utils.windowsBuildDesktop(platform)
               }
 
-              if ( params.documentserver_ie || params.documentserver_de ) {
+              if ( params.documentserver_ee || params.documentserver_ie || params.documentserver_de ) {
                 utils.windowsBuild(platform, clean, "commercial")
                 clean = false
                 if ( params.documentserver_ee ) {
