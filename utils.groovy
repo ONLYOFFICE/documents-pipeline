@@ -373,7 +373,9 @@ def getConfParams(String platform, Boolean clean, String license)
     if (platform.endsWith("_xp")) {
         confParams.add("--qt-dir-xp ${env.QT56_PATH}")
     }
-    confParams.add("--branding onlyoffice")
+    if (license == "freemium" || license == "commercial") {
+        confParams.add("--branding onlyoffice")
+    }
     if (!params.extra_params.isEmpty()) {
         confParams.add(params.extra_params)
     }
