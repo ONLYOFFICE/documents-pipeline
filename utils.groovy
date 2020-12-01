@@ -40,6 +40,7 @@ def getReposList()
     repos.add(getRepoMap('document-server-integration'))
     repos.add(getRepoMap('document-server-package'))
     repos.add(getRepoMap('documents-pipeline'))
+    repos.add(getRepoMap('onlyoffice'))
     repos.add(getRepoMap('plugin-ocr',           'sdkjs-plugins/plugin-ocr'))
     repos.add(getRepoMap('plugin-macros',        'sdkjs-plugins/plugin-macros'))
     repos.add(getRepoMap('plugin-highlightcode', 'sdkjs-plugins/plugin-highlightcode'))
@@ -57,7 +58,7 @@ def getReposList()
     repos.add(getRepoMap('sdkjs-comparison'))
     repos.add(getRepoMap('sdkjs-content-controls'))
     repos.add(getRepoMap('sdkjs-disable-features'))
-    repos.add(getRepoMap('sdkjs-pivot-tables'))
+    repos.add(getRepoMap('sdkjs-sheet-views'))
     repos.add(getRepoMap('server'))
     repos.add(getRepoMap('server-license'))
     repos.add(getRepoMap('server-lockstorage'))
@@ -361,7 +362,6 @@ def getConfParams(String platform, Boolean clean, String license)
     }
     if (platform.startsWith("win")) {
         modules.add('tests')
-        modules.add('updmodule')
     }
 
     def confParams = []
@@ -373,18 +373,10 @@ def getConfParams(String platform, Boolean clean, String license)
     if (platform.endsWith("_xp")) {
         confParams.add("--qt-dir-xp ${env.QT56_PATH}")
     }
-    if (license == "commercial" || license == "freemium") {
-        confParams.add("--sdkjs-addon comparison")
-        confParams.add("--sdkjs-addon content-controls")
-        confParams.add("--sdkjs-addon pivot-tables")
-        confParams.add("--server-addon license")
-        confParams.add("--server-addon lockstorage")
-        confParams.add("--web-apps-addon mobile")
+    if (license == "freemium" || license == "commercial") {
+        confParams.add("--branding onlyoffice")
     }
-    if (license == "freemium") {
-        confParams.add("--sdkjs-addon-desktop disable-features")
-    }
-    if (params.extra_params) {
+    if (!params.extra_params.isEmpty()) {
         confParams.add(params.extra_params)
     }
 
