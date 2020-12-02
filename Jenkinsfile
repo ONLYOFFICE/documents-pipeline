@@ -37,7 +37,7 @@ pipeline {
       name: 'win_32_xp'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build Android targets',
       name: 'android'
     )
@@ -100,7 +100,7 @@ pipeline {
       steps {
         script {
           def branchName = env.BRANCH_NAME
-          def productVersion = "6.0.99"
+          def productVersion = "99.99.99"
           def pV = branchName =~ /^(release|hotfix)\\/v(.*)$/
           if(pV.find()) {
             productVersion = pV.group(2)
