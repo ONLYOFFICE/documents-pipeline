@@ -337,7 +337,8 @@ def getConfParams(String platform, Boolean clean, String license)
     if ((license == "opensource"
         && params.documentserver)
         || (license == "commercial"
-        && (params.documentserver_ie
+        && (params.documentserver_ee
+        || params.documentserver_ie
         || params.documentserver_de))) {
         modules.add('server')
     }
