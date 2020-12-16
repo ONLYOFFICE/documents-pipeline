@@ -112,6 +112,8 @@ pipeline {
           }
           env.PRODUCT_VERSION = productVersion
 
+          env.RELEASE_BRANCH = branchName == 'develop' ? 'unstable' : 'testing'
+
           if( params.signing ) {
             env.ENABLE_SIGNING=1
           }
