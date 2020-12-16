@@ -562,42 +562,65 @@ def windowsBuildCore(String platform)
 
 def androidBuild(String branch = 'master', String config = 'release')
 {
-    def dockerRunOptions = []
-    dockerRunOptions.add("-e BUILD_BRANCH=${branch}")
-    dockerRunOptions.add("-e BUILD_CONFIG=${config}")
-    dockerRunOptions.add("-v ${env.WORKSPACE}/android:/home/user")
-    dockerRunOptions.add("--name android-core-builder")
-
-    sh """#!/bin/bash -xe
-        [[ ! -d android ]] && mkdir android
-        cd android
-
-        rm -rfv build_tools/out
-
-        if [[ -d artifacts ]]; then
-            for file in \$(ls -1t artifacts | tail -n +4); do
-                rm -fv \"artifacts/\${file}\"
-            done
-        else
-            mkdir -p artifacts
-        fi
-    """
-
     if (params.wipe) {
         sh "docker image rm -f onlyoffice/android-core-builder"
     }
+
+    sh """#!/bin/bash -xe
+        [[ ! -d android/workspace ]] && mkdir -p android/workspace
+        cd android
+
+        rm -rf \
+            workspace/build_tools/out \
+            index.html \
+            *.zip
+    """
+
+    def dockerRunOptions = []
+    dockerRunOptions.add("-e BUILD_BRANCH=${branch}")
+    dockerRunOptions.add("-e BUILD_CONFIG=${config}")
+    dockerRunOptions.add("-v ${env.WORKSPACE}/android/workspace:/home/user")
 
     docker.image('onlyoffice/android-core-builder:latest').withRun(dockerRunOptions.join(' ')) { c ->
         sh "docker logs -f ${c.id}"
     }
 
-    sh "cd android/build_tools/out && \
-        zip -r ../../artifacts/android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip ./android* ./js"
+    sh """#!/bin/bash -xe
+        COMPANY_NAME=onlyoffice
+        S3_BUCKET=repo-doc-onlyoffice-com
+        ANDROID_LIBS=android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip
+        ANDROID_LIBS_URI=\$COMPANY_NAME/\$RELEASE_BRANCH/android/\$ANDROID_LIBS
+        cd android
 
-    archiveArtifacts(
-        artifacts: "android/artifacts/android-libs-${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}.zip",
-        onlyIfSuccessful: true
-    )
+        pushd workspace/build_tools/out
+        zip -r ../../../android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip ./android* ./js"
+        popd
+
+        cat <<- EOF > index.html
+            <html>
+                <body>
+                    <p>
+                        Android libs
+                        <a href="https://\$S3_BUCKET.s3-eu-west-1.amazonaws.com/\$ANDROID_LIBS_URI">zip</a>
+                    </p>
+                </body>
+            </html>
+        EOF
+
+        aws s3 cp --no-progress --acl public-read \
+            \$ANDROID_LIBS s3://\$S3_BUCKET/\$ANDROID_LIBS_URI
+    """
+
+    publishHTML([
+        allowMissing: true,
+        alwaysLinkToLastBuild: false,
+        includes: 'index.html',
+        keepAll: true,
+        reportDir: 'android',
+        reportFiles: 'index.html',
+        reportName: "Android",
+        reportTitles: ''
+    ])
 
     return this
 }
