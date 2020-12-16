@@ -585,7 +585,7 @@ def androidBuild(String branch = 'master', String config = 'release')
         sh "docker logs -f ${c.id}"
     }
 
-    sh """`#!/bin/bash -xe
+    sh """#!/bin/bash -xe
         COMPANY_NAME=onlyoffice
         S3_BUCKET=repo-doc-onlyoffice-com
         ANDROID_LIBS=android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip
