@@ -596,16 +596,17 @@ def androidBuild(String branch = 'master', String config = 'release')
         zip -r ../../../android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip ./android* ./js"
         popd
 
-        cat <<- EOF > index.html
-            <html>
-                <body>
-                    <p>
-                        Android libs
-                        <a href="https://\$S3_BUCKET.s3-eu-west-1.amazonaws.com/\$ANDROID_LIBS_URI">zip</a>
-                    </p>
-                </body>
-            </html>
-        EOF
+        html=(
+            "<html>"
+            "  <body>"
+            "    <p>"
+            "      Android libs"
+            "      <a href=\\"https://\$S3_BUCKET.s3-eu-west-1.amazonaws.com/\$ANDROID_LIBS_URI\\">zip</a>"
+            "    </p>"
+            "  </body>"
+            "</html>"
+        )
+        printf '%s\\n' "\${html[@]}" > index.html
 
         aws s3 cp --no-progress --acl public-read \
             \$ANDROID_LIBS s3://\$S3_BUCKET/\$ANDROID_LIBS_URI
