@@ -73,6 +73,11 @@ pipeline {
     )
     booleanParam (
       defaultValue: false,
+      description: 'Enable password protection',
+      name: 'password_protection'
+    )
+    booleanParam (
+      defaultValue: false,
       description: 'Run test(Only on Linux)',
       name: 'test'
     )
