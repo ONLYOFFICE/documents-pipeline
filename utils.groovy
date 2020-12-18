@@ -593,7 +593,7 @@ def androidBuild(String branch = 'master', String config = 'release')
         cd android
 
         pushd workspace/build_tools/out
-        zip -r ../../../android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip ./android* ./js"
+        zip -r ../../../android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip ./android* ./js
         popd
 
         html=(
