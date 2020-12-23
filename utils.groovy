@@ -430,17 +430,25 @@ def linuxBuildServer(String platform = 'native', String productName='documentser
         make clean && \
         make deploy"
 
-    publishHTML([
-            allowMissing: true,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-server-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentServer(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-server-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        switch(productName) {
+            case 'documentserver':
+                deployServerCeList.add(item)
+                break
+            case 'documentserver-ee':
+                deployServerEeList.add(item)
+                break
+            case 'documentserver-ie':
+                deployServerIeList.add(item)
+                break
+            case 'documentserver-de':
+                deployServerDeList.add(item)
+                break
+        }
+    }
 
     return this
 }
@@ -522,17 +530,25 @@ def windowsBuildServer(String platform = 'native', String productName='DocumentS
         mingw32-make clean && \
         mingw32-make deploy"
 
-    publishHTML([
-            allowMissing: true,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-server-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentServer(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-server-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        switch(productName) {
+            case 'documentserver':
+                deployServerCeList.add(item)
+                break
+            case 'documentserver-ee':
+                deployServerEeList.add(item)
+                break
+            case 'documentserver-ie':
+                deployServerIeList.add(item)
+                break
+            case 'documentserver-de':
+                deployServerDeList.add(item)
+                break
+        }
+    }
 
     return this
 }
