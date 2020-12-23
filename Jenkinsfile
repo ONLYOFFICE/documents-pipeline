@@ -117,6 +117,13 @@ pipeline {
           if( params.signing ) {
             env.ENABLE_SIGNING=1
           }
+
+          deployDesktopList = []
+          deployBuilderList = []
+          deployServerCeList = []
+          deployServerEeList = []
+          deployServerIeList = []
+          deployServerDeList = []
         }
       }
     }
@@ -402,6 +409,14 @@ pipeline {
             }
           }
         }
+      }
+    }
+  }
+  post {
+    always {
+      node('linux') {
+        def utils = load "utils.groovy"
+        utils.createReports()
       }
     }
   }
