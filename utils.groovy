@@ -430,17 +430,22 @@ def linuxBuildServer(String platform = 'native', String productName='documentser
         make clean && \
         make deploy"
 
-    publishHTML([
-            allowMissing: true,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-server-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentServer(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-server-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        switch(productName) {
+            case 'documentserver':
+                deployServerCeList.add(item)
+                break
+            case 'documentserver-ee':
+                deployServerEeList.add(item)
+                break
+            case 'documentserver-de':
+                deployServerDeList.add(item)
+                break
+        }
+    }
 
     return this
 }
@@ -522,17 +527,22 @@ def windowsBuildServer(String platform = 'native', String productName='DocumentS
         mingw32-make clean && \
         mingw32-make deploy"
 
-    publishHTML([
-            allowMissing: true,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-server-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentServer(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-server-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        switch(productName) {
+            case 'documentserver':
+                deployServerCeList.add(item)
+                break
+            case 'documentserver-ee':
+                deployServerEeList.add(item)
+                break
+            case 'documentserver-de':
+                deployServerDeList.add(item)
+                break
+        }
+    }
 
     return this
 }
@@ -625,3 +635,97 @@ def androidBuild(String branch = 'master', String config = 'release')
 
     return this
 }
+
+def createReports()
+{
+    Boolean desktop = !deployDesktopList.isEmpty()
+    Boolean builder = !deployBuilderList.isEmpty()
+    Boolean serverc = !deployServerCeList.isEmpty()
+    Boolean servere = !deployServerEeList.isEmpty() 
+    Boolean serverd = !deployServerDeList.isEmpty()
+
+    dir ('html') {
+        deleteDir()
+
+        sh "wget -nv https://unpkg.com/style.css -O style.css"
+        sh "echo \"body { margin: 16px; }\" > custom.css"
+
+        if (desktop) { writeFile file: 'desktopeditors.html', text: genHtml(deployDesktopList) }
+        if (builder) { writeFile file: 'documentbuilder.html', text: genHtml(deployBuilderList) }
+        if (serverc) { writeFile file: 'documentserver_ce.html', text: genHtml(deployServerCeList) }
+        if (servere) { writeFile file: 'documentserver_ee.html', text: genHtml(deployServerEeList) }
+        if (serverd) { writeFile file: 'documentserver_de.html', text: genHtml(deployServerDeList) }
+    }
+
+    if (desktop) {
+        publishHTML([
+            allowMissing: false,
+            alwaysLinkToLastBuild: false,
+            includes: 'desktopeditors.html,*.css',
+            keepAll: true,
+            reportDir: 'html',
+            reportFiles: 'desktopeditors.html',
+            reportName: "DesktopEditors",
+            reportTitles: ''
+        ])
+    }
+    
+    if (builder) {
+        publishHTML([
+            allowMissing: false,
+            alwaysLinkToLastBuild: false,
+            includes: 'documentbuilder.html,*.css',
+            keepAll: true,
+            reportDir: 'html',
+            reportFiles: 'documentbuilder.html',
+            reportName: "DocumentBuilder",
+            reportTitles: ''
+        ])
+    }
+
+    if (serverc || servere || serverd) {
+        publishHTML([
+            allowMissing: false,
+            alwaysLinkToLastBuild: false,
+            includes: 'documentserver_*.html,*.css',
+            keepAll: true,
+            reportDir: 'html',
+            reportFiles: 'documentserver_*.html',
+            reportName: "DocumentServer",
+            reportTitles: ''
+        ])
+    }
+
+    return this
+}
+
+def genHtml(ArrayList deployList)
+{
+    String url = ''
+    String html = """\
+        |<html>
+        |<head>
+        |   <link rel="stylesheet" href="style.css">
+        |   <link rel="stylesheet" href="custom.css">
+        |<head>
+        |<body>
+        |   <dl>
+        |""".stripMargin()
+
+    for(p in deployList) {
+        url = "https://${env.S3_BUCKET}.s3-eu-west-1.amazonaws.com/${p.path}"
+        html += """\
+            |       <dt>${p.title}</dt>
+            |       <dd><a href="${url}">${url}</a></dd>
+            |""".stripMargin()
+    }
+
+    html += """\
+        |   </dl>
+        |</body>
+        |</html>
+        |""".stripMargin()
+
+    return html
+}
+
