@@ -123,7 +123,6 @@ pipeline {
           deployBuilderList = []
           deployServerCeList = []
           deployServerEeList = []
-          deployServerIeList = []
           deployServerDeList = []
         }
       }

@@ -441,9 +441,6 @@ def linuxBuildServer(String platform = 'native', String productName='documentser
             case 'documentserver-ee':
                 deployServerEeList.add(item)
                 break
-            case 'documentserver-ie':
-                deployServerIeList.add(item)
-                break
             case 'documentserver-de':
                 deployServerDeList.add(item)
                 break
@@ -540,9 +537,6 @@ def windowsBuildServer(String platform = 'native', String productName='DocumentS
                 break
             case 'documentserver-ee':
                 deployServerEeList.add(item)
-                break
-            case 'documentserver-ie':
-                deployServerIeList.add(item)
                 break
             case 'documentserver-de':
                 deployServerDeList.add(item)
@@ -648,7 +642,6 @@ def createReports()
     Boolean builder = !deployBuilderList.isEmpty()
     Boolean serverc = !deployServerCeList.isEmpty()
     Boolean servere = !deployServerEeList.isEmpty() 
-    Boolean serveri = !deployServerIeList.isEmpty()
     Boolean serverd = !deployServerDeList.isEmpty()
 
     dir ('html') {
@@ -661,7 +654,6 @@ def createReports()
         if (builder) { writeFile file: 'documentbuilder.html', text: genHtml(deployBuilderList) }
         if (serverc) { writeFile file: 'documentserver_ce.html', text: genHtml(deployServerCeList) }
         if (servere) { writeFile file: 'documentserver_ee.html', text: genHtml(deployServerEeList) }
-        if (serveri) { writeFile file: 'documentserver_ie.html', text: genHtml(deployServerIeList) }
         if (serverd) { writeFile file: 'documentserver_de.html', text: genHtml(deployServerDeList) }
     }
 
@@ -691,7 +683,7 @@ def createReports()
         ])
     }
 
-    if (serverc || servere || serveri || serverd) {
+    if (serverc || servere || serverd) {
         publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
