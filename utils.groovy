@@ -709,6 +709,7 @@ def createReports()
 
 def genHtml(ArrayList deployList)
 {
+    String url = ''
     String html = """\
         |<html>
         |<head>
@@ -720,9 +721,10 @@ def genHtml(ArrayList deployList)
         |""".stripMargin()
 
     for(p in deployList) {
+        url = "https://${env.S3_BUCKET}.s3-eu-west-1.amazonaws.com/${p.path}"
         html += """\
             |       <dt>${p.title}</dt>
-            |       <dd><a href="${p.link}">${p.link}</a></dd>
+            |       <dd><a href="${url}">${url}</a></dd>
             |""".stripMargin()
     }
 
