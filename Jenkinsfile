@@ -112,11 +112,18 @@ pipeline {
           }
           env.PRODUCT_VERSION = productVersion
 
+          env.S3_BUCKET = repo-doc-onlyoffice-com
           env.RELEASE_BRANCH = branchName == 'develop' ? 'unstable' : 'testing'
 
           if( params.signing ) {
             env.ENABLE_SIGNING=1
           }
+
+          deployDesktopList = []
+          deployBuilderList = []
+          deployServerCeList = []
+          deployServerEeList = []
+          deployServerDeList = []
         }
       }
     }
@@ -402,6 +409,14 @@ pipeline {
             }
           }
         }
+      }
+    }
+  }
+  post {
+    always {
+      node('linux') {
+        def utils = load "utils.groovy"
+        utils.createReports()
       }
     }
   }
