@@ -382,17 +382,12 @@ def linuxBuildDesktop(String platform = 'native')
          make clean &&\
          make deploy"
 
-    publishHTML([
-            allowMissing: false,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'desktop-apps/win-linux/package/linux',
-            reportFiles: 'index.html',
-            reportName: "DesktopEditors(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "desktop-apps/win-linux/package/linux/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployDesktopList.add(item)
+    }
 
     return this
 }
@@ -484,17 +479,12 @@ def windowsBuildDesktop (String platform)
             mingw32-make clean-package &&\
             mingw32-make deploy"
 
-    publishHTML([
-            allowMissing: false,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'desktop-apps/win-linux/package/windows',
-            reportFiles: 'index.html',
-            reportName: "DesktopEditors(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployDesktopList.add(item)
+    }
 
     return this
 }
