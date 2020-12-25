@@ -398,17 +398,12 @@ def linuxBuildBuilder(String platform = 'native')
          make clean &&\
          make deploy"
 
-    publishHTML([
-            allowMissing: false,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-builder-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentBuilder(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-builder-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployBuilderList.add(item)
+    }
 
     return this
 }
@@ -495,17 +490,12 @@ def windowsBuildBuilder(String platform)
         mingw32-make clean &&\
         mingw32-make deploy"
 
-    publishHTML([
-            allowMissing: true,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-builder-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentBuilder(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-builder-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployBuilderList.add(item)
+    }
 
     return this
 }
