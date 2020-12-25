@@ -124,6 +124,7 @@ pipeline {
           deployServerCeList = []
           deployServerEeList = []
           deployServerDeList = []
+          deployAndroidList = []
         }
       }
     }
