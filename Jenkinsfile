@@ -112,7 +112,7 @@ pipeline {
           }
           env.PRODUCT_VERSION = productVersion
 
-          env.S3_BUCKET = repo-doc-onlyoffice-com
+          env.S3_BUCKET = 'repo-doc-onlyoffice-com'
           env.RELEASE_BRANCH = branchName == 'develop' ? 'unstable' : 'testing'
 
           if( params.signing ) {
