@@ -415,8 +415,10 @@ pipeline {
   post {
     always {
       node('linux') {
-        def utils = load "utils.groovy"
-        utils.createReports()
+        script {
+          def utils = load "utils.groovy"
+          utils.createReports()
+        }
       }
     }
   }
