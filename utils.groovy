@@ -382,17 +382,12 @@ def linuxBuildDesktop(String platform = 'native')
          make clean &&\
          make deploy"
 
-    publishHTML([
-            allowMissing: false,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'desktop-apps/win-linux/package/linux',
-            reportFiles: 'index.html',
-            reportName: "DesktopEditors(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "desktop-apps/win-linux/package/linux/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployDesktopList.add(item)
+    }
 
     return this
 }
@@ -403,17 +398,12 @@ def linuxBuildBuilder(String platform = 'native')
          make clean &&\
          make deploy"
 
-    publishHTML([
-            allowMissing: false,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-builder-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentBuilder(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-builder-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployBuilderList.add(item)
+    }
 
     return this
 }
@@ -484,17 +474,12 @@ def windowsBuildDesktop (String platform)
             mingw32-make clean-package &&\
             mingw32-make deploy"
 
-    publishHTML([
-            allowMissing: false,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'desktop-apps/win-linux/package/windows',
-            reportFiles: 'index.html',
-            reportName: "DesktopEditors(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployDesktopList.add(item)
+    }
 
     return this
 }
@@ -505,17 +490,12 @@ def windowsBuildBuilder(String platform)
         mingw32-make clean &&\
         mingw32-make deploy"
 
-    publishHTML([
-            allowMissing: true,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-builder-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentBuilder(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-builder-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployBuilderList.add(item)
+    }
 
     return this
 }
@@ -595,43 +575,23 @@ def androidBuild(String branch = 'master', String config = 'release')
         sh "docker logs -f ${c.id}"
     }
 
-    sh """#!/bin/bash -xe
-        COMPANY_NAME=onlyoffice
-        S3_BUCKET=repo-doc-onlyoffice-com
-        ANDROID_LIBS=android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip
-        ANDROID_LIBS_URI=\$COMPANY_NAME/\$RELEASE_BRANCH/android/\$ANDROID_LIBS
-        cd android
+    String androidLibsFile = "android-libs-${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}.zip"
+    String androidLibsUri = "onlyoffice/${env.RELEASE_BRANCH}/android/${androidLibsFile}"
 
+    sh """#!/bin/bash -xe
+        cd android
         pushd workspace/build_tools/out
-        zip -r ../../../android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip ./android* ./js
+        zip -r ../../../${androidLibsFile} ./android* ./js
         popd
 
-        html=(
-            "<html>"
-            "  <body>"
-            "    <p>"
-            "      Android libs"
-            "      <a href=\\"https://\$S3_BUCKET.s3-eu-west-1.amazonaws.com/\$ANDROID_LIBS_URI\\">zip</a>"
-            "    </p>"
-            "  </body>"
-            "</html>"
-        )
-        printf '%s\\n' "\${html[@]}" > index.html
-
         aws s3 cp --no-progress --acl public-read \
-            \$ANDROID_LIBS s3://\$S3_BUCKET/\$ANDROID_LIBS_URI
+            ${androidLibsFile} s3://\$S3_BUCKET/${androidLibsUri}
     """
 
-    publishHTML([
-        allowMissing: true,
-        alwaysLinkToLastBuild: false,
-        includes: 'index.html',
-        keepAll: true,
-        reportDir: 'android',
-        reportFiles: 'index.html',
-        reportName: "Android",
-        reportTitles: ''
-    ])
+    def deployData = [ platform: 'android', title: 'Android libs', path: androidLibsUri ]
+
+    println deployData
+    deployAndroidList.add(deployData)
 
     return this
 }
@@ -643,6 +603,7 @@ def createReports()
     Boolean serverc = !deployServerCeList.isEmpty()
     Boolean servere = !deployServerEeList.isEmpty() 
     Boolean serverd = !deployServerDeList.isEmpty()
+    Boolean android = !deployAndroidList.isEmpty()
 
     dir ('html') {
         deleteDir()
@@ -655,6 +616,7 @@ def createReports()
         if (serverc) { writeFile file: 'documentserver_ce.html', text: genHtml(deployServerCeList) }
         if (servere) { writeFile file: 'documentserver_ee.html', text: genHtml(deployServerEeList) }
         if (serverd) { writeFile file: 'documentserver_de.html', text: genHtml(deployServerDeList) }
+        if (android) { writeFile file: 'android.html', text: genHtml(deployAndroidList) }
     }
 
     if (desktop) {
@@ -692,6 +654,19 @@ def createReports()
             reportDir: 'html',
             reportFiles: 'documentserver_*.html',
             reportName: "DocumentServer",
+            reportTitles: ''
+        ])
+    }
+
+    if (android) {
+        publishHTML([
+            allowMissing: false,
+            alwaysLinkToLastBuild: false,
+            includes: 'android.html,*.css',
+            keepAll: true,
+            reportDir: 'html',
+            reportFiles: 'android.html',
+            reportName: "Android",
             reportTitles: ''
         ])
     }
