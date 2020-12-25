@@ -417,6 +417,7 @@ pipeline {
     always {
       node('linux') {
         script {
+          checkout scm
           def utils = load "utils.groovy"
           utils.createReports()
         }
