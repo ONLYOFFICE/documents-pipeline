@@ -175,9 +175,11 @@ def mergeBranch(String branch, ArrayList baseBranches, Map repo)
                 git checkout -f ${branch}
                 git pull --ff-only origin ${branch}
                 gh pr create \
+                    --repo ${repo.owner}/${repo.name} \
                     --base \$base \
+                    --head ${branch} \
                     --title \"Merge branch ${branch} into \$base\" \
-                    --body \"\" || \
+                    --fill || \
                 true
                 git checkout \$base
                 git pull --ff-only origin \$base
