@@ -178,7 +178,7 @@ def mergeBranch(String branch, ArrayList baseBranches, Map repo)
                     --repo ${repo.owner}/${repo.name} \
                     --base \$base \
                     --head ${branch} \
-                    --title \"Merge branch ${branch} into \$baseBranch\" \
+                    --title \"Merge branch ${branch} into \$base\" \
                     --fill || \
                 true
                 git checkout \$base
