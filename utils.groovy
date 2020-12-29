@@ -512,13 +512,13 @@ def windowsBuildServer(String platform = 'native', String productName='DocumentS
     for(item in deployData.items) {
         println item
         switch(productName) {
-            case 'documentserver':
+            case 'DocumentServer':
                 deployServerCeList.add(item)
                 break
-            case 'documentserver-ee':
+            case 'DocumentServer-EE':
                 deployServerEeList.add(item)
                 break
-            case 'documentserver-de':
+            case 'DocumentServer-DE':
                 deployServerDeList.add(item)
                 break
         }
