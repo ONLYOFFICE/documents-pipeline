@@ -646,13 +646,19 @@ def createReports()
     }
 
     if (serverc || servere || serverd) {
+        // compatibility for htmlpublisher-1.18
+        def serverIndexFiles = []
+        if (serverc) { serverIndexFiles.add('documentserver_ce.html') }
+        if (servere) { serverIndexFiles.add('documentserver_ee.html') }
+        if (serverd) { serverIndexFiles.add('documentserver_de.html') }
+
         publishHTML([
             allowMissing: false,
             alwaysLinkToLastBuild: false,
             includes: 'documentserver_*.html,*.css',
             keepAll: true,
             reportDir: 'html',
-            reportFiles: 'documentserver_*.html',
+            reportFiles: serverIndexFiles.join(','),
             reportName: "DocumentServer",
             reportTitles: ''
         ])
