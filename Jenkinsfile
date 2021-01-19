@@ -415,7 +415,7 @@ pipeline {
   }
   post {
     always {
-      node('linux') {
+      node('master') {
         script {
           checkout scm
           def utils = load "utils.groovy"
