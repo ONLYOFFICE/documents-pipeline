@@ -422,6 +422,23 @@ pipeline {
           utils.createReports()
         }
       }
+      script {
+        if (params.linux_64 && (
+            params.desktopeditor ||
+            params.documentbuilder ||
+            params.documentserver_ee ||
+            params.documentserver_ie ||
+            params.documentserver_de)
+        ) {
+          build (
+            job: 'onlyoffice-repo-manager',
+            parameters: [
+              string (name: 'release_branch', value: env.RELEASE_BRANCH)
+            ],
+            wait: false
+          )
+        }
+      }
     }
   }
 }
