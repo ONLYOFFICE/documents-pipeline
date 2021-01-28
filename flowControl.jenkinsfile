@@ -10,6 +10,7 @@ pipeline {
       choices: [
         'print_branches',
         'start_release',
+        'merge_release',
         'finish_release',
         'unprotect_release'
       ],
@@ -33,7 +34,7 @@ pipeline {
     )
     string (
       defaultValue: '',
-      description: 'Extra branch (for hotfix merge only)',
+      description: 'Extra branch (for hotfix finish_release only)',
       name: 'extra_branch'
     )
   }
@@ -94,6 +95,19 @@ pipeline {
             }
           }
         }
+        stage('Merge Release') {
+          when {
+            expression { params.action_type == 'merge_release' }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              utils.checkoutRepos('master')
+              utils.mergeRelease(branch)
+            }
+          }
+        }
         stage('Finish Release') {
           when {
             expression { params.action_type == 'finish_release' }
@@ -103,11 +117,11 @@ pipeline {
             script {
               def utils = load "utils.groovy"
               utils.checkoutRepos('master')
-              String extraBranch
-              if (params.release_type == 'hotfix') {
-                extraBranch = params.extra_branch
+              if (!params.extra_branch.isEmpty() && params.release_type == 'hotfix') {
+                utils.finishRelease(branch, params.extra_branch)
+              } else {
+                utils.finishRelease(branch)
               }
-              utils.finishRelease(branch, extraBranch)
             }
           }
         }
