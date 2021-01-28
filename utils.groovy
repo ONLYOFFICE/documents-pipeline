@@ -175,9 +175,11 @@ def mergeBranch(String branch, ArrayList baseBranches, Map repo)
                 git checkout -f ${branch}
                 git pull --ff-only origin ${branch}
                 gh pr create \
+                    --repo ${repo.owner}/${repo.name} \
                     --base \$base \
+                    --head ${branch} \
                     --title \"Merge branch ${branch} into \$base\" \
-                    --body \"\" || \
+                    --fill || \
                 true
                 git checkout \$base
                 git pull --ff-only origin \$base
@@ -373,9 +375,7 @@ def getConfParams(String platform, Boolean clean, String license)
     if (platform.endsWith("_xp")) {
         confParams.add("--qt-dir-xp ${env.QT56_PATH}")
     }
-    if (license == "freemium" || license == "commercial") {
-        confParams.add("--branding onlyoffice")
-    }
+    confParams.add("--branding onlyoffice")
     if (!params.extra_params.isEmpty()) {
         confParams.add(params.extra_params)
     }
