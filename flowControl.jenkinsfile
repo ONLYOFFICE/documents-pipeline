@@ -118,7 +118,7 @@ pipeline {
               def utils = load "utils.groovy"
               utils.checkoutRepos('master')
               if (!params.extra_branch.isEmpty() && params.release_type == 'hotfix') {
-                utils.finishRelease(branch, params.extra_branch.isEmpty())
+                utils.finishRelease(branch, params.extra_branch)
               } else {
                 utils.finishRelease(branch)
               }
