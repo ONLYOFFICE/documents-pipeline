@@ -376,7 +376,7 @@ def getConfParams(String platform, Boolean clean, String license)
         confParams.add("--qt-dir-xp ${env.QT56_PATH}")
     }
     confParams.add("--branding onlyoffice")
-    if (params.beta || branchName == 'develop') {
+    if (params.beta || env.BRANCH_NAME == 'develop') {
         confParams.add("--beta 1")
     }
     if (!params.extra_params.isEmpty()) {
