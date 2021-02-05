@@ -78,7 +78,7 @@ pipeline {
     )
     booleanParam (
       defaultValue: false,
-      description: 'Beta',
+      description: 'Beta (enabled anyway on develop)',
       name: 'beta'
     )
     booleanParam (
