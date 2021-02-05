@@ -203,7 +203,7 @@ pipeline {
         stage('Windows 64-bit build') {
           agent {
             node {
-              label 'win_64'
+              label 'win_64_new'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64"
             }
           }
@@ -272,7 +272,7 @@ pipeline {
         stage('Windows 32-bit build') {
           agent {
             node {
-              label 'win_32'
+              label 'win_32_new'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32"
             }
           }
@@ -321,7 +321,7 @@ pipeline {
         stage('Windows XP 64-bit build') {
           agent {
             node {
-              label 'win_64_xp'
+              label 'win_64_xp_new'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64_xp"
             }
           }
@@ -359,7 +359,7 @@ pipeline {
         stage('Windows XP 32-bit build') {
           agent {
             node {
-              label 'win_32_xp'
+              label 'win_32_xp_new'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32_xp"
             }
           }
