@@ -12,7 +12,8 @@ def checkoutRepo(String repo, String branch = 'master', String dir = repo, Strin
                 ],
                 [
                     $class: 'SubmoduleOption',
-                    recursiveSubmodules: true
+                    recursiveSubmodules: true,
+                    shallow: true
                 ]
             ],
             submoduleCfg: [],
