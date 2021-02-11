@@ -9,6 +9,10 @@ def checkoutRepo(String repo, String branch = 'master', String dir = repo, Strin
             extensions: [[
                     $class: 'RelativeTargetDirectory',
                     relativeTargetDir: dir
+                ],
+                [
+                    $class: 'SubmoduleOption',
+                    recursiveSubmodules: true
                 ]
             ],
             submoduleCfg: [],
