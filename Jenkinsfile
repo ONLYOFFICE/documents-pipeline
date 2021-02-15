@@ -131,7 +131,7 @@ pipeline {
     stage('Build') {
       parallel {
         stage('Linux 64-bit build') {
-          agent { label 'linux_64' }
+          agent { label 'linux_64_new' }
           when {
             expression { params.linux_64 }
             beforeAgent true
@@ -395,7 +395,7 @@ pipeline {
           }
         }
         stage('Android build') {
-          agent { label 'linux_64' }
+          agent { label 'linux_64_new' }
           when {
             expression { params.android && params.core }
             beforeAgent true
