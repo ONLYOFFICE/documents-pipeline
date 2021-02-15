@@ -483,6 +483,28 @@ def linuxTest()
     return this
 }
 
+def macosBuild(String platform = 'native', Boolean clean = true, String license = 'opensource') {
+    sh "cd build_tools && \
+        ./configure.py ${getConfParams(platform, clean, license)} && \
+        ./make.py"
+
+    return this
+}
+
+def macosBuildDesktop(String platform = 'native') {
+    sh "cd desktop-apps && \
+        make clean && \
+        make deploy"
+
+    def deployData = readJSON file: "desktop-apps/deploy.json"
+    for(item in deployData.items) {
+        println item
+        deployDesktopList.add(item)
+    }
+
+    return this
+}
+
 def windowsBuild(String platform = 'native', Boolean clean = true, String license = 'opensource')
 {
     bat "cd build_tools &&\
