@@ -495,8 +495,8 @@ def windowsBuild(String platform = 'native', Boolean clean = true, String licens
 def windowsBuildDesktop (String platform)
 {
     bat "cd desktop-apps &&\
-            mingw32-make clean-package &&\
-            mingw32-make deploy"
+            make clean-package &&\
+            make deploy"
 
     def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
 
@@ -511,8 +511,8 @@ def windowsBuildDesktop (String platform)
 def windowsBuildBuilder(String platform)
 {
     bat "cd document-builder-package &&\
-        mingw32-make clean &&\
-        mingw32-make deploy"
+        make clean &&\
+        make deploy"
 
     def deployData = readJSON file: "document-builder-package/deploy.json"
 
@@ -528,8 +528,8 @@ def windowsBuildServer(String platform = 'native', String productName='DocumentS
 {
     bat "cd document-server-package && \
         set \"PRODUCT_NAME=${productName}\" && \
-        mingw32-make clean && \
-        mingw32-make deploy"
+        make clean && \
+        make deploy"
 
     def deployData = readJSON file: "document-server-package/deploy.json"
 
@@ -569,7 +569,7 @@ def windowsBuildCore(String platform)
 
     bat "cd core && \
         call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" ${platformType} ${winSdkVersion} && \
-        mingw32-make deploy"
+        make deploy"
 
     return this
 }
