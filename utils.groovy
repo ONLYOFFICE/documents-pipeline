@@ -505,6 +505,11 @@ def macosBuildDesktop(String platform = 'native') {
     return this
 }
 
+def macosBuildCore() {
+    sh "cd core && make deploy"
+    return this
+}
+
 def windowsBuild(String platform = 'native', Boolean clean = true, String license = 'opensource')
 {
     bat "cd build_tools &&\

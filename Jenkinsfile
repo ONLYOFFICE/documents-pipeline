@@ -226,8 +226,17 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "mac"
+              Boolean clean = params.clean
+
+              if (params.core) {
+                utils.macosBuild(platform, clean)
+                clean = false
+                utils.macosBuildCore()
+              }
+
               if (params.desktopeditor) {
-                utils.macosBuild(platform, params.clean, "freemium")
+                utils.macosBuild(platform, clean, "freemium")
+                clean = false
                 // utils.macosBuildDesktop(platform)
               }
             }
