@@ -17,6 +17,11 @@ pipeline {
       name: 'linux_64'
     )
     booleanParam (
+      defaultValue: false,
+      description: 'Build macOS targets',
+      name: 'macos'
+    )
+    booleanParam (
       defaultValue: true,
       description: 'Build Windows x64 targets',
       name: 'win_64'
@@ -196,6 +201,43 @@ pipeline {
               }
               if ( params.test ) {
                 utils.linuxTest()
+              }
+            }
+          }
+        }
+        stage('macOS build') {
+          agent { label 'macos' }
+          when {
+            expression { params.macos }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              
+              if (params.wipe) {
+                deleteDir()
+              } else if (params.clean && params.desktopeditor) {
+                dir (utils.getReposList().find { it.name == 'desktop-apps' }.dir) {
+                  deleteDir()
+                }
+              }
+
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "mac"
+              Boolean clean = params.clean
+
+              if (params.core) {
+                utils.macosBuild(platform, clean)
+                clean = false
+                utils.macosBuildCore()
+              }
+
+              if (params.desktopeditor) {
+                utils.macosBuild(platform, clean, "freemium")
+                clean = false
+                // utils.macosBuildDesktop(platform)
               }
             }
           }
