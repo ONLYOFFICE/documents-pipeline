@@ -225,7 +225,7 @@ pipeline {
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
-              String platform = "mac_64"
+              String platform = "mac"
               if (params.desktopeditor) {
                 utils.macosBuild(platform, params.clean, "freemium")
                 // utils.macosBuildDesktop(platform)
