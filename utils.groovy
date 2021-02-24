@@ -344,28 +344,22 @@ def tgSendGroup(String message)
 def getConfParams(String platform, Boolean clean, String license)
 {
     def modules = []
-    if (license == "opensource") {
-        if(params.core) {
-            modules.add('core')
-        }
+    if (params.core && license == "opensource") {
+        modules.add('core')
+    }
+    if (platform != "mac_64") {
         // Add module to build to enforce clean it on build
-        if(params.desktopeditor && clean) {
+        if (params.desktopeditor && ((license == "opensource" && clean)
+            || license == "freemium")) {
             modules.add('desktop')
         }
-        if (params.documentbuilder) {
+        if (params.documentbuilder && license == "opensource") {
             modules.add('builder')
         }
-    }
-    if (license == "freemium" && params.desktopeditor) {
-        modules.add('desktop')
-    }
-    if ((license == "opensource"
-        && params.documentserver)
-        || (license == "commercial"
-        && (params.documentserver_ee
-        || params.documentserver_ie
-        || params.documentserver_de))) {
-        modules.add('server')
+        if ((params.documentserver && license == "opensource")
+            || ((params.documentserver_ee || params.documentserver_ie
+            || params.documentserver_de) && license == "commercial")) {
+            modules.add('server')
     }
     if (platform.startsWith("win")) {
         modules.add('tests')
