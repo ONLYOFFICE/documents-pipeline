@@ -347,21 +347,19 @@ def getConfParams(String platform, Boolean clean, String license)
     if (params.core && license == "opensource") {
         modules.add('core')
     }
-    // Add module to build to enforce clean it on build
-    if (params.desktopeditor
-        && ((license == "opensource" && clean) || license == "freemium")
-        && platform != "mac_64") {
-        modules.add('desktop')
-    }
-    if ((params.documentbuilder && license == "opensource")
-        && platform != "mac_64") {
-        modules.add('builder')
-    }
-    if (((params.documentserver && license == "opensource")
-        || ((params.documentserver_ee || params.documentserver_ie
-        || params.documentserver_de) && license == "commercial"))
-        && platform != "mac_64") {
-        modules.add('server')
+    if (platform != "mac_64") {
+        // Add module to build to enforce clean it on build
+        if (params.desktopeditor && ((license == "opensource" && clean)
+            || license == "freemium")) {
+            modules.add('desktop')
+        }
+        if (params.documentbuilder && license == "opensource") {
+            modules.add('builder')
+        }
+        if ((params.documentserver && license == "opensource")
+            || ((params.documentserver_ee || params.documentserver_ie
+            || params.documentserver_de) && license == "commercial")) {
+            modules.add('server')
     }
     if (platform.startsWith("win")) {
         modules.add('tests')
