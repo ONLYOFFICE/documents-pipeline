@@ -17,7 +17,7 @@ pipeline {
       name: 'linux_64'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: true,
       description: 'Build macOS targets',
       name: 'macos'
     )
