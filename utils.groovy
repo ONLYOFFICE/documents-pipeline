@@ -360,6 +360,7 @@ def getConfParams(String platform, Boolean clean, String license)
             || ((params.documentserver_ee || params.documentserver_ie
             || params.documentserver_de) && license == "commercial")) {
             modules.add('server')
+        }
     }
     if (platform.startsWith("win")) {
         modules.add('tests')
