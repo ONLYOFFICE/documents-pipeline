@@ -78,6 +78,11 @@ pipeline {
     )
     booleanParam (
       defaultValue: false,
+      description: 'Beta',
+      name: 'beta'
+    )
+    booleanParam (
+      defaultValue: false,
       description: 'Run test(Only on Linux)',
       name: 'test'
     )
