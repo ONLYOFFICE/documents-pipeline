@@ -9,6 +9,11 @@ def checkoutRepo(String repo, String branch = 'master', String dir = repo, Strin
             extensions: [[
                     $class: 'RelativeTargetDirectory',
                     relativeTargetDir: dir
+                ],
+                [
+                    $class: 'SubmoduleOption',
+                    recursiveSubmodules: true,
+                    shallow: true
                 ]
             ],
             submoduleCfg: [],
@@ -339,28 +344,23 @@ def tgSendGroup(String message)
 def getConfParams(String platform, Boolean clean, String license)
 {
     def modules = []
-    if (license == "opensource") {
-        if(params.core) {
-            modules.add('core')
-        }
+    if (params.core && license == "opensource") {
+        modules.add('core')
+    }
+    if (platform != "mac_64") {
         // Add module to build to enforce clean it on build
-        if(params.desktopeditor && clean) {
+        if (params.desktopeditor && ((license == "opensource" && clean)
+            || license == "freemium")) {
             modules.add('desktop')
         }
-        if (params.documentbuilder) {
+        if (params.documentbuilder && license == "opensource") {
             modules.add('builder')
         }
-    }
-    if (license == "freemium" && params.desktopeditor) {
-        modules.add('desktop')
-    }
-    if ((license == "opensource"
-        && params.documentserver)
-        || (license == "commercial"
-        && (params.documentserver_ee
-        || params.documentserver_ie
-        || params.documentserver_de))) {
-        modules.add('server')
+        if ((params.documentserver && license == "opensource")
+            || ((params.documentserver_ee || params.documentserver_ie
+            || params.documentserver_de) && license == "commercial")) {
+            modules.add('server')
+        }
     }
     if (platform.startsWith("win")) {
         modules.add('tests')
@@ -378,7 +378,7 @@ def getConfParams(String platform, Boolean clean, String license)
     if (license == "freemium" || license == "commercial") {
         confParams.add("--branding onlyoffice")
     }
-    if (params.beta) {
+    if (params.beta || env.BRANCH_NAME == 'develop') {
         confParams.add("--beta 1")
     }
     if (!params.extra_params.isEmpty()) {
@@ -403,17 +403,12 @@ def linuxBuildDesktop(String platform = 'native')
          make clean &&\
          make deploy"
 
-    publishHTML([
-            allowMissing: false,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'desktop-apps/win-linux/package/linux',
-            reportFiles: 'index.html',
-            reportName: "DesktopEditors(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "desktop-apps/win-linux/package/linux/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployDesktopList.add(item)
+    }
 
     return this
 }
@@ -424,17 +419,12 @@ def linuxBuildBuilder(String platform = 'native')
          make clean &&\
          make deploy"
 
-    publishHTML([
-            allowMissing: false,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-builder-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentBuilder(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-builder-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployBuilderList.add(item)
+    }
 
     return this
 }
@@ -451,17 +441,22 @@ def linuxBuildServer(String platform = 'native', String productName='documentser
         make clean && \
         make deploy"
 
-    publishHTML([
-            allowMissing: true,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-server-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentServer(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-server-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        switch(productName) {
+            case 'documentserver':
+                deployServerCeList.add(item)
+                break
+            case 'documentserver-ee':
+                deployServerEeList.add(item)
+                break
+            case 'documentserver-de':
+                deployServerDeList.add(item)
+                break
+        }
+    }
 
     return this
 }
@@ -485,6 +480,33 @@ def linuxTest()
     return this
 }
 
+def macosBuild(String platform = 'native', Boolean clean = true, String license = 'opensource') {
+    sh "cd build_tools && \
+        ./configure.py ${getConfParams(platform, clean, license)} && \
+        ./make.py"
+
+    return this
+}
+
+def macosBuildDesktop(String platform = 'native') {
+    sh "cd desktop-apps && \
+        make clean && \
+        make deploy"
+
+    def deployData = readJSON file: "desktop-apps/deploy.json"
+    for(item in deployData.items) {
+        println item
+        deployDesktopList.add(item)
+    }
+
+    return this
+}
+
+def macosBuildCore() {
+    sh "cd core && make deploy"
+    return this
+}
+
 def windowsBuild(String platform = 'native', Boolean clean = true, String license = 'opensource')
 {
     bat "cd build_tools &&\
@@ -497,20 +519,15 @@ def windowsBuild(String platform = 'native', Boolean clean = true, String licens
 def windowsBuildDesktop (String platform)
 {
     bat "cd desktop-apps &&\
-            mingw32-make clean-package &&\
-            mingw32-make deploy"
+            make clean-package &&\
+            make deploy"
 
-    publishHTML([
-            allowMissing: false,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'desktop-apps/win-linux/package/windows',
-            reportFiles: 'index.html',
-            reportName: "DesktopEditors(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployDesktopList.add(item)
+    }
 
     return this
 }
@@ -518,20 +535,15 @@ def windowsBuildDesktop (String platform)
 def windowsBuildBuilder(String platform)
 {
     bat "cd document-builder-package &&\
-        mingw32-make clean &&\
-        mingw32-make deploy"
+        make clean &&\
+        make deploy"
 
-    publishHTML([
-            allowMissing: true,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-builder-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentBuilder(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-builder-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        deployBuilderList.add(item)
+    }
 
     return this
 }
@@ -540,20 +552,25 @@ def windowsBuildServer(String platform = 'native', String productName='DocumentS
 {
     bat "cd document-server-package && \
         set \"PRODUCT_NAME=${productName}\" && \
-        mingw32-make clean && \
-        mingw32-make deploy"
+        make clean && \
+        make deploy"
 
-    publishHTML([
-            allowMissing: true,
-            alwaysLinkToLastBuild: false,
-            includes: 'index.html',
-            keepAll: true,
-            reportDir: 'document-server-package',
-            reportFiles: 'index.html',
-            reportName: "DocumentServer(${platform})",
-            reportTitles: ''
-        ]
-    )
+    def deployData = readJSON file: "document-server-package/deploy.json"
+
+    for(item in deployData.items) {
+        println item
+        switch(productName) {
+            case 'DocumentServer':
+                deployServerCeList.add(item)
+                break
+            case 'DocumentServer-EE':
+                deployServerEeList.add(item)
+                break
+            case 'DocumentServer-DE':
+                deployServerDeList.add(item)
+                break
+        }
+    }
 
     return this
 }
@@ -576,49 +593,168 @@ def windowsBuildCore(String platform)
 
     bat "cd core && \
         call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" ${platformType} ${winSdkVersion} && \
-        mingw32-make deploy"
+        make deploy"
 
     return this
 }
 
 def androidBuild(String branch = 'master', String config = 'release')
 {
-    def dockerRunOptions = []
-    dockerRunOptions.add("-e BUILD_BRANCH=${branch}")
-    dockerRunOptions.add("-e BUILD_CONFIG=${config}")
-    dockerRunOptions.add("-v ${env.WORKSPACE}/android:/home/user")
-    dockerRunOptions.add("--name android-core-builder")
-
-    sh """#!/bin/bash -xe
-        [[ ! -d android ]] && mkdir android
-        cd android
-
-        rm -rfv build_tools/out
-
-        if [[ -d artifacts ]]; then
-            for file in \$(ls -1t artifacts | tail -n +4); do
-                rm -fv \"artifacts/\${file}\"
-            done
-        else
-            mkdir -p artifacts
-        fi
-    """
-
     if (params.wipe) {
         sh "docker image rm -f onlyoffice/android-core-builder"
     }
+
+    sh """#!/bin/bash -xe
+        [[ ! -d android/workspace ]] && mkdir -p android/workspace
+        cd android
+
+        rm -rf \
+            workspace/build_tools/out \
+            index.html \
+            *.zip
+    """
+
+    def dockerRunOptions = []
+    dockerRunOptions.add("-e BUILD_BRANCH=${branch}")
+    dockerRunOptions.add("-e BUILD_CONFIG=${config}")
+    dockerRunOptions.add("-v ${env.WORKSPACE}/android/workspace:/home/user")
 
     docker.image('onlyoffice/android-core-builder:latest').withRun(dockerRunOptions.join(' ')) { c ->
         sh "docker logs -f ${c.id}"
     }
 
-    sh "cd android/build_tools/out && \
-        zip -r ../../artifacts/android-libs-\${PRODUCT_VERSION}-\${BUILD_NUMBER}.zip ./android* ./js"
+    String androidLibsFile = "android-libs-${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}.zip"
+    String androidLibsUri = "onlyoffice/${env.RELEASE_BRANCH}/android/${androidLibsFile}"
 
-    archiveArtifacts(
-        artifacts: "android/artifacts/android-libs-${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}.zip",
-        onlyIfSuccessful: true
-    )
+    sh """#!/bin/bash -xe
+        cd android
+        pushd workspace/build_tools/out
+        zip -r ../../../${androidLibsFile} ./android* ./js
+        popd
+
+        aws s3 cp --no-progress --acl public-read \
+            ${androidLibsFile} s3://\$S3_BUCKET/${androidLibsUri}
+    """
+
+    def deployData = [ platform: 'android', title: 'Android libs', path: androidLibsUri ]
+
+    println deployData
+    deployAndroidList.add(deployData)
 
     return this
 }
+
+def createReports()
+{
+    Boolean desktop = !deployDesktopList.isEmpty()
+    Boolean builder = !deployBuilderList.isEmpty()
+    Boolean serverc = !deployServerCeList.isEmpty()
+    Boolean servere = !deployServerEeList.isEmpty() 
+    Boolean serverd = !deployServerDeList.isEmpty()
+    Boolean android = !deployAndroidList.isEmpty()
+
+    dir ('html') {
+        deleteDir()
+
+        sh "wget -nv https://unpkg.com/style.css -O style.css"
+        sh "echo \"body { margin: 16px; }\" > custom.css"
+
+        if (desktop) { writeFile file: 'desktopeditors.html', text: genHtml(deployDesktopList) }
+        if (builder) { writeFile file: 'documentbuilder.html', text: genHtml(deployBuilderList) }
+        if (serverc) { writeFile file: 'documentserver_ce.html', text: genHtml(deployServerCeList) }
+        if (servere) { writeFile file: 'documentserver_ee.html', text: genHtml(deployServerEeList) }
+        if (serverd) { writeFile file: 'documentserver_de.html', text: genHtml(deployServerDeList) }
+        if (android) { writeFile file: 'android.html', text: genHtml(deployAndroidList) }
+    }
+
+    if (desktop) {
+        publishHTML([
+            allowMissing: false,
+            alwaysLinkToLastBuild: false,
+            includes: 'desktopeditors.html,*.css',
+            keepAll: true,
+            reportDir: 'html',
+            reportFiles: 'desktopeditors.html',
+            reportName: "DesktopEditors",
+            reportTitles: ''
+        ])
+    }
+    
+    if (builder) {
+        publishHTML([
+            allowMissing: false,
+            alwaysLinkToLastBuild: false,
+            includes: 'documentbuilder.html,*.css',
+            keepAll: true,
+            reportDir: 'html',
+            reportFiles: 'documentbuilder.html',
+            reportName: "DocumentBuilder",
+            reportTitles: ''
+        ])
+    }
+
+    if (serverc || servere || serverd) {
+        // compatibility for htmlpublisher-1.18
+        def serverIndexFiles = []
+        if (serverc) { serverIndexFiles.add('documentserver_ce.html') }
+        if (servere) { serverIndexFiles.add('documentserver_ee.html') }
+        if (serverd) { serverIndexFiles.add('documentserver_de.html') }
+
+        publishHTML([
+            allowMissing: false,
+            alwaysLinkToLastBuild: false,
+            includes: 'documentserver_*.html,*.css',
+            keepAll: true,
+            reportDir: 'html',
+            reportFiles: serverIndexFiles.join(','),
+            reportName: "DocumentServer",
+            reportTitles: ''
+        ])
+    }
+
+    if (android) {
+        publishHTML([
+            allowMissing: false,
+            alwaysLinkToLastBuild: false,
+            includes: 'android.html,*.css',
+            keepAll: true,
+            reportDir: 'html',
+            reportFiles: 'android.html',
+            reportName: "Android",
+            reportTitles: ''
+        ])
+    }
+
+    return this
+}
+
+def genHtml(ArrayList deployList)
+{
+    String url = ''
+    String html = """\
+        |<html>
+        |<head>
+        |   <link rel="stylesheet" href="style.css">
+        |   <link rel="stylesheet" href="custom.css">
+        |<head>
+        |<body>
+        |   <dl>
+        |""".stripMargin()
+
+    for(p in deployList) {
+        url = "https://${env.S3_BUCKET}.s3-eu-west-1.amazonaws.com/${p.path}"
+        html += """\
+            |       <dt>${p.title}</dt>
+            |       <dd><a href="${url}">${url}</a></dd>
+            |""".stripMargin()
+    }
+
+    html += """\
+        |   </dl>
+        |</body>
+        |</html>
+        |""".stripMargin()
+
+    return html
+}
+
