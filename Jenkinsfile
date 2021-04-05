@@ -18,11 +18,6 @@ pipeline {
     )
     booleanParam (
       defaultValue: true,
-      description: 'Build macOS targets',
-      name: 'macos'
-    )
-    booleanParam (
-      defaultValue: true,
       description: 'Build Windows x64 targets',
       name: 'win_64'
     )
@@ -83,7 +78,7 @@ pipeline {
     )
     booleanParam (
       defaultValue: false,
-      description: 'Beta (enabled anyway on develop)',
+      description: 'Beta',
       name: 'beta'
     )
     booleanParam (
@@ -117,26 +112,16 @@ pipeline {
           }
           env.PRODUCT_VERSION = productVersion
 
-          env.S3_BUCKET = 'repo-doc-onlyoffice-com'
-          env.RELEASE_BRANCH = branchName == 'develop' ? 'unstable' : 'testing'
-
           if( params.signing ) {
             env.ENABLE_SIGNING=1
           }
-
-          deployDesktopList = []
-          deployBuilderList = []
-          deployServerCeList = []
-          deployServerEeList = []
-          deployServerDeList = []
-          deployAndroidList = []
         }
       }
     }
     stage('Build') {
       parallel {
         stage('Linux 64-bit build') {
-          agent { label 'linux_64_new' }
+          agent { label 'linux_64' }
           when {
             expression { params.linux_64 }
             beforeAgent true
@@ -201,45 +186,10 @@ pipeline {
             }
           }
         }
-        stage('macOS build') {
-          agent { label 'macos' }
-          when {
-            expression { params.macos }
-            beforeAgent true
-          }
-          steps {
-            script {
-              def utils = load "utils.groovy"
-              
-              if (params.wipe) {
-                deleteDir()
-              } else if (params.clean && params.desktopeditor) {
-                dir (utils.getReposList().find { it.name == 'desktop-apps' }.dir) {
-                  deleteDir()
-                }
-              }
-
-              utils.checkoutRepos(env.BRANCH_NAME)
-
-              String platform = "mac_64"
-
-              if (params.core) {
-                utils.macosBuild(platform)
-                utils.macosBuildCore()
-              }
-
-              // if (params.desktopeditor) {
-              //   utils.macosBuild(platform, clean, "freemium")
-              //   clean = false
-              //   utils.macosBuildDesktop(platform)
-              // }
-            }
-          }
-        }
         stage('Windows 64-bit build') {
           agent {
             node {
-              label 'win_64_new'
+              label 'win_64'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64"
             }
           }
@@ -304,7 +254,7 @@ pipeline {
         stage('Windows 32-bit build') {
           agent {
             node {
-              label 'win_32_new'
+              label 'win_32'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32"
             }
           }
@@ -350,7 +300,7 @@ pipeline {
         stage('Windows XP 64-bit build') {
           agent {
             node {
-              label 'win_64_xp_new'
+              label 'win_64_xp'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64_xp"
             }
           }
@@ -388,7 +338,7 @@ pipeline {
         stage('Windows XP 32-bit build') {
           agent {
             node {
-              label 'win_32_xp_new'
+              label 'win_32_xp'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32_xp"
             }
           }
@@ -424,7 +374,7 @@ pipeline {
           }
         }
         stage('Android build') {
-          agent { label 'linux_64_new' }
+          agent { label 'linux_64' }
           when {
             expression { params.android && params.core }
             beforeAgent true
@@ -438,34 +388,6 @@ pipeline {
               utils.androidBuild(env.BRANCH_NAME)
             }
           }
-        }
-      }
-    }
-  }
-  post {
-    always {
-      node('master') {
-        script {
-          checkout scm
-          def utils = load "utils.groovy"
-          utils.createReports()
-        }
-      }
-      script {
-        if (params.linux_64 && (
-            params.desktopeditor ||
-            params.documentbuilder ||
-            params.documentserver_ee ||
-            params.documentserver_ie ||
-            params.documentserver_de)
-        ) {
-          build (
-            job: 'onlyoffice-repo-manager',
-            parameters: [
-              string (name: 'release_branch', value: env.RELEASE_BRANCH)
-            ],
-            wait: false
-          )
         }
       }
     }
