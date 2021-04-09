@@ -547,6 +547,11 @@ def macosBuildDesktop(String platform = 'native') {
         echo \$content > checksum.txt
     """
 
+    archiveArtifacts(
+        artifacts: "desktop-apps/macos/build/*.*",
+        onlyIfSuccessful: true
+    )
+
     // def deployData = readJSON file: "desktop-apps/deploy.json"
     // for(item in deployData.items) {
     //     println item
