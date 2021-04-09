@@ -234,11 +234,11 @@ pipeline {
                 utils.macosBuildCore()
               }
 
-              // if (params.desktopeditor) {
-              //   utils.macosBuild(platform, clean, "freemium")
-              //   clean = false
-              //   utils.macosBuildDesktop(platform)
-              // }
+              if (params.desktopeditor) {
+                utils.macosBuild(platform, clean, "freemium")
+                clean = false
+                utils.macosBuildDesktop()
+              }
             }
           }
         }

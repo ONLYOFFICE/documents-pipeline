@@ -347,12 +347,12 @@ def getConfParams(String platform, Boolean clean, String license)
     if (params.core && license == "opensource") {
         modules.add('core')
     }
+    // Add module to build to enforce clean it on build
+    if (params.desktopeditor && ((license == "opensource" && clean)
+        || license == "freemium")) {
+        modules.add('desktop')
+    }
     if (platform != "mac_64") {
-        // Add module to build to enforce clean it on build
-        if (params.desktopeditor && ((license == "opensource" && clean)
-            || license == "freemium")) {
-            modules.add('desktop')
-        }
         if (params.documentbuilder && license == "opensource") {
             modules.add('builder')
         }
@@ -374,6 +374,11 @@ def getConfParams(String platform, Boolean clean, String license)
     confParams.add("--qt-dir ${env.QT_PATH}")
     if (platform.endsWith("_xp")) {
         confParams.add("--qt-dir-xp ${env.QT56_PATH}")
+    }
+    if (platform == "mac_64") {
+        confParams.add("--branding-name \"onlyoffice\"")
+        confParams.add("--compiler \"clang\"")
+        confParams.add("--config \"use_javascript_core\"")
     }
     if (license == "freemium" || license == "commercial") {
         confParams.add("--branding onlyoffice")
@@ -489,15 +494,64 @@ def macosBuild(String platform = 'native', Boolean clean = true, String license 
 }
 
 def macosBuildDesktop(String platform = 'native') {
-    sh "cd desktop-apps && \
-        make clean && \
-        make deploy"
+    sh """#!/bin/bash -xe
+        cd desktop-apps/macos
+        export FASTLANE_DISABLE_COLORS=1
+        bundler exec fastlane release
+        unset FASTLANE_DISABLE_COLORS
+    """
 
-    def deployData = readJSON file: "desktop-apps/deploy.json"
-    for(item in deployData.items) {
-        println item
-        deployDesktopList.add(item)
-    }
+    sh """#!/bin/bash -xe
+        UPDATE_DIR="update"
+        UPDATE_STORAGE="/Volumes/Storage/Archives/ONLYOFFICE/_updates"
+        KEYS_STORAGE="/Volumes/Storage/Archives/ONLYOFFICE/_keys"
+        GENERATE_APPCAST_DIR=\$(pwd)"/desktop-apps/macos/Vendor/Sparkle/bin"
+        SPARKLE_CACHES="\${HOME}/Library/Caches/Sparkle_generate_appcast"
+
+        cd desktop-apps/macos/build
+
+        rm -r "\${UPDATE_DIR}"
+        rm -r "\${SPARKLE_CACHES}"
+
+        mkdir "\${UPDATE_DIR}"
+
+        CURRENT_VERSION_ZIP=\$(ls | grep -E 'ONLYOFFICE-\\d+(?:\\.\\d+)+\\.zip');
+
+        rsync -ah --progress "\${UPDATE_STORAGE}"/*.zip "\${UPDATE_DIR}"
+        rsync -ah --progress "\${CURRENT_VERSION_ZIP}" "\${UPDATE_DIR}"
+
+        "\${GENERATE_APPCAST_DIR}"/generate_appcast "\${UPDATE_DIR}"
+
+        find "\${UPDATE_DIR}" -type f -name "*.zip" -not -name "\${CURRENT_VERSION_ZIP}" -print0 | xargs -0 rm --
+    """
+
+    sh """#!/bin/bash -xe
+        cd desktop-apps/macos/build
+
+        CURRENT_VERSION_ZIP=\$(ls | grep -E 'ONLYOFFICE-\\d+(?:\\.\\d+)+\\.zip')
+
+        dmg_md5=\$(md5 -qs ONLYOFFICE.dmg)
+        dmg_sha256=\$(shasum -a 256 ONLYOFFICE.dmg | cut -f1 -d' ')
+        zip_md5=\$(md5 -qs \$CURRENT_VERSION_ZIP)
+        zip_sha256=\$(shasum -a 256 \$CURRENT_VERSION_ZIP | cut -f1 -d' ')
+
+        content=""
+        content+="ONLYOFFICE.dmg\n"
+        content+="MD5: \$dmg_md5\n"
+        content+="SHA-256: \$dmg_sha256"
+        content+="\n\n"
+        content+="\$CURRENT_VERSION_ZIP\n"
+        content+="MD5: \$zip_md5\n"
+        content+="SHA-256: \$zip_sha256"
+
+        echo \$content > checksum.txt
+    """
+
+    // def deployData = readJSON file: "desktop-apps/deploy.json"
+    // for(item in deployData.items) {
+    //     println item
+    //     deployDesktopList.add(item)
+    // }
 
     return this
 }
