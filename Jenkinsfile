@@ -124,6 +124,7 @@ pipeline {
             env.ENABLE_SIGNING=1
           }
 
+          tgMessageCore = "Build [${JOB_NAME}#${BUILD_NUMBER}](${BUILD_URL}) failed"
           deployDesktopList = []
           deployBuilderList = []
           deployServerCeList = []
@@ -131,6 +132,10 @@ pipeline {
           deployServerDeList = []
           deployAndroidList = []
         }
+      }
+      post {
+        success { script { tgMessageCore += "\n🔵 Prepare" } }
+        failure { script { tgMessageCore += "\n🔴 Prepare" } }
       }
     }
     stage('Build') {
@@ -204,6 +209,10 @@ pipeline {
               }
             }
           }
+          post {
+            success { script { tgMessageCore += "\n🔵 Linux 64-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Linux 64-bit" } }
+          }
         }
         stage('macOS build') {
           agent { label 'macos' }
@@ -240,6 +249,10 @@ pipeline {
               //   utils.macosBuildDesktop(platform)
               // }
             }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 macOS" } }
+            failure { script { tgMessageCore += "\n🔴 macOS" } }
           }
         }
         stage('Windows 64-bit build') {
@@ -310,6 +323,10 @@ pipeline {
               }
             }
           }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows 64-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows 64-bit" } }
+          }
         }
         stage('Windows 32-bit build') {
           agent {
@@ -359,6 +376,10 @@ pipeline {
               }
             }
           }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows 32-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows 32-bit" } }
+          }
         }
         stage('Windows XP 64-bit build') {
           agent {
@@ -396,6 +417,10 @@ pipeline {
                 utils.windowsBuildDesktop(platform)
               }
             }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows XP 64-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows XP 64-bit" } }
           }
         }
         stage('Windows XP 32-bit build') {
@@ -435,6 +460,10 @@ pipeline {
               }
             }
           }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows XP 32-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows XP 32-bit" } }
+          }
         }
         stage('Android build') {
           agent { label 'linux_64_new' }
@@ -450,6 +479,10 @@ pipeline {
 
               utils.androidBuild(env.BRANCH_NAME)
             }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 Android" } }
+            failure { script { tgMessageCore += "\n🔴 Android" } }
           }
         }
       }
@@ -480,6 +513,11 @@ pipeline {
             wait: false
           )
         }
+      }
+    }
+    failure {
+      node('master') {
+        telegramSend(message: tgMessageCore, chatId: -342815292)
       }
     }
   }
