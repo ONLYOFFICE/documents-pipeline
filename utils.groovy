@@ -494,13 +494,7 @@ def macosBuild(String platform = 'native', Boolean clean = true, String license 
 }
 
 def macosBuildDesktop(String platform = 'native') {
-    sh """#!/bin/bash -xe
-        cd desktop-apps/macos
-        sed -i '' '/commit_version_bump(/,+3 s/^/#/' fastlane/Fastfile
-        sed -i '' '/add_git_tag(/,+3 s/^/#/' fastlane/Fastfile
-        sed -i '' '/push_to_git_remote/s/^/#/' fastlane/Fastfile
-        bundler exec fastlane release
-    """
+    sh "cd desktop-apps/macos && bundler exec fastlane release"
 
     sh """#!/bin/bash -xe
         UPDATE_DIR="update"
