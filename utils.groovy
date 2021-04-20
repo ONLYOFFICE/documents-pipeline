@@ -496,9 +496,10 @@ def macosBuild(String platform = 'native', Boolean clean = true, String license 
 def macosBuildDesktop(String platform = 'native') {
     sh """#!/bin/bash -xe
         cd desktop-apps/macos
-        export FASTLANE_DISABLE_COLORS=1
+        sed -i '' '/commit_version_bump(/,+3 s/^/#/' fastlane/Fastfile
+        sed -i '' '/add_git_tag(/,+3 s/^/#/' fastlane/Fastfile
+        sed -i '' '/push_to_git_remote/s/^/#/' fastlane/Fastfile
         bundler exec fastlane release
-        unset FASTLANE_DISABLE_COLORS
     """
 
     sh """#!/bin/bash -xe
@@ -506,23 +507,22 @@ def macosBuildDesktop(String platform = 'native') {
         UPDATE_STORAGE="/Volumes/Storage/Archives/ONLYOFFICE/_updates"
         KEYS_STORAGE="/Volumes/Storage/Archives/ONLYOFFICE/_keys"
         GENERATE_APPCAST_DIR=\$(pwd)"/desktop-apps/macos/Vendor/Sparkle/bin"
-        SPARKLE_CACHES="\${HOME}/Library/Caches/Sparkle_generate_appcast"
 
         cd desktop-apps/macos/build
 
-        rm -r "\${UPDATE_DIR}"
-        rm -r "\${SPARKLE_CACHES}"
+        rm -rfv "\${UPDATE_DIR}"
+        rm -rfv "\${HOME}/Library/Caches/Sparkle_generate_appcast"
 
-        mkdir "\${UPDATE_DIR}"
+        mkdir -p "\${UPDATE_DIR}"
 
-        CURRENT_VERSION_ZIP=\$(ls | grep -E 'ONLYOFFICE-\\d+(?:\\.\\d+)+\\.zip');
+        ZIP=ONLYOFFICE-\${PRODUCT_VERSION%.*}.zip
 
         rsync -ah --progress "\${UPDATE_STORAGE}"/*.zip "\${UPDATE_DIR}"
-        rsync -ah --progress "\${CURRENT_VERSION_ZIP}" "\${UPDATE_DIR}"
+        rsync -ah --progress "\${ZIP}" "\${UPDATE_DIR}"
 
         "\${GENERATE_APPCAST_DIR}"/generate_appcast "\${UPDATE_DIR}"
 
-        find "\${UPDATE_DIR}" -type f -name "*.zip" -not -name "\${CURRENT_VERSION_ZIP}" -print0 | xargs -0 rm --
+        find "\${UPDATE_DIR}" -type f -name "*.zip" -not -name "\${ZIP}" -print0 | xargs -0 rm --
     """
 
     sh """#!/bin/bash -xe
