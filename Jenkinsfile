@@ -207,6 +207,13 @@ pipeline {
         }
         stage('macOS build') {
           agent { label 'macos' }
+          environment {
+            FASTLANE_DISABLE_COLORS = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+          }
           when {
             expression { params.macos }
             beforeAgent true
