@@ -528,35 +528,37 @@ def macosBuildDesktop(String platform = 'native') {
     sh """#!/bin/bash -xe
         cd desktop-apps/macos/build
 
-        CURRENT_VERSION_ZIP=\$(ls | grep -E 'ONLYOFFICE-\\d+(?:\\.\\d+)+\\.zip')
+        S3_SECTION_DIR="onlyoffice/\$RELEASE_BRANCH/macos"
+        S3_UPDATES_DIR="\$S3_SECTION_DIR/update/editors/\$PRODUCT_VERSION.\$BUILD_NUMBER"
+        DMG="ONLYOFFICE-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
+        ZIP="ONLYOFFICE-\${PRODUCT_VERSION%.*}.zip"
+        APPCAST="onlyoffice.xml"
 
-        dmg_md5=\$(md5 -qs ONLYOFFICE.dmg)
-        dmg_sha256=\$(shasum -a 256 ONLYOFFICE.dmg | cut -f1 -d' ')
-        zip_md5=\$(md5 -qs \$CURRENT_VERSION_ZIP)
-        zip_sha256=\$(shasum -a 256 \$CURRENT_VERSION_ZIP | cut -f1 -d' ')
+        aws s3 cp --no-progress --acl public-read \
+            ONLYOFFICE.dmg s3://\$S3_BUCKET/\$S3_SECTION_DIR/\$DMG
 
-        content=""
-        content+="ONLYOFFICE.dmg\n"
-        content+="MD5: \$dmg_md5\n"
-        content+="SHA-256: \$dmg_sha256"
-        content+="\n\n"
-        content+="\$CURRENT_VERSION_ZIP\n"
-        content+="MD5: \$zip_md5\n"
-        content+="SHA-256: \$zip_sha256"
+        aws s3 sync --no-progress --acl public-read \
+            update s3://\$S3_BUCKET/\$S3_UPDATES_DIR
 
-        echo \$content > checksum.txt
+        echo -e "platform,title,path" > deploy.csv
+        echo -e "macos,macOS DMG,\$S3_SECTION_DIR/\$DMG" >> deploy.csv
+        echo -e "macos,macOS ZIP,\$S3_UPDATES_DIR/\$ZIP" >> deploy.csv
+        for i in update/*.delta; do
+            DELTA=\$(basename \$i)
+            echo -e "macos,macOS \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
+        done
+        echo -e "macos,macOS Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
     """
 
-    archiveArtifacts(
-        artifacts: "desktop-apps/macos/build/*.*",
-        onlyIfSuccessful: true
-    )
-
-    // def deployData = readJSON file: "desktop-apps/deploy.json"
-    // for(item in deployData.items) {
-    //     println item
-    //     deployDesktopList.add(item)
-    // }
+    def deployData = readCSV file: "desktop-apps/macos/build/deploy.csv", format: CSVFormat.DEFAULT.withHeader()
+    for(item in deployData) {
+        def temp = [ 
+            platform: item.get('platform'),
+            title: item.get('title'),
+            path: item.get('path') ]
+        println temp
+        deployDesktopList.add(temp)
+    }
 
     return this
 }
