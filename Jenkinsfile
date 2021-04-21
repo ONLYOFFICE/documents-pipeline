@@ -1,19 +1,30 @@
 defaults = [:]
 defaults.linux_64      = true
-defaults.macos         = BRANCH_NAME != 'develop'
+defaults.macos         = true
 defaults.windows_64    = true
 defaults.windows_32    = true
 defaults.windows_64_xp = true
 defaults.windows_32_xp = true
-defaults.android       = BRANCH_NAME != 'develop'
-defaults.core          = BRANCH_NAME != 'develop'
+defaults.android       = true
+defaults.core          = true
 defaults.editors       = true
-defaults.builder       = BRANCH_NAME != 'develop'
-defaults.server_ce     = BRANCH_NAME != 'develop'
+defaults.builder       = true
+defaults.server_ce     = true
 defaults.server_ee     = true
-defaults.server_ie     = BRANCH_NAME != 'develop'
-defaults.server_de     = BRANCH_NAME != 'develop'
-defaults.beta          = BRANCH_NAME == 'develop'
+defaults.server_ie     = true
+defaults.server_de     = true
+defaults.beta          = false
+
+if (BRANCH_NAME == 'develop') {
+  defaults.macos         = false
+  defaults.android       = false
+  defaults.core          = false
+  defaults.builder       = false
+  defaults.server_ce     = false
+  defaults.server_ie     = false
+  defaults.server_de     = false
+  defaults.beta          = true
+}
 
 pipeline {
   agent none
