@@ -1,4 +1,5 @@
 defaults = [:]
+defaults.clean         = true
 defaults.linux_64      = true
 defaults.macos         = true
 defaults.windows_64    = true
@@ -14,6 +15,8 @@ defaults.server_ee     = true
 defaults.server_ie     = true
 defaults.server_de     = true
 defaults.beta          = false
+defaults.test          = false
+defaults.sign          = true
 
 if (BRANCH_NAME == 'develop') {
   defaults.macos         = false
@@ -35,7 +38,7 @@ pipeline {
       name: 'wipe'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.clean,
       description: 'Rebuild binaries from the \'core\' repo',
       name: 'clean'
     )
@@ -115,12 +118,12 @@ pipeline {
       name: 'beta'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: defaults.test,
       description: 'Run test(Only on Linux)',
       name: 'test'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.sign,
       description: 'Sign installer(Only on Windows)',
       name: 'signing'
     )
