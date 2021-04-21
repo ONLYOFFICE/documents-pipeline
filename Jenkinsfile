@@ -1,3 +1,20 @@
+defaults = [:]
+defaults.linux_64      = true
+defaults.macos         = BRANCH_NAME == 'develop' ? false : true
+defaults.windows_64    = true
+defaults.windows_32    = true
+defaults.windows_64_xp = true
+defaults.windows_32_xp = true
+defaults.android       = BRANCH_NAME == 'develop' ? false : true
+defaults.core          = BRANCH_NAME == 'develop' ? false : true
+defaults.editors       = true
+defaults.builder       = BRANCH_NAME == 'develop' ? false : true
+defaults.server_ce     = BRANCH_NAME == 'develop' ? false : true
+defaults.server_ee     = true
+defaults.server_ie     = BRANCH_NAME == 'develop' ? false : true
+defaults.server_de     = BRANCH_NAME == 'develop' ? false : true
+defaults.beta          = BRANCH_NAME == 'develop' ? true : false
+
 pipeline {
   agent none
   parameters {
@@ -12,77 +29,77 @@ pipeline {
       name: 'clean'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.linux_64,
       description: 'Build Linux x64 targets',
       name: 'linux_64'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.macos,
       description: 'Build macOS targets',
       name: 'macos'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.windows_64,
       description: 'Build Windows x64 targets',
       name: 'win_64'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.windows_32,
       description: 'Build Windows x86 targets',
       name: 'win_32'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.windows_64_xp,
       description: 'Build Windows XP x64 targets',
       name: 'win_64_xp'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.windows_32_xp,
       description: 'Build Windows XP x86 targets',
       name: 'win_32_xp'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.android,
       description: 'Build Android targets',
       name: 'android'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.core,
       description: 'Build and publish \'core\' binaries',
       name: 'core'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.editors,
       description: 'Build and publish DesktopEditors packages',
       name: 'desktopeditor'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.builder,
       description: 'Build and publish DocumentBuilder packages',
       name: 'documentbuilder'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.server_ce,
       description: 'Build and publish DocumentServer packages',
       name: 'documentserver'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.server_ee,
       description: 'Build and publish DocumentServer-EE packages',
       name: 'documentserver_ee'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.server_ie,
       description: 'Build and publish DocumentServer-IE packages',
       name: 'documentserver_ie'
     )
     booleanParam (
-      defaultValue: true,
+      defaultValue: defaults.server_de,
       description: 'Build and publish DocumentServer-DE packages',
       name: 'documentserver_de'
     )
     booleanParam (
-      defaultValue: false,
+      defaultValue: defaults.beta,
       description: 'Beta (enabled anyway on develop)',
       name: 'beta'
     )
