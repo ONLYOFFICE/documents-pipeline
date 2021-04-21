@@ -1,6 +1,6 @@
 defaults = [:]
 defaults.clean         = true
-defaults.linux_64      = true
+defaults.linux         = true
 defaults.macos         = true
 defaults.windows_64    = true
 defaults.windows_32    = true
@@ -43,7 +43,7 @@ pipeline {
       name: 'clean'
     )
     booleanParam (
-      defaultValue: defaults.linux_64,
+      defaultValue: defaults.linux,
       description: 'Build Linux x64 targets',
       name: 'linux_64'
     )
