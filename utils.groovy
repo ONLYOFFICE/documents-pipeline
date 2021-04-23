@@ -379,7 +379,7 @@ def getConfParams(String platform, Boolean clean, String license)
     if (license == "freemium" || license == "commercial") {
         confParams.add("--branding onlyoffice")
     }
-    if (params.beta || env.BRANCH_NAME == 'develop') {
+    if (params.beta) {
         confParams.add("--beta 1")
     }
     if (!params.extra_params.isEmpty()) {
