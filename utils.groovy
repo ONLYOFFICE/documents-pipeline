@@ -609,9 +609,7 @@ def androidBuild(String branch = 'master', String config = 'release')
 }
 
 def deployCore(String platform) {
-    String dirRepo
-    String version
-    String platformType
+    String dirRepo, platformType, version
 
     switch(platform) {
         case 'linux_64':
