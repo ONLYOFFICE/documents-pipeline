@@ -461,14 +461,6 @@ def linuxBuildServer(String platform = 'native', String productName='documentser
     return this
 }
 
-def linuxBuildCore()
-{
-    sh "cd core && \
-        make deploy"
-
-    return this
-}
-
 def linuxTest()
 {
     checkoutRepo('doc-builder-testing', 'master')
@@ -499,11 +491,6 @@ def macosBuildDesktop(String platform = 'native') {
         deployDesktopList.add(item)
     }
 
-    return this
-}
-
-def macosBuildCore() {
-    sh "cd core && make deploy"
     return this
 }
 
@@ -575,29 +562,6 @@ def windowsBuildServer(String platform = 'native', String productName='DocumentS
     return this
 }
 
-def windowsBuildCore(String platform)
-{
-    String winSdkVersion = '10.0.14393.0'
-    String platformType
-    
-    switch (platform) {
-        case 'win_64':
-            platformType = 'x64'
-            break
-        case 'win_32':
-            platformType = 'x86'
-            break
-        default:
-            platformType = ''
-    }
-
-    bat "cd core && \
-        call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" ${platformType} ${winSdkVersion} && \
-        make deploy"
-
-    return this
-}
-
 def androidBuild(String branch = 'master', String config = 'release')
 {
     if (params.wipe) {
@@ -642,6 +606,53 @@ def androidBuild(String branch = 'master', String config = 'release')
     deployAndroidList.add(deployData)
 
     return this
+}
+
+def deployCore(String platform) {
+    String dirRepo
+    String version
+    String platformType
+
+    switch(platform) {
+        case 'linux_64':
+            dirRepo = 'linux'
+            platformType = 'x64'
+            version = PRODUCT_VERSION + '-' + BUILD_NUMBER
+            break
+        case 'mac_64':
+            dirRepo = 'mac'
+            platformType = 'x64'
+            version = PRODUCT_VERSION + '-' + BUILD_NUMBER
+            break
+        case 'win_64':
+            dirRepo = 'windows'
+            platformType = 'x64'
+            version = PRODUCT_VERSION + '.' + BUILD_NUMBER
+            break
+        case 'win_32':
+            dirRepo = 'windows'
+            platformType = 'x86'
+            version = PRODUCT_VERSION + '.' + BUILD_NUMBER
+            break
+    }
+
+    String pathCore = "build_tools/out/${platform}/onlyoffice/core/core.7z"
+    String dirS3CoreV = "${dirRepo}/core/${BRANCH_NAME}/${version}/${platformType}"
+    String dirS3CoreL = "${dirRepo}/core/${BRANCH_NAME}/latest/${platformType}"
+    String label = 'Deploy Core to S3'
+    String script = """
+        aws s3 cp --acl public-read --no-progress \
+            ${pathCore} \
+            s3://${S3_BUCKET}/${dirS3CoreV}/
+        aws s3 sync --acl public-read --delete --no-progress \
+            s3://${S3_BUCKET}/${dirS3CoreV}/ \
+            s3://${S3_BUCKET}/${dirS3CoreL}/
+    """
+
+    switch(platform) {
+        case ['linux_64', 'mac_64']: sh  label: label, script: script; break
+        case ['win_64', 'win_32']:   bat label: label, script: script; break
+    }
 }
 
 def createReports()
