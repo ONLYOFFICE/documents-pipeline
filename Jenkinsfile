@@ -172,7 +172,7 @@ pipeline {
                 utils.linuxBuild(platform, clean)
                 clean = false
                 if ( params.core ) {
-                  utils.linuxBuildCore()
+                  utils.deployCore(platform)
                 }
                 if ( params.documentbuilder ) {
                   utils.linuxBuildBuilder(platform)
@@ -240,7 +240,7 @@ pipeline {
               if (params.core) {
                 utils.macosBuild(platform, clean)
                 clean = false
-                utils.macosBuildCore()
+                utils.deployCore(platform)
               }
 
               // if (params.desktopeditor) {
@@ -292,7 +292,7 @@ pipeline {
                 utils.windowsBuild(platform, clean)
                 clean = false
                 if ( params.core ) {
-                  utils.windowsBuildCore(platform)
+                  utils.deployCore(platform)
                 }
                 if ( params.documentbuilder ) {
                   utils.windowsBuildBuilder(platform)
@@ -362,7 +362,7 @@ pipeline {
                 utils.windowsBuild(platform, clean)
                 clean = false
                 if ( params.core ) {
-                  utils.windowsBuildCore(platform)
+                  utils.deployCore(platform)
                 }
                 if ( params.documentbuilder ) {
                   utils.windowsBuildBuilder(platform)
