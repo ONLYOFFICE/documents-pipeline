@@ -494,30 +494,7 @@ def macosBuild(String platform = 'native', Boolean clean = true, String license 
 }
 
 def macosBuildDesktop(String platform = 'native') {
-    sh "cd desktop-apps/macos && bundler exec fastlane release"
-
-    sh """#!/bin/bash -xe
-        UPDATE_DIR="update"
-        UPDATE_STORAGE="/Volumes/Storage/Archives/ONLYOFFICE/_updates"
-        KEYS_STORAGE="/Volumes/Storage/Archives/ONLYOFFICE/_keys"
-        GENERATE_APPCAST_DIR=\$(pwd)"/desktop-apps/macos/Vendor/Sparkle/bin"
-
-        cd desktop-apps/macos/build
-
-        rm -rfv "\${UPDATE_DIR}"
-        rm -rfv "\${HOME}/Library/Caches/Sparkle_generate_appcast"
-
-        mkdir -p "\${UPDATE_DIR}"
-
-        ZIP=ONLYOFFICE-\${PRODUCT_VERSION%.*}.zip
-
-        rsync -ah --progress "\${UPDATE_STORAGE}"/*.zip "\${UPDATE_DIR}"
-        rsync -ah --progress "\${ZIP}" "\${UPDATE_DIR}"
-
-        "\${GENERATE_APPCAST_DIR}"/generate_appcast "\${UPDATE_DIR}"
-
-        find "\${UPDATE_DIR}" -type f -name "*.zip" -not -name "\${ZIP}" -print0 | xargs -0 rm --
-    """
+    sh "cd build_tools && ./make_packages.py"
 
     sh """#!/bin/bash -xe
         cd desktop-apps/macos/build
