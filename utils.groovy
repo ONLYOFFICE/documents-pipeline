@@ -375,13 +375,12 @@ def getConfParams(String platform, Boolean clean, String license)
     if (platform.endsWith("_xp")) {
         confParams.add("--qt-dir-xp ${env.QT56_PATH}")
     }
+    if (license == "freemium" || license == "commercial") {
+        confParams.add("--branding onlyoffice")
+    }
     if (platform == "mac_64") {
         confParams.add("--branding-name \"onlyoffice\"")
         confParams.add("--compiler \"clang\"")
-        confParams.add("--config \"use_javascript_core\"")
-    }
-    if (license == "freemium" || license == "commercial") {
-        confParams.add("--branding onlyoffice")
     }
     if (params.beta || env.BRANCH_NAME == 'develop') {
         confParams.add("--beta 1")
