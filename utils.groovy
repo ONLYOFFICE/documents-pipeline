@@ -347,12 +347,12 @@ def getConfParams(String platform, Boolean clean, String license)
     if (params.core && license == "opensource") {
         modules.add('core')
     }
+    // Add module to build to enforce clean it on build
+    if (params.desktopeditor && ((license == "opensource" && clean)
+        || license == "freemium")) {
+        modules.add('desktop')
+    }
     if (platform != "mac_64") {
-        // Add module to build to enforce clean it on build
-        if (params.desktopeditor && ((license == "opensource" && clean)
-            || license == "freemium")) {
-            modules.add('desktop')
-        }
         if (params.documentbuilder && license == "opensource") {
             modules.add('builder')
         }
@@ -377,6 +377,10 @@ def getConfParams(String platform, Boolean clean, String license)
     }
     if (license == "freemium" || license == "commercial") {
         confParams.add("--branding onlyoffice")
+    }
+    if (platform == "mac_64") {
+        confParams.add("--branding-name \"onlyoffice\"")
+        confParams.add("--compiler \"clang\"")
     }
     if (params.beta || env.BRANCH_NAME == 'develop') {
         confParams.add("--beta 1")
@@ -481,14 +485,41 @@ def macosBuild(String platform = 'native', Boolean clean = true, String license 
 }
 
 def macosBuildDesktop(String platform = 'native') {
-    sh "cd desktop-apps && \
-        make clean && \
-        make deploy"
+    sh "cd build_tools && ./make_packages.py"
 
-    def deployData = readJSON file: "desktop-apps/deploy.json"
-    for(item in deployData.items) {
-        println item
-        deployDesktopList.add(item)
+    sh """#!/bin/bash -xe
+        cd desktop-apps/macos/build
+
+        S3_SECTION_DIR="onlyoffice/\$RELEASE_BRANCH/macos"
+        S3_UPDATES_DIR="\$S3_SECTION_DIR/update/editors/\$PRODUCT_VERSION.\$BUILD_NUMBER"
+        DMG="ONLYOFFICE-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
+        ZIP="ONLYOFFICE-\${PRODUCT_VERSION%.*}.zip"
+        APPCAST="onlyoffice.xml"
+
+        aws s3 cp --no-progress --acl public-read \
+            ONLYOFFICE.dmg s3://\$S3_BUCKET/\$S3_SECTION_DIR/\$DMG
+
+        aws s3 sync --no-progress --acl public-read \
+            update s3://\$S3_BUCKET/\$S3_UPDATES_DIR
+
+        echo -e "platform,title,path" > deploy.csv
+        echo -e "macos,macOS DMG,\$S3_SECTION_DIR/\$DMG" >> deploy.csv
+        echo -e "macos,macOS ZIP,\$S3_UPDATES_DIR/\$ZIP" >> deploy.csv
+        for i in update/*.delta; do
+            DELTA=\$(basename \$i)
+            echo -e "macos,macOS \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
+        done
+        echo -e "macos,macOS Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
+    """
+
+    def deployData = readCSV file: "desktop-apps/macos/build/deploy.csv", format: CSVFormat.DEFAULT.withHeader()
+    for(item in deployData) {
+        def temp = [ 
+            platform: item.get('platform'),
+            title: item.get('title'),
+            path: item.get('path') ]
+        println temp
+        deployDesktopList.add(temp)
     }
 
     return this
