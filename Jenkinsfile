@@ -1,3 +1,10 @@
+defaults = [:]
+defaults.schedule = 'H 17 * * *'
+
+if (BRANCH_NAME.startsWith('hotfix') || BRANCH_NAME.startsWith('release')) {
+  defaults.schedule = 'H 23 * * *'
+}
+
 pipeline {
   agent none
   parameters {
@@ -103,7 +110,7 @@ pipeline {
     )
   }
   triggers {
-    cron('H 17 * * *')
+    cron(defaults.schedule)
   }
   stages {
     stage('Prepare') {
