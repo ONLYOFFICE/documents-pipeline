@@ -341,15 +341,15 @@ def tgSendGroup(String message)
     return this
 }
 
-def getConfParams(String platform, Boolean clean, String license)
+def getConfParams(String platform, String license)
 {
     def modules = []
     if (params.core && license == "opensource") {
         modules.add('core')
     }
     // Add module to build to enforce clean it on build
-    if (params.desktopeditor && ((license == "opensource" && clean)
-        || license == "freemium")) {
+    if (params.desktopeditor && ((license == "opensource"
+        && params.clean) || license == "freemium")) {
         modules.add('desktop')
     }
     if (platform != "mac_64") {
@@ -370,7 +370,7 @@ def getConfParams(String platform, Boolean clean, String license)
     confParams.add("--module \"${modules.join(' ')}\"")
     confParams.add("--platform ${platform}")
     confParams.add("--update false")
-    confParams.add("--clean ${clean.toString()}")
+    confParams.add("--clean ${params.clean.toString()}")
     confParams.add("--qt-dir ${env.QT_PATH}")
     if (platform.endsWith("_xp")) {
         confParams.add("--qt-dir-xp ${env.QT56_PATH}")
@@ -392,10 +392,10 @@ def getConfParams(String platform, Boolean clean, String license)
     return confParams.join(' ')
 }
 
-def linuxBuild(String platform = 'native', Boolean clean = true, String license = 'opensource')
+def linuxBuild(String platform = 'native', String license = 'opensource')
 {
     sh "cd build_tools && \
-        ./configure.py ${getConfParams(platform, clean, license)} &&\
+        ./configure.py ${getConfParams(platform, license)} &&\
         ./make.py"
 
     return this
@@ -476,9 +476,9 @@ def linuxTest()
     return this
 }
 
-def macosBuild(String platform = 'native', Boolean clean = true, String license = 'opensource') {
+def macosBuild(String platform = 'native', String license = 'opensource') {
     sh "cd build_tools && \
-        ./configure.py ${getConfParams(platform, clean, license)} && \
+        ./configure.py ${getConfParams(platform, license)} && \
         ./make.py"
 
     return this
@@ -525,10 +525,10 @@ def macosBuildDesktop(String platform = 'native') {
     return this
 }
 
-def windowsBuild(String platform = 'native', Boolean clean = true, String license = 'opensource')
+def windowsBuild(String platform = 'native', String license = 'opensource')
 {
     bat "cd build_tools &&\
-            call python configure.py ${getConfParams(platform, clean, license)} &&\
+            call python configure.py ${getConfParams(platform, license)} &&\
             call python make.py"
 
     return this
