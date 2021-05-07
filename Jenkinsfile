@@ -170,14 +170,12 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "linux_64"
-              Boolean clean = params.clean
 
               if ( params.core
                    || params.documentbuilder
                    || params.documentserver
                    ) {
-                utils.linuxBuild(platform, clean)
-                clean = false
+                utils.linuxBuild(platform)
                 if ( params.core ) {
                   utils.deployCore(platform)
                 }
@@ -190,14 +188,12 @@ pipeline {
               }
 
               if ( params.desktopeditor ) {
-                utils.linuxBuild(platform, clean, "freemium")
-                clean = false
+                utils.linuxBuild(platform, "freemium")
                 utils.linuxBuildDesktop(platform)
               }
 
               if ( params.documentserver_ee || params.documentserver_ie || params.documentserver_de ) {
-                utils.linuxBuild(platform, clean, "commercial")
-                clean = false
+                utils.linuxBuild(platform, "commercial")
                 if ( params.documentserver_ee ) {
                   utils.linuxBuildServer(platform, "documentserver-ee")
                 }
@@ -249,17 +245,14 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "mac_64"
-              Boolean clean = params.clean
 
               if (params.core) {
-                utils.macosBuild(platform, clean)
-                clean = false
+                utils.macosBuild(platform)
                 utils.deployCore(platform)
               }
 
               if (params.desktopeditor) {
-                utils.macosBuild(platform, clean, "freemium")
-                clean = false
+                utils.macosBuild(platform, "freemium")
                 utils.macosBuildDesktop()
               }
             }
@@ -297,14 +290,12 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_64"
-              Boolean clean = params.clean
 
               if ( params.core
                    || params.documentbuilder
                    || params.documentserver
                    ) {
-                utils.windowsBuild(platform, clean)
-                clean = false
+                utils.windowsBuild(platform)
                 if ( params.core ) {
                   utils.deployCore(platform)
                 }
@@ -317,14 +308,12 @@ pipeline {
               }
 
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, clean, "freemium")
-                clean = false
+                utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
 
               if ( params.documentserver_ee || params.documentserver_ie || params.documentserver_de ) {
-                utils.windowsBuild(platform, clean, "commercial")
-                clean = false
+                utils.windowsBuild(platform, "commercial")
                 if ( params.documentserver_ee ) {
                   utils.windowsBuildServer(platform, "DocumentServer-EE")
                 }
@@ -370,11 +359,9 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_32"
-              Boolean clean = params.clean
 
               if ( params.core || params.documentbuilder ) {
-                utils.windowsBuild(platform, clean)
-                clean = false
+                utils.windowsBuild(platform)
                 if ( params.core ) {
                   utils.deployCore(platform)
                 }
@@ -384,8 +371,7 @@ pipeline {
               }
 
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, clean, "freemium")
-                clean = false
+                utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
             }
@@ -427,7 +413,7 @@ pipeline {
 
               String platform = "win_64_xp"
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, params.clean, "freemium")
+                utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
             }
@@ -469,7 +455,7 @@ pipeline {
 
               String platform = "win_32_xp"
               if ( params.desktopeditor ) {
-                utils.windowsBuild(platform, params.clean, "freemium")
+                utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
             }
