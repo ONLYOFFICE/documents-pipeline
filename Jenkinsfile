@@ -1,3 +1,10 @@
+defaults = [:]
+defaults.schedule = 'H 17 * * *'
+
+if (BRANCH_NAME.startsWith('hotfix') || BRANCH_NAME.startsWith('release')) {
+  defaults.schedule = 'H 23 * * *'
+}
+
 pipeline {
   agent none
   parameters {
@@ -103,7 +110,7 @@ pipeline {
     )
   }
   triggers {
-    cron('H 17 * * *')
+    cron(defaults.schedule)
   }
   stages {
     stage('Prepare') {
@@ -124,6 +131,7 @@ pipeline {
             env.ENABLE_SIGNING=1
           }
 
+          tgMessageCore = "Build [${JOB_NAME}#${BUILD_NUMBER}](${BUILD_URL}) failed"
           deployDesktopList = []
           deployBuilderList = []
           deployServerCeList = []
@@ -131,6 +139,10 @@ pipeline {
           deployServerDeList = []
           deployAndroidList = []
         }
+      }
+      post {
+        success { script { tgMessageCore += "\n🔵 Prepare" } }
+        failure { script { tgMessageCore += "\n🔴 Prepare" } }
       }
     }
     stage('Build') {
@@ -165,7 +177,7 @@ pipeline {
                    ) {
                 utils.linuxBuild(platform)
                 if ( params.core ) {
-                  utils.linuxBuildCore()
+                  utils.deployCore(platform)
                 }
                 if ( params.documentbuilder ) {
                   utils.linuxBuildBuilder(platform)
@@ -200,9 +212,20 @@ pipeline {
               }
             }
           }
+          post {
+            success { script { tgMessageCore += "\n🔵 Linux 64-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Linux 64-bit" } }
+          }
         }
         stage('macOS build') {
           agent { label 'macos' }
+          environment {
+            FASTLANE_DISABLE_COLORS = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+          }
           when {
             expression { params.macos }
             beforeAgent true
@@ -225,15 +248,18 @@ pipeline {
 
               if (params.core) {
                 utils.macosBuild(platform)
-                utils.macosBuildCore()
+                utils.deployCore(platform)
               }
 
-              // if (params.desktopeditor) {
-              //   utils.macosBuild(platform, clean, "freemium")
-              //   clean = false
-              //   utils.macosBuildDesktop(platform)
-              // }
+              if (params.desktopeditor) {
+                utils.macosBuild(platform, "freemium")
+                utils.macosBuildDesktop()
+              }
             }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 macOS" } }
+            failure { script { tgMessageCore += "\n🔴 macOS" } }
           }
         }
         stage('Windows 64-bit build') {
@@ -271,7 +297,7 @@ pipeline {
                    ) {
                 utils.windowsBuild(platform)
                 if ( params.core ) {
-                  utils.windowsBuildCore(platform)
+                  utils.deployCore(platform)
                 }
                 if ( params.documentbuilder ) {
                   utils.windowsBuildBuilder(platform)
@@ -299,6 +325,10 @@ pipeline {
                 }
               }
             }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows 64-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows 64-bit" } }
           }
         }
         stage('Windows 32-bit build') {
@@ -333,7 +363,7 @@ pipeline {
               if ( params.core || params.documentbuilder ) {
                 utils.windowsBuild(platform)
                 if ( params.core ) {
-                  utils.windowsBuildCore(platform)
+                  utils.deployCore(platform)
                 }
                 if ( params.documentbuilder ) {
                   utils.windowsBuildBuilder(platform)
@@ -345,6 +375,10 @@ pipeline {
                 utils.windowsBuildDesktop(platform)
               }
             }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows 32-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows 32-bit" } }
           }
         }
         stage('Windows XP 64-bit build') {
@@ -384,6 +418,10 @@ pipeline {
               }
             }
           }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows XP 64-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows XP 64-bit" } }
+          }
         }
         stage('Windows XP 32-bit build') {
           agent {
@@ -422,6 +460,10 @@ pipeline {
               }
             }
           }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows XP 32-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows XP 32-bit" } }
+          }
         }
         stage('Android build') {
           agent { label 'linux_64_new' }
@@ -437,6 +479,10 @@ pipeline {
 
               utils.androidBuild(env.BRANCH_NAME)
             }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 Android" } }
+            failure { script { tgMessageCore += "\n🔴 Android" } }
           }
         }
       }
@@ -467,6 +513,11 @@ pipeline {
             wait: false
           )
         }
+      }
+    }
+    failure {
+      node('master') {
+        telegramSend(message: tgMessageCore, chatId: -342815292)
       }
     }
   }
