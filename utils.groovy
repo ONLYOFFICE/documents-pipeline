@@ -25,59 +25,54 @@ def checkoutRepo(String repo, String branch = 'master', String dir = repo, Strin
     )
 }
 
+listRepos = [
+    [name: 'build_tools'],
+    [name: 'core'],
+    [name: 'core-fonts'],
+    [name: 'desktop-apps'],
+    [name: 'desktop-sdk'],
+    [name: 'dictionaries'],
+    [name: 'document-builder-package'],
+    [name: 'document-server-integration'],
+    [name: 'document-server-package'],
+    [name: 'document-templates'],
+    [name: 'documents-pipeline'],
+    [name: 'onlyoffice'],
+    [name: 'plugin-ocr',           dir: 'sdkjs-plugins/plugin-ocr'],
+    [name: 'plugin-macros',        dir: 'sdkjs-plugins/plugin-macros'],
+    [name: 'plugin-highlightcode', dir: 'sdkjs-plugins/plugin-highlightcode'],
+    [name: 'plugin-photoeditor',   dir: 'sdkjs-plugins/plugin-photoeditor'],
+    [name: 'plugin-youtube',       dir: 'sdkjs-plugins/plugin-youtube'],
+    [name: 'plugin-speech',        dir: 'sdkjs-plugins/plugin-speech'],
+    [name: 'plugin-thesaurus',     dir: 'sdkjs-plugins/plugin-thesaurus'],
+    [name: 'plugin-translator',    dir: 'sdkjs-plugins/plugin-translator'],
+    [name: 'plugin-autocomplete',  dir: 'sdkjs-plugins/plugin-autocomplete'],
+    [name: 'plugin-easybib',       dir: 'sdkjs-plugins/plugin-easybib'],
+    [name: 'plugin-wordpress',     dir: 'sdkjs-plugins/plugin-wordpress'],
+    [name: 'plugin-zotero',        dir: 'sdkjs-plugins/plugin-zotero'],
+    [name: 'plugin-mendeley',      dir: 'sdkjs-plugins/plugin-mendeley'],
+    [name: 'sdkjs'],
+    [name: 'sdkjs-comparison'],
+    [name: 'sdkjs-content-controls'],
+    [name: 'sdkjs-disable-features'],
+    [name: 'sdkjs-sheet-views'],
+    [name: 'server'],
+    [name: 'server-license'],
+    [name: 'server-lockstorage'],
+    [name: 'web-apps'],
+    [name: 'web-apps-mobile'],
+    [name: 'Docker-DocumentServer'],
+    [name: 'DocumentBuilder']
+].each {
+    if (it.owner == null) it.owner = 'ONLYOFFICE'
+    if (it.dir == null)   it.dir = it.name
+}
+
 return this
-
-def getRepoMap(String name, String dir = name, String owner = 'ONLYOFFICE')
-{
-    return [owner: owner, name: name, dir: dir]
-}
-
-def getReposList()
-{
-    def repos = []
-    repos.add(getRepoMap('build_tools'))
-    repos.add(getRepoMap('core'))
-    repos.add(getRepoMap('core-fonts'))
-    repos.add(getRepoMap('desktop-apps'))
-    repos.add(getRepoMap('desktop-sdk'))
-    repos.add(getRepoMap('dictionaries'))
-    repos.add(getRepoMap('document-builder-package'))
-    repos.add(getRepoMap('document-server-integration'))
-    repos.add(getRepoMap('document-server-package'))
-    repos.add(getRepoMap('document-templates'))
-    repos.add(getRepoMap('documents-pipeline'))
-    repos.add(getRepoMap('onlyoffice'))
-    repos.add(getRepoMap('plugin-ocr',           'sdkjs-plugins/plugin-ocr'))
-    repos.add(getRepoMap('plugin-macros',        'sdkjs-plugins/plugin-macros'))
-    repos.add(getRepoMap('plugin-highlightcode', 'sdkjs-plugins/plugin-highlightcode'))
-    repos.add(getRepoMap('plugin-photoeditor',   'sdkjs-plugins/plugin-photoeditor'))
-    repos.add(getRepoMap('plugin-youtube',       'sdkjs-plugins/plugin-youtube'))
-    repos.add(getRepoMap('plugin-speech',        'sdkjs-plugins/plugin-speech'))
-    repos.add(getRepoMap('plugin-thesaurus',     'sdkjs-plugins/plugin-thesaurus'))
-    repos.add(getRepoMap('plugin-translator',    'sdkjs-plugins/plugin-translator'))
-    repos.add(getRepoMap('plugin-autocomplete',  'sdkjs-plugins/plugin-autocomplete'))
-    repos.add(getRepoMap('plugin-easybib',       'sdkjs-plugins/plugin-easybib'))
-    repos.add(getRepoMap('plugin-wordpress',     'sdkjs-plugins/plugin-wordpress'))
-    repos.add(getRepoMap('plugin-zotero',        'sdkjs-plugins/plugin-zotero'))
-    repos.add(getRepoMap('plugin-mendeley',      'sdkjs-plugins/plugin-mendeley'))
-    repos.add(getRepoMap('sdkjs'))
-    repos.add(getRepoMap('sdkjs-comparison'))
-    repos.add(getRepoMap('sdkjs-content-controls'))
-    repos.add(getRepoMap('sdkjs-disable-features'))
-    repos.add(getRepoMap('sdkjs-sheet-views'))
-    repos.add(getRepoMap('server'))
-    repos.add(getRepoMap('server-license'))
-    repos.add(getRepoMap('server-lockstorage'))
-    repos.add(getRepoMap('web-apps'))
-    repos.add(getRepoMap('web-apps-mobile'))
-    repos.add(getRepoMap('Docker-DocumentServer'))
-    repos.add(getRepoMap('DocumentBuilder'))
-    return repos
-}
 
 def checkoutRepos(String branch = 'master')
 {    
-    for (repo in getReposList()) {
+    for (repo in listRepos) {
         checkoutRepo(repo.name, branch, repo.dir, repo.owner)
     }
 
@@ -86,7 +81,7 @@ def checkoutRepos(String branch = 'master')
 
 def tagRepos(String tag)
 {
-    for (repo in getReposList()) {
+    for (repo in listRepos) {
         sh "cd ${repo.dir} && \
             git tag -l | xargs git tag -d && \
             git fetch --tags && \
