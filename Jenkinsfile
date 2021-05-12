@@ -133,6 +133,9 @@ pipeline {
       defaultValue: ''
     )
   }
+  options {
+    buildDiscarder logRotator(daysToKeepStr: '90', artifactDaysToKeepStr: '30')
+  }
   triggers {
     cron('H 17 * * *')
   }
