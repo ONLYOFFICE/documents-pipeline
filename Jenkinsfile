@@ -33,104 +33,104 @@ pipeline {
   agent none
   parameters {
     booleanParam (
-      defaultValue: false,
-      description: 'Wipe out current workspace',
-      name: 'wipe'
+      name:         'wipe',
+      description:  'Wipe out current workspace',
+      defaultValue: false
     )
     booleanParam (
-      defaultValue: defaults.clean,
-      description: 'Rebuild binaries from the \'core\' repo',
-      name: 'clean'
+      name:         'clean',
+      description:  'Rebuild binaries from the \'core\' repo',
+      defaultValue: defaults.clean
     )
     booleanParam (
-      defaultValue: defaults.linux,
-      description: 'Build Linux x64 targets',
-      name: 'linux_64'
+      name:         'linux_64',
+      description:  'Build Linux x64 targets',
+      defaultValue: defaults.linux
     )
     booleanParam (
-      defaultValue: defaults.macos,
-      description: 'Build macOS targets',
-      name: 'macos'
+      name:         'macos',
+      description:  'Build macOS targets',
+      defaultValue: defaults.macos
     )
     booleanParam (
-      defaultValue: defaults.windows_64,
-      description: 'Build Windows x64 targets',
-      name: 'win_64'
+      name:         'win_64',
+      description:  'Build Windows x64 targets',
+      defaultValue: defaults.windows_64
     )
     booleanParam (
-      defaultValue: defaults.windows_32,
-      description: 'Build Windows x86 targets',
-      name: 'win_32'
+      name:         'win_32',
+      description:  'Build Windows x86 targets',
+      defaultValue: defaults.windows_32
     )
     booleanParam (
-      defaultValue: defaults.windows_64_xp,
-      description: 'Build Windows XP x64 targets',
-      name: 'win_64_xp'
+      name:         'win_64_xp',
+      description:  'Build Windows XP x64 targets',
+      defaultValue: defaults.windows_64_xp
     )
     booleanParam (
-      defaultValue: defaults.windows_32_xp,
-      description: 'Build Windows XP x86 targets',
-      name: 'win_32_xp'
+      name:         'win_32_xp',
+      description:  'Build Windows XP x86 targets',
+      defaultValue: defaults.windows_32_xp
     )
     booleanParam (
-      defaultValue: defaults.android,
-      description: 'Build Android targets',
-      name: 'android'
+      name:         'android',
+      description:  'Build Android targets',
+      defaultValue: defaults.android
     )
     booleanParam (
-      defaultValue: defaults.core,
-      description: 'Build and publish \'core\' binaries',
-      name: 'core'
+      name:         'core',
+      description:  'Build and publish "core" binaries',
+      defaultValue: defaults.core
     )
     booleanParam (
-      defaultValue: defaults.editors,
-      description: 'Build and publish DesktopEditors packages',
-      name: 'desktopeditor'
+      name:         'desktopeditor',
+      description:  'Build and publish DesktopEditors packages',
+      defaultValue: defaults.editors
     )
     booleanParam (
-      defaultValue: defaults.builder,
-      description: 'Build and publish DocumentBuilder packages',
-      name: 'documentbuilder'
+      name:         'documentbuilder',
+      description:  'Build and publish DocumentBuilder packages',
+      defaultValue: defaults.builder
     )
     booleanParam (
-      defaultValue: defaults.server_ce,
-      description: 'Build and publish DocumentServer packages',
-      name: 'documentserver'
+      name:         'documentserver',
+      description:  'Build and publish DocumentServer packages',
+      defaultValue: defaults.server_ce
     )
     booleanParam (
-      defaultValue: defaults.server_ee,
-      description: 'Build and publish DocumentServer-EE packages',
-      name: 'documentserver_ee'
+      name:         'documentserver_ee',
+      description:  'Build and publish DocumentServer-EE packages',
+      defaultValue: defaults.server_ee
     )
     booleanParam (
-      defaultValue: defaults.server_ie,
-      description: 'Build and publish DocumentServer-IE packages',
-      name: 'documentserver_ie'
+      name:         'documentserver_ie',
+      description:  'Build and publish DocumentServer-IE packages',
+      defaultValue: defaults.server_ie
     )
     booleanParam (
-      defaultValue: defaults.server_de,
-      description: 'Build and publish DocumentServer-DE packages',
-      name: 'documentserver_de'
+      name:         'documentserver_de',
+      description:  'Build and publish DocumentServer-DE packages',
+      defaultValue: defaults.server_de
     )
     booleanParam (
-      defaultValue: defaults.beta,
-      description: 'Beta (enabled anyway on develop)',
-      name: 'beta'
+      name:         'beta',
+      description:  'Beta (enabled anyway on develop)',
+      defaultValue: defaults.beta
     )
     booleanParam (
-      defaultValue: defaults.test,
-      description: 'Run test(Only on Linux)',
-      name: 'test'
+      name:         'test',
+      description:  'Run test(Only on Linux)',
+      defaultValue: defaults.test
     )
     booleanParam (
-      defaultValue: defaults.sign,
-      description: 'Sign installer(Only on Windows)',
-      name: 'signing'
+      name:         'signing',
+      description:  'Sign installer(Only on Windows)',
+      defaultValue: defaults.sign
     )
     string (
-      defaultValue: '',
-      description: 'configure.py extra params',
-      name: 'extra_params'
+      name:         'extra_params',
+      description:  'configure.py extra params',
+      defaultValue: ''
     )
   }
   triggers {
