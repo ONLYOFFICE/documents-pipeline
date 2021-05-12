@@ -1,28 +1,16 @@
-def checkoutRepo(String repo, String branch = 'master', String dir = repo, String company = 'ONLYOFFICE') {
+def checkoutRepo(Map repo, String branch = 'master') {
     checkout([
-            $class: 'GitSCM',
-            branches: [[
-                    name: branch
-                ]
-            ],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [[
-                    $class: 'RelativeTargetDirectory',
-                    relativeTargetDir: dir
-                ],
-                [
-                    $class: 'SubmoduleOption',
-                    recursiveSubmodules: true,
-                    shallow: true
-                ]
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [[
-                    url: "git@github.com:${company}/${repo}.git"
-                ]
-            ]
-        ]
-    )
+        $class: 'GitSCM',
+        branches: [[name: branch]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [
+            [$class: 'SubmoduleOption', recursiveSubmodules: true],
+            [$class: 'RelativeTargetDirectory', relativeTargetDir: repo.dir],
+            [$class: 'ScmName', name: "${repo.owner}/${repo.name}"]
+        ],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: "git@github.com:${repo.owner}/${repo.name}.git"]]
+    ])
 }
 
 listRepos = [
@@ -73,7 +61,7 @@ return this
 def checkoutRepos(String branch = 'master')
 {    
     for (repo in listRepos) {
-        checkoutRepo(repo.name, branch, repo.dir, repo.owner)
+        checkoutRepo(repo, branch)
     }
 
     return this
@@ -222,7 +210,8 @@ def linuxBuildCore()
 
 def linuxTest()
 {
-    checkoutRepo('doc-builder-testing', 'master')
+    checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing',
+        dir: 'doc-builder-testing'], 'master')
     sh "docker rmi doc-builder-testing || true"
     sh "cd doc-builder-testing &&\
         docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
