@@ -32,6 +32,11 @@ if ('develop' == BRANCH_NAME) {
   ])
 }
 
+node('master') {
+  checkout scm
+  utils = load 'utils.groovy'
+}
+
 pipeline {
   agent none
   parameters {
@@ -180,8 +185,6 @@ pipeline {
           }
           steps {
             script {
-              def utils = load "utils.groovy"
-              
               if ( params.wipe ) {
                 deleteDir()
               }
@@ -246,8 +249,6 @@ pipeline {
           }
           steps {
             script {
-              def utils = load "utils.groovy"
-              
               if (params.wipe) {
                 deleteDir()
               } else if (params.clean && params.desktopeditor) {
@@ -286,8 +287,6 @@ pipeline {
           }
           steps {
             script {
-              def utils = load "utils.groovy"
-
               if ( params.wipe ) {
                 deleteDir()
               }
@@ -351,8 +350,6 @@ pipeline {
           }
           steps {
             script {
-              def utils = load "utils.groovy"
-
               if ( params.wipe ) {
                 deleteDir()
               }
@@ -400,8 +397,6 @@ pipeline {
           }
           steps {
             script {
-              def utils = load "utils.groovy"
-
               if ( params.wipe ) {
                 deleteDir()
               }
@@ -438,8 +433,6 @@ pipeline {
           }
           steps {
             script {
-              def utils = load "utils.groovy"
-
               if ( params.wipe ) {
                 deleteDir()
               }
@@ -468,8 +461,6 @@ pipeline {
           }
           steps {
             script {
-              def utils = load "utils.groovy"
-              
               if (params.wipe) { deleteDir() }
 
               utils.androidBuild(env.BRANCH_NAME)
@@ -483,8 +474,6 @@ pipeline {
     always {
       node('master') {
         script {
-          checkout scm
-          def utils = load "utils.groovy"
           utils.createReports()
         }
       }
