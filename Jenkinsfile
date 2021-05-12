@@ -1,32 +1,35 @@
-defaults = [:]
-defaults.clean         = true
-defaults.linux         = true
-defaults.macos         = true
-defaults.windows_64    = true
-defaults.windows_32    = true
-defaults.windows_64_xp = true
-defaults.windows_32_xp = true
-defaults.android       = true
-defaults.core          = true
-defaults.editors       = true
-defaults.builder       = true
-defaults.server_ce     = true
-defaults.server_ee     = true
-defaults.server_ie     = true
-defaults.server_de     = true
-defaults.beta          = false
-defaults.test          = false
-defaults.sign          = true
+defaults = [
+  clean:         true,
+  linux:         true,
+  macos:         true,
+  windows_64:    true,
+  windows_32:    true,
+  windows_64_xp: true,
+  windows_32_xp: true,
+  android:       true,
+  core:          true,
+  editors:       true,
+  builder:       true,
+  server_ce:     true,
+  server_ee:     true,
+  server_ie:     true,
+  server_de:     true,
+  beta:          false,
+  test:          false,
+  sign:          true
+]
 
-if (BRANCH_NAME == 'develop') {
-  defaults.macos         = false
-  defaults.android       = false
-  defaults.core          = false
-  defaults.builder       = false
-  defaults.server_ce     = false
-  defaults.server_ie     = false
-  defaults.server_de     = false
-  defaults.beta          = true
+if ('develop' == BRANCH_NAME) {
+  defaults.putAll([
+    macos:         false,
+    android:       false,
+    core:          false,
+    builder:       false,
+    server_ce:     false,
+    server_ie:     false,
+    server_de:     false,
+    beta:          true
+  ])
 }
 
 pipeline {
