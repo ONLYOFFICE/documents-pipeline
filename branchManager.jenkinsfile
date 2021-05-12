@@ -1,25 +1,21 @@
 defaults = [
   action_type: ['print_branches'],
   action_help: '',
-  version: '0.0.0',
+  version: '',
   protect_branch: false
 ]
 
-isMaster  = BRANCH_NAME == 'master'
-isDevelop = BRANCH_NAME == 'develop'
-isHotfix  = BRANCH_NAME.startsWith('hotfix')
-isRelease = BRANCH_NAME.startsWith('release')
-
-if (isMaster || isDevelop) {
+if (BRANCH_NAME == 'master' || BRANCH_NAME == 'develop') {
   defaults.action_type.add('start_release')
-  defaults.protect_branch = true
-  if (isMaster) {
+  if (BRANCH_NAME == 'master') {
     defaults.release_type = 'hotfix'
-  } else if (isDevelop) {
+  } else if (BRANCH_NAME == 'develop') {
     defaults.release_type = 'release'
   }
   defaults.action_help = " (start for ${defaults.release_type} on current branch)"
-} else if (isHotfix || isRelease) {
+  defaults.version = '0.0.0'
+  defaults.protect_branch = true
+} else if (BRANCH_NAME.startsWith('hotfix') || BRANCH_NAME.startsWith('release')) {
   defaults.action_type.addAll(['merge_release', 'finish_release', 'unprotect_release'])
 }
 
@@ -66,18 +62,14 @@ pipeline {
             checkout scm
           }
           currentBuild.displayName += ' - ' + params.action_type
-          currentBranch = BRANCH_NAME
-          baseBranches = []
-          stats = [
-            repos: [:],
-            success: 0,
-            total: 0
-          ]
-          utils = load 'utils.groovy'
+
+          stats = [repos: [:]]
+          String branch = BRANCH_NAME
+          ArrayList baseBranches = []
+          def utils = load 'utils.groovy'
           utils.getReposList().each {
             stats.repos.put(it.owner + '/' + it.name, [:])
           }
-
           Boolean pAction
           Boolean sAction
 
@@ -90,12 +82,12 @@ pipeline {
 
           } else if (params.action_type == 'start_release') {
 
-            currentBranch = defaults.release_type + '/v' + params.vesion
+            branch = defaults.release_type + '/v' + params.vesion
             baseBranches = [BRANCH_NAME]
 
             stats.repos.each { repo, status ->
-              if (checkRemoteBranch(repo, currentBranch)) {
-                echo "${repo}: Branch already ${currentBranch} exists."
+              if (checkRemoteBranch(repo, branch)) {
+                echo "${repo}: Branch already ${branch} exists."
                 status.primary = 'skip'
               } else {
                 dir ('repos/' + repo) {
@@ -104,13 +96,13 @@ pipeline {
                     && !createBranch(repo, 'develop', 'master'))
                     error("Can't create develop branch.")
 
-                  pAction = createBranch(repo, currentBranch, baseBranches[0])
+                  pAction = createBranch(repo, branch, baseBranches[0])
                   status.primary = (pAction) ? 'success' : 'failure'
                 }
               }
 
               if (params.protect_branch) {
-                sAction = protectBranch(repo, currentBranch)
+                sAction = protectBranch(repo, branch)
                 status.secondary = (sAction) ? 'lock' : ''
               }
             }
@@ -120,13 +112,13 @@ pipeline {
             baseBranches = ['master']
 
             stats.repos.each { repo, status ->
-              if (!checkRemoteBranch(repo, currentBranch)) {
-                echo "${repo}: Branch doesn't ${currentBranch} exist."
+              if (!checkRemoteBranch(repo, branch)) {
+                echo "${repo}: Branch doesn't ${branch} exist."
                 status.primary = 'skip'
               } else {
                 dir ('repos/' + repo) {
                   checkoutRepo(repo)
-                  pAction = mergeBranch(repo, currentBranch, baseBranches)
+                  pAction = mergeBranch(repo, branch, baseBranches)
                   status.primary = (pAction) ? 'success' : 'failure'
                 }
               }
@@ -139,18 +131,20 @@ pipeline {
               baseBranches.add(params.extra_branch)
 
             stats.repos.each { repo, status ->
-              if (!checkRemoteBranch(repo, currentBranch)) {
-                echo "${repo}: Branch doesn't ${currentBranch} exist."
+              if (!checkRemoteBranch(repo, branch)) {
+                echo "${repo}: Branch doesn't ${branch} exist."
                 status.primary = 'skip'
               } else {
                 dir ('repos/' + repo) {
                   checkoutRepo(repo)
-                  pAction = mergeBranch(repo, currentBranch, baseBranches)
+                  pAction = mergeBranch(repo, branch, baseBranches)
                   status.primary = (pAction) ? 'success' : 'failure'
                   if (pAction) {
-                    unprotectBranch(repo, currentBranch)
-                    sAction = deleteBranch(repo, currentBranch)
-                    status.secondary = (sAction) ? 'delete' : ''
+                    unprotectBranch(repo, branch)
+                    if (repo != 'ONLYOFFICE/documents-pipeline') {
+                      sAction = deleteBranch(repo, branch)
+                      status.secondary = (sAction) ? 'delete' : ''
+                    }
                   }
                 }
               }
@@ -159,11 +153,22 @@ pipeline {
           } else if (params.action_type == 'unprotect_release') {
 
             stats.repos.each { repo, status ->
-              pAction = unprotectBranch(repo, currentBranch)
+              pAction = unprotectBranch(repo, branch)
               status.primary = (pAction) ? 'success' : 'failure'
             }
 
           }
+
+          stats.putAll([
+            branch: branch,
+            baseBranches: baseBranches,
+            success: stats.repos.findAll { repo, status ->
+              status.primary == 'skip' || status.primary == 'success'
+            }.size(),
+            total: stats.repos.size()
+          ])
+          println stats
+
         }
       }
     }
@@ -171,11 +176,6 @@ pipeline {
   post {
     success {
       script {
-        stats.success = stats.repos.findAll { repo, status ->
-          status.primary == 'skip' || status.primary == 'success'
-        }.size()
-        stats.total = stats.repos.size()
-
         if (stats.success == 0)
           currentBuild.result = 'FAILURE'
         else if (stats.success != stats.total)
@@ -323,14 +323,14 @@ def sendNotification() {
   String text = ''
   switch(params.action_type) {
     case 'start_release':
-      text = "Branch `${currentBranch}` created from `${baseBranches[0]}`"
+      text = "Branch `${stats.branch}` created from `${stats.baseBranches[0]}`"
       break
     case 'merge_release':
-      text = "Branch `${currentBranch}` merged into `${baseBranches[0]}`"
+      text = "Branch `${stats.branch}` merged into `${stats.baseBranches[0]}`"
       break
     case 'finish_release':
-      text = "Branch `${currentBranch}` merged into "
-      text += baseBranches.collect({"`$it`"}).join(', ')
+      text = "Branch `${stats.branch}` merged into "
+      text += stats.baseBranches.collect({"`$it`"}).join(', ')
       break
     default:
       text = 'Stats'
