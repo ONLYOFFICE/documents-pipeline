@@ -7,11 +7,8 @@ defaults = [
 
 if (BRANCH_NAME == 'master' || BRANCH_NAME == 'develop') {
   defaults.action_type.add('start_release')
-  if (BRANCH_NAME == 'master') {
-    defaults.release_type = 'hotfix'
-  } else if (BRANCH_NAME == 'develop') {
-    defaults.release_type = 'release'
-  }
+  if (BRANCH_NAME == 'master')  defaults.release_type = 'hotfix'
+  if (BRANCH_NAME == 'develop') defaults.release_type = 'release'
   defaults.action_help = " (start for ${defaults.release_type} on current branch)"
   defaults.version = '0.0.0'
   defaults.protect_branch = true
