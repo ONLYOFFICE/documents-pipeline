@@ -64,7 +64,7 @@ pipeline {
           String branch = BRANCH_NAME
           ArrayList baseBranches = []
           def utils = load 'utils.groovy'
-          utils.getReposList().each {
+          utils.listRepos.each {
             stats.repos.put(it.owner + '/' + it.name, [:])
           }
           Boolean pAction
