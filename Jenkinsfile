@@ -154,17 +154,13 @@ pipeline {
           def branchName = env.BRANCH_NAME
           def productVersion = "99.99.99"
           def pV = branchName =~ /^(release|hotfix)\\/v(.*)$/
-          if(pV.find()) {
-            productVersion = pV.group(2)
-          }
+          if (pV.find()) productVersion = pV.group(2)
           env.PRODUCT_VERSION = productVersion
 
           env.S3_BUCKET = 'repo-doc-onlyoffice-com'
           env.RELEASE_BRANCH = branchName == 'develop' ? 'unstable' : 'testing'
 
-          if( params.signing ) {
-            env.ENABLE_SIGNING=1
-          }
+          if (params.signing) env.ENABLE_SIGNING=1
 
           deployDesktopList = []
           deployBuilderList = []
@@ -194,45 +190,39 @@ pipeline {
 
               String platform = "linux_64"
 
-              if ( params.core
-                   || params.documentbuilder
-                   || params.documentserver
-                   ) {
+              if (params.core
+                  || params.documentbuilder
+                  || params.documentserver
+                  ) {
                 utils.linuxBuild(platform)
-                if ( params.core ) {
+                if (params.core)
                   utils.linuxBuildCore()
-                }
-                if ( params.documentbuilder ) {
+                if (params.documentbuilder)
                   utils.linuxBuildBuilder(platform)
-                }
-                if ( params.documentserver ) {
+                if (params.documentserver)
                   utils.linuxBuildServer(platform)
-                }
               }
 
-              if ( params.desktopeditor ) {
+              if (params.desktopeditor) {
                 utils.linuxBuild(platform, "freemium")
                 utils.linuxBuildDesktop(platform)
               }
 
-              if ( params.documentserver_ee || params.documentserver_ie || params.documentserver_de ) {
+              if (params.documentserver_ee
+                  || params.documentserver_ie
+                  || params.documentserver_de
+                ) {
                 utils.linuxBuild(platform, "commercial")
-                if ( params.documentserver_ee ) {
+                if (params.documentserver_ee)
                   utils.linuxBuildServer(platform, "documentserver-ee")
-                }
-                if ( params.documentserver_ie ) {
+                if (params.documentserver_ie)
                   utils.linuxBuildServer(platform, "documentserver-ie")
-                }
-                if ( params.documentserver_ee || params.documentserver_ie ) {
+                if (params.documentserver_ee || params.documentserver_ie)
                   utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
-                }
-                if ( params.documentserver_de ) {
+                if (params.documentserver_de)
                   utils.linuxBuildServer(platform, "documentserver-de")
-                }
               }
-              if ( params.test ) {
-                utils.linuxTest()
-              }
+              if (params.test) utils.linuxTest()
             }
           }
         }
@@ -288,38 +278,35 @@ pipeline {
 
               String platform = "win_64"
 
-              if ( params.core
-                   || params.documentbuilder
-                   || params.documentserver
-                   ) {
+              if (params.core
+                  || params.documentbuilder
+                  || params.documentserver
+                  ) {
                 utils.windowsBuild(platform)
-                if ( params.core ) {
+                if (params.core)
                   utils.windowsBuildCore(platform)
-                }
-                if ( params.documentbuilder ) {
+                if (params.documentbuilder)
                   utils.windowsBuildBuilder(platform)
-                }
-                if ( params.documentserver ) {
+                if (params.documentserver)
                   utils.windowsBuildServer(platform)
-                }
               }
 
-              if ( params.desktopeditor ) {
+              if (params.desktopeditor) {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
 
-              if ( params.documentserver_ee || params.documentserver_ie || params.documentserver_de ) {
+              if (params.documentserver_ee
+                  || params.documentserver_ie
+                  || params.documentserver_de
+                ) {
                 utils.windowsBuild(platform, "commercial")
-                if ( params.documentserver_ee ) {
+                if (params.documentserver_ee)
                   utils.windowsBuildServer(platform, "DocumentServer-EE")
-                }
-                if ( params.documentserver_ie ) {
+                if (params.documentserver_ie)
                   utils.windowsBuildServer(platform, "DocumentServer-IE")
-                }
-                if ( params.documentserver_de ) {
+                if (params.documentserver_de)
                   utils.windowsBuildServer(platform, "DocumentServer-DE")
-                }
               }
             }
           }
@@ -346,17 +333,15 @@ pipeline {
 
               String platform = "win_32"
 
-              if ( params.core || params.documentbuilder ) {
+              if (params.core || params.documentbuilder) {
                 utils.windowsBuild(platform)
-                if ( params.core ) {
+                if (params.core)
                   utils.windowsBuildCore(platform)
-                }
-                if ( params.documentbuilder ) {
+                if (params.documentbuilder)
                   utils.windowsBuildBuilder(platform)
-                }
               }
 
-              if ( params.desktopeditor ) {
+              if (params.desktopeditor) {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
@@ -387,7 +372,7 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_64_xp"
-              if ( params.desktopeditor ) {
+              if (params.desktopeditor) {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
@@ -418,7 +403,7 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_32_xp"
-              if ( params.desktopeditor ) {
+              if (params.desktopeditor) {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
@@ -450,13 +435,12 @@ pipeline {
         }
       }
       script {
-        if (params.linux_64 && (
-            params.desktopeditor ||
-            params.documentbuilder ||
-            params.documentserver_ee ||
-            params.documentserver_ie ||
-            params.documentserver_de)
-        ) {
+        if (params.linux_64
+          && (params.desktopeditor
+          || params.documentbuilder
+          || params.documentserver_ee
+          || params.documentserver_ie
+          || params.documentserver_de)) {
           build (
             job: 'onlyoffice-repo-manager',
             parameters: [
