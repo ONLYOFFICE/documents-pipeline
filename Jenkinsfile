@@ -184,7 +184,7 @@ pipeline {
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktopeditor)
-                dir ('desktop-apps') deleteDir()
+                dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
@@ -237,7 +237,7 @@ pipeline {
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktopeditor)
-                dir ('desktop-apps') deleteDir()
+                dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
@@ -272,7 +272,7 @@ pipeline {
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktopeditor)
-                dir ('desktop-apps') deleteDir()
+                dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
@@ -327,7 +327,7 @@ pipeline {
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktopeditor)
-                dir ('desktop-apps') deleteDir()
+                dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
@@ -367,7 +367,7 @@ pipeline {
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktopeditor)
-                dir ('desktop-apps') deleteDir()
+                dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
@@ -398,7 +398,7 @@ pipeline {
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktopeditor)
-                dir ('desktop-apps') deleteDir()
+                dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
