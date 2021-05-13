@@ -39,6 +39,9 @@ node('master') {
 
 pipeline {
   agent none
+  options {
+    buildDiscarder logRotator(daysToKeepStr: '90', artifactDaysToKeepStr: '30')
+  }
   parameters {
     booleanParam (
       name:         'wipe',
@@ -140,9 +143,6 @@ pipeline {
       description:  'configure.py extra params',
       defaultValue: ''
     )
-  }
-  options {
-    buildDiscarder logRotator(daysToKeepStr: '90', artifactDaysToKeepStr: '30')
   }
   triggers {
     cron('H 17 * * *')
