@@ -58,13 +58,10 @@ listRepos = [
 
 return this
 
-def checkoutRepos(String branch = 'master')
-{    
+def checkoutRepos(String branch = 'master') {    
     for (repo in listRepos) {
         checkoutRepo(repo, branch)
     }
-
-    return this
 }
 
 def tagRepos(String tag)
@@ -76,8 +73,6 @@ def tagRepos(String tag)
             git tag ${tag} && \
 	        git push origin --tags"
     }
-
-    return this
 }
 
 def getConfParams(String platform, String license)
@@ -127,17 +122,13 @@ def getConfParams(String platform, String license)
     return confParams.join(' ')
 }
 
-def linuxBuild(String platform = 'native', String license = 'opensource')
-{
+def linuxBuild(String platform = 'native', String license = 'opensource') {
     sh "cd build_tools && \
         ./configure.py ${getConfParams(platform, license)} &&\
         ./make.py"
-
-    return this
 }
 
-def linuxBuildDesktop(String platform = 'native')
-{
+def linuxBuildDesktop(String platform = 'native') {
     sh "cd desktop-apps/win-linux/package/linux &&\
          make clean &&\
          make deploy"
@@ -148,12 +139,9 @@ def linuxBuildDesktop(String platform = 'native')
         println item
         deployDesktopList.add(item)
     }
-
-    return this
 }
 
-def linuxBuildBuilder(String platform = 'native')
-{
+def linuxBuildBuilder(String platform = 'native') {
     sh "cd document-builder-package &&\
          make clean &&\
          make deploy"
@@ -164,12 +152,9 @@ def linuxBuildBuilder(String platform = 'native')
         println item
         deployBuilderList.add(item)
     }
-
-    return this
 }
 
-def linuxBuildServer(String platform = 'native', String productName='documentserver')
-{
+def linuxBuildServer(String platform = 'native', String productName='documentserver') {
     sh "cd document-server-package && \
         export PRODUCT_NAME=${productName} && \
         make clean && \
@@ -196,36 +181,28 @@ def linuxBuildServer(String platform = 'native', String productName='documentser
                 break
         }
     }
-
-    return this
 }
 
-def linuxBuildCore()
-{
+def linuxBuildCore() {
     sh "cd core && \
         make deploy"
 
     return this
 }
 
-def linuxTest()
-{
+def linuxTest() {
     checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing',
         dir: 'doc-builder-testing'], 'master')
     sh "docker rmi doc-builder-testing || true"
     sh "cd doc-builder-testing &&\
         docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
         docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
-
-    return this
 }
 
 def macosBuild(String platform = 'native', String license = 'opensource') {
     sh "cd build_tools && \
         ./configure.py ${getConfParams(platform, license)} && \
         ./make.py"
-
-    return this
 }
 
 def macosBuildDesktop(String platform = 'native') {
@@ -238,26 +215,19 @@ def macosBuildDesktop(String platform = 'native') {
         println item
         deployDesktopList.add(item)
     }
-
-    return this
 }
 
 def macosBuildCore() {
     sh "cd core && make deploy"
-    return this
 }
 
-def windowsBuild(String platform = 'native', String license = 'opensource')
-{
+def windowsBuild(String platform = 'native', String license = 'opensource') {
     bat "cd build_tools &&\
             call python configure.py ${getConfParams(platform, license)} &&\
             call python make.py"
-
-    return this
 }
 
-def windowsBuildDesktop (String platform)
-{
+def windowsBuildDesktop (String platform) {
     bat "cd desktop-apps &&\
             make clean-package &&\
             make deploy"
@@ -268,12 +238,9 @@ def windowsBuildDesktop (String platform)
         println item
         deployDesktopList.add(item)
     }
-
-    return this
 }
 
-def windowsBuildBuilder(String platform)
-{
+def windowsBuildBuilder(String platform) {
     bat "cd document-builder-package &&\
         make clean &&\
         make deploy"
@@ -284,12 +251,9 @@ def windowsBuildBuilder(String platform)
         println item
         deployBuilderList.add(item)
     }
-
-    return this
 }
 
-def windowsBuildServer(String platform = 'native', String productName='DocumentServer')
-{
+def windowsBuildServer(String platform = 'native', String productName='DocumentServer') {
     bat "cd document-server-package && \
         set \"PRODUCT_NAME=${productName}\" && \
         make clean && \
@@ -311,12 +275,9 @@ def windowsBuildServer(String platform = 'native', String productName='DocumentS
                 break
         }
     }
-
-    return this
 }
 
-def windowsBuildCore(String platform)
-{
+def windowsBuildCore(String platform) {
     String winSdkVersion = '10.0.14393.0'
     String platformType
     
@@ -334,12 +295,9 @@ def windowsBuildCore(String platform)
     bat "cd core && \
         call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" ${platformType} ${winSdkVersion} && \
         make deploy"
-
-    return this
 }
 
-def androidBuild(String branch = 'master', String config = 'release')
-{
+def androidBuild(String branch = 'master', String config = 'release') {
     if (params.wipe) {
         sh "docker image rm -f onlyoffice/android-core-builder"
     }
@@ -380,12 +338,9 @@ def androidBuild(String branch = 'master', String config = 'release')
 
     println deployData
     deployAndroidList.add(deployData)
-
-    return this
 }
 
-def createReports()
-{
+def createReports() {
     Boolean desktop = !deployDesktopList.isEmpty()
     Boolean builder = !deployBuilderList.isEmpty()
     Boolean serverc = !deployServerCeList.isEmpty()
@@ -464,12 +419,9 @@ def createReports()
             reportTitles: ''
         ])
     }
-
-    return this
 }
 
-def genHtml(ArrayList deployList)
-{
+def genHtml(ArrayList deployList) {
     String url = ''
     String html = """\
         |<html>
