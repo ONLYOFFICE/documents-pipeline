@@ -493,8 +493,10 @@ def macosBuildDesktop(String platform = 'native') {
         S3_SECTION_DIR="onlyoffice/\$RELEASE_BRANCH/macos"
         S3_UPDATES_DIR="\$S3_SECTION_DIR/update/editors/\$PRODUCT_VERSION.\$BUILD_NUMBER"
         DMG="ONLYOFFICE-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
-        ZIP="ONLYOFFICE-\${PRODUCT_VERSION%.*}.zip"
+        ZIP="ONLYOFFICE-\${PRODUCT_VERSION%.0}.zip"
         APPCAST="onlyoffice.xml"
+        CHANGES_EN="ONLYOFFICE-\${PRODUCT_VERSION%.0}.html"
+        CHANGES_RU="ONLYOFFICE-\${PRODUCT_VERSION%.0}.ru.html"
 
         aws s3 cp --no-progress --acl public-read \
             ONLYOFFICE.dmg s3://\$S3_BUCKET/\$S3_SECTION_DIR/\$DMG
@@ -510,6 +512,8 @@ def macosBuildDesktop(String platform = 'native') {
             echo -e "macos,macOS \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
         done
         echo -e "macos,macOS Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
+        echo -e "macos,macOS Release Notes EN,\$S3_UPDATES_DIR/\$CHANGES_EN" >> deploy.csv
+        echo -e "macos,macOS Release Notes RU,\$S3_UPDATES_DIR/\$CHANGES_RU" >> deploy.csv
     """
 
     def deployData = readCSV file: "desktop-apps/macos/build/deploy.csv", format: CSVFormat.DEFAULT.withHeader()
