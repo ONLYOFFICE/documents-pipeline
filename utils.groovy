@@ -96,263 +96,18 @@ def tagRepos(String tag)
     return this
 }
 
-def printBranches(String branch, Map repo)
-{
-    return sh (
-        label: "${repo.owner}/${repo.name}: branches",
-        script: """
-            gh api -X GET repos/${repo.owner}/${repo.name}/branches?per_page=100 | \
-            jq -c '.[] | { name, protected }'
-        """,
-        returnStatus: true
-    )
-}
-
-def protectBranch(String branch, Map repo)
-{
-    return sh (
-        label: "${repo.owner}/${repo.name}: protect ${branch}",
-        script: """
-            echo '{
-                "required_status_checks": null,
-                "enforce_admins": true,
-                "required_pull_request_reviews": null,
-                "restrictions": {
-                    "users": [],
-                    "teams": [
-                        "dep-application-development-leads"
-                    ]
-                }
-            }' | \
-            gh api -X PUT \
-                repos/${repo.owner}/${repo.name}/branches/${branch}/protection \
-                --input -
-        """,
-        returnStatus: true
-    )
-}
-
-def unprotectBranch(String branch, Map repo)
-{
-    return sh (
-        label: "${repo.owner}/${repo.name}: unprotect ${branch}",
-        script: """
-            gh api -X DELETE \
-                repos/${repo.owner}/${repo.name}/branches/${branch}/protection
-        """,
-        returnStatus: true
-    )
-}
-
-def createBranch(String branch, String baseBranch, Map repo)
-{
-    return sh (
-        label: "${repo.owner}/${repo.name}: start ${branch}",
-        script: """
-            if [ \$(git branch -a | grep 'develop' | wc -c) -eq 0 ]; then
-                git checkout -f master
-                git checkout -b develop
-                git push origin develop
-            fi
-            if [ \$(git branch -a | grep '${branch}' | wc -c) -ne 0 ]; then
-                exit 0
-            fi
-            git checkout -f ${baseBranch}
-            git pull --ff-only origin ${baseBranch}
-            git checkout -B ${branch}
-            git push origin ${branch}
-        """,
-        returnStatus: true
-    )
-}
-
-def mergeBranch(String branch, ArrayList baseBranches, Map repo)
-{
-    return sh (
-        label: "${repo.owner}/${repo.name}: merge ${branch} to ${baseBranches.join(', ')}",
-        script: """#!/bin/bash -xe
-            if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
-                exit 0
-            fi
-            base_branches=(${baseBranches.join(' ')})
-            merge=0
-            for base in \${base_branches[*]}; do
-                git checkout -f ${branch}
-                git pull --ff-only origin ${branch}
-                gh pr create \
-                    --repo ${repo.owner}/${repo.name} \
-                    --base \$base \
-                    --head ${branch} \
-                    --title \"Merge branch ${branch} into \$base\" \
-                    --fill || \
-                true
-                git checkout \$base
-                git pull --ff-only origin \$base
-                git merge ${branch} \
-                    --no-edit --no-ff \
-                    -m \"Merge branch ${branch} into \$base\" || \
-                continue
-                git push origin \$base
-                ((++merge))
-            done
-            if [ \$merge -ne \${#base_branches[@]} ]; then
-                exit 2
-            fi
-        """,
-        returnStatus: true
-    )
-}
-
-def deleteBranch(String branch, Map repo)
-{
-    return sh (
-        label: "${repo.owner}/${repo.name}: delete ${branch}",
-        script: """
-            if [ \$(git branch -a | grep '${branch}' | wc -c) -eq 0 ]; then
-                exit 0
-            fi
-            git branch -D ${branch}
-            git push --delete origin ${branch}
-        """,
-        returnStatus: true
-    )
-}
-
-def setBuildStatus(Integer success, Integer total)
-{
-    if (success == 0) {
-        currentBuild.result = "FAILURE"
-    } else if (success != total) {
-        currentBuild.result = "UNSTABLE"
-    } else if (success == total) {
-        currentBuild.result = "SUCCESS"
-    }
-    return this
-}
-
-def printReposBranches()
-{
-    def success = 0
-    def total = getReposList().size()
-    for (repo in getReposList()) {
-        def ret = printBranches(branch, repo)
-        if (ret == 0) { success++ }
-    }
-    setBuildStatus(success, total)
-    return this
-}
-
-def protectRelease(String branch)
-{
-    def success = 0
-    def total = getReposList().size()
-    for (repo in getReposList()) {
-        def ret = protectBranch(branch, repo)
-        if (ret == 0) { success++ }
-    }
-    setBuildStatus(success, total)
-    return this
-}
-
-def unprotectRelease(String branch)
-{
-    def success = 0
-    def total = getReposList().size()
-    for (repo in getReposList()) {
-        def ret = unprotectBranch(branch, repo)
-        if (ret == 0) { success++ }
-    }
-    setBuildStatus(success, total)
-    return this
-}
-
-def startRelease(String branch, String baseBranch, Boolean protect)
-{
-    def success = 0
-    def total = getReposList().size()
-    for (repo in getReposList()) {
-        dir (repo.dir) {
-            def retC = createBranch(branch, baseBranch, repo)
-            if (protect) {
-                def retP = protectBranch(branch, repo)
-                if (retC == 0 && retP == 0) { success++ }
-            } else {
-                if (retC == 0) { success++ }
-            }
-        }
-    }
-    setBuildStatus(success, total)
-    if (success > 0) {
-        tgSendGroup("Branch `${branch}` created from `${baseBranch}` [[${success}/${total}]]")
-    }
-    return this
-}
-
-def mergeRelease(String branch)
-{
-    def success = 0
-    def total = getReposList().size()
-    def baseBranches = ['master']
-    for (repo in getReposList()) {
-        dir (repo.dir) {
-            def retM = mergeBranch(branch, baseBranches, repo)
-            if (retM == 0) { success++ }
-        }
-    }
-    setBuildStatus(success, total)
-    if (success > 0) {
-        tgSendGroup("Branch `${branch}` merged into `master` [[${success}/${total}]]")
-    }
-    return this
-}
-
-def finishRelease(String branch, String extraBranch = '')
-{
-    def success = 0
-    def total = getReposList().size()
-    def baseBranches = ['master', 'develop']
-    if (!extraBranch.isEmpty()) {
-        baseBranches.add(extraBranch)
-    }
-    for (repo in getReposList()) {
-        dir (repo.dir) {
-            def retM = mergeBranch(branch, baseBranches, repo)
-            if (retM == 0) {
-                def retU = unprotectBranch(branch, repo)
-                def retD = deleteBranch(branch, repo)
-                if (retD == 0) { success++ }
-            }
-        }
-    }
-    setBuildStatus(success, total)
-    if (success > 0) {
-        String tgBranches = baseBranches.collect({"`$it`"}).join(', ')
-        tgSendGroup("Branch `${branch}` merged into ${tgBranches} [[${success}/${total}]]")
-    }
-    return this
-}
-
-def tgSendGroup(String message)
-{
-    telegramSend(
-        message: message,
-        chatId: -1001346473906
-    )
-    return this
-}
-
 def getConfParams(String platform, String license)
 {
     def modules = []
     if (params.core && license == "opensource") {
         modules.add('core')
     }
+    // Add module to build to enforce clean it on build
+    if (params.desktopeditor && ((license == "opensource"
+        && params.clean) || license == "freemium")) {
+        modules.add('desktop')
+    }
     if (platform != "mac_64") {
-        // Add module to build to enforce clean it on build
-        if (params.desktopeditor && ((license == "opensource" && params.clean)
-            || license == "freemium")) {
-            modules.add('desktop')
-        }
         if (params.documentbuilder && license == "opensource") {
             modules.add('builder')
         }
@@ -377,6 +132,10 @@ def getConfParams(String platform, String license)
     }
     if (license == "freemium" || license == "commercial") {
         confParams.add("--branding onlyoffice")
+    }
+    if (platform == "mac_64") {
+        confParams.add("--branding-name \"onlyoffice\"")
+        confParams.add("--compiler \"clang\"")
     }
     if (params.beta || env.BRANCH_NAME == 'develop') {
         confParams.add("--beta 1")
@@ -461,14 +220,6 @@ def linuxBuildServer(String platform = 'native', String productName='documentser
     return this
 }
 
-def linuxBuildCore()
-{
-    sh "cd core && \
-        make deploy"
-
-    return this
-}
-
 def linuxTest()
 {
     checkoutRepo('doc-builder-testing', 'master')
@@ -489,21 +240,47 @@ def macosBuild(String platform = 'native', String license = 'opensource') {
 }
 
 def macosBuildDesktop(String platform = 'native') {
-    sh "cd desktop-apps && \
-        make clean && \
-        make deploy"
+    sh "cd build_tools && ./make_packages.py"
 
-    def deployData = readJSON file: "desktop-apps/deploy.json"
-    for(item in deployData.items) {
-        println item
-        deployDesktopList.add(item)
+    sh """#!/bin/bash -xe
+        cd desktop-apps/macos/build
+
+        S3_SECTION_DIR="onlyoffice/\$RELEASE_BRANCH/macos"
+        S3_UPDATES_DIR="\$S3_SECTION_DIR/update/editors/\$PRODUCT_VERSION.\$BUILD_NUMBER"
+        DMG="ONLYOFFICE-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
+        ZIP="ONLYOFFICE-\${PRODUCT_VERSION%.0}.zip"
+        APPCAST="onlyoffice.xml"
+        CHANGES_EN="ONLYOFFICE-\${PRODUCT_VERSION%.0}.html"
+        CHANGES_RU="ONLYOFFICE-\${PRODUCT_VERSION%.0}.ru.html"
+
+        aws s3 cp --no-progress --acl public-read \
+            ONLYOFFICE.dmg s3://\$S3_BUCKET/\$S3_SECTION_DIR/\$DMG
+
+        aws s3 sync --no-progress --acl public-read \
+            update s3://\$S3_BUCKET/\$S3_UPDATES_DIR
+
+        echo -e "platform,title,path" > deploy.csv
+        echo -e "macos,macOS DMG,\$S3_SECTION_DIR/\$DMG" >> deploy.csv
+        echo -e "macos,macOS ZIP,\$S3_UPDATES_DIR/\$ZIP" >> deploy.csv
+        for i in update/*.delta; do
+            DELTA=\$(basename \$i)
+            echo -e "macos,macOS \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
+        done
+        echo -e "macos,macOS Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
+        echo -e "macos,macOS Release Notes EN,\$S3_UPDATES_DIR/\$CHANGES_EN" >> deploy.csv
+        echo -e "macos,macOS Release Notes RU,\$S3_UPDATES_DIR/\$CHANGES_RU" >> deploy.csv
+    """
+
+    def deployData = readCSV file: "desktop-apps/macos/build/deploy.csv", format: CSVFormat.DEFAULT.withHeader()
+    for(item in deployData) {
+        def temp = [ 
+            platform: item.get('platform'),
+            title: item.get('title'),
+            path: item.get('path') ]
+        println temp
+        deployDesktopList.add(temp)
     }
 
-    return this
-}
-
-def macosBuildCore() {
-    sh "cd core && make deploy"
     return this
 }
 
@@ -575,29 +352,6 @@ def windowsBuildServer(String platform = 'native', String productName='DocumentS
     return this
 }
 
-def windowsBuildCore(String platform)
-{
-    String winSdkVersion = '10.0.14393.0'
-    String platformType
-    
-    switch (platform) {
-        case 'win_64':
-            platformType = 'x64'
-            break
-        case 'win_32':
-            platformType = 'x86'
-            break
-        default:
-            platformType = ''
-    }
-
-    bat "cd core && \
-        call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" ${platformType} ${winSdkVersion} && \
-        make deploy"
-
-    return this
-}
-
 def androidBuild(String branch = 'master', String config = 'release')
 {
     if (params.wipe) {
@@ -642,6 +396,51 @@ def androidBuild(String branch = 'master', String config = 'release')
     deployAndroidList.add(deployData)
 
     return this
+}
+
+def deployCore(String platform) {
+    String dirRepo, platformType, version
+
+    switch(platform) {
+        case 'linux_64':
+            dirRepo = 'linux'
+            platformType = 'x64'
+            version = PRODUCT_VERSION + '-' + BUILD_NUMBER
+            break
+        case 'mac_64':
+            dirRepo = 'mac'
+            platformType = 'x64'
+            version = PRODUCT_VERSION + '-' + BUILD_NUMBER
+            break
+        case 'win_64':
+            dirRepo = 'windows'
+            platformType = 'x64'
+            version = PRODUCT_VERSION + '.' + BUILD_NUMBER
+            break
+        case 'win_32':
+            dirRepo = 'windows'
+            platformType = 'x86'
+            version = PRODUCT_VERSION + '.' + BUILD_NUMBER
+            break
+    }
+
+    String pathCore = "build_tools/out/${platform}/onlyoffice/core/core.7z"
+    String dirS3CoreV = "${dirRepo}/core/${BRANCH_NAME}/${version}/${platformType}"
+    String dirS3CoreL = "${dirRepo}/core/${BRANCH_NAME}/latest/${platformType}"
+    String label = 'Deploy Core to S3'
+    String script = """
+        aws s3 cp --acl public-read --no-progress \
+            ${pathCore} \
+            s3://${S3_BUCKET}/${dirS3CoreV}/
+        aws s3 sync --acl public-read --delete --no-progress \
+            s3://${S3_BUCKET}/${dirS3CoreV}/ \
+            s3://${S3_BUCKET}/${dirS3CoreL}/
+    """
+
+    switch(platform) {
+        case ['linux_64', 'mac_64']: sh  label: label, script: script; break
+        case ['win_64', 'win_32']:   bat label: label, script: script; break
+    }
 }
 
 def createReports()
