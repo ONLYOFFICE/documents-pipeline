@@ -316,7 +316,7 @@ def unprotectBranch(String repo, String branch) {
 }
 
 def sendNotification() {
-  Integer chatId = -1001346473906
+  String chatId = '-1001346473906'
   String text = ''
   switch(params.action_type) {
     case 'start_release':
@@ -345,7 +345,7 @@ def sendNotification() {
       case 'lock':    text += '🔒'; break
       case 'delete':  text += '♻️'; break
     }
-    text += ' ' + repo
+    text += ' ' + repo.replaceAll('_','\\_')
   }
 
   if (params.notify && stats.success > 0
