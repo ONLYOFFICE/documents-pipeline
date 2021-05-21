@@ -298,7 +298,9 @@ def protectBranch(String repo, String branch) {
         "required_pull_request_reviews": null,
         "restrictions": {
           "users": [],
-          "teams": []
+          "teams": [
+            "dep-application-development-main-leads"
+          ]
         }
       }' | \
       gh api -X PUT repos/${repo}/branches/${branch}/protection --input -
