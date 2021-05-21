@@ -1,4 +1,5 @@
 def checkoutRepo(Map repo, String branch = 'master') {
+  if (repo.dir == null) repo.dir = repo.name
   checkout([
     $class: 'GitSCM',
     branches: [[name: branch]],
@@ -53,7 +54,6 @@ listRepos = [
   [name: 'DocumentBuilder']
 ].each {
   if (it.owner == null) it.owner = 'ONLYOFFICE'
-  if (it.dir == null)   it.dir = it.name
 }
 
 return this
@@ -75,18 +75,17 @@ def tagRepos(String tag)
   }
 }
 
-def getConfParams(String platform, String license)
-{
+def getConfParams(String platform, String license) {
   def modules = []
   if (params.core && license == "opensource") {
     modules.add('core')
   }
+  // Add module to build to enforce clean it on build
+  if (params.desktopeditor && ((license == "opensource" && params.clean)
+    || license == "freemium")) {
+    modules.add('desktop')
+  }
   if (platform != "mac_64") {
-    // Add module to build to enforce clean it on build
-    if (params.desktopeditor && ((license == "opensource" && params.clean)
-      || license == "freemium")) {
-      modules.add('desktop')
-    }
     if (params.documentbuilder && license == "opensource") {
       modules.add('builder')
     }
@@ -112,6 +111,10 @@ def getConfParams(String platform, String license)
   if (license == "freemium" || license == "commercial") {
     confParams.add("--branding onlyoffice")
   }
+  if (platform == "mac_64") {
+    confParams.add("--branding-name \"onlyoffice\"")
+    confParams.add("--compiler \"clang\"")
+  }
   if (params.beta) {
     confParams.add("--beta 1")
   }
@@ -124,13 +127,13 @@ def getConfParams(String platform, String license)
 
 def linuxBuild(String platform = 'native', String license = 'opensource') {
   sh "cd build_tools && \
-    ./configure.py ${getConfParams(platform, license)} &&\
+    ./configure.py ${getConfParams(platform, license)} && \
     ./make.py"
 }
 
 def linuxBuildDesktop(String platform = 'native') {
-  sh "cd desktop-apps/win-linux/package/linux &&\
-    make clean &&\
+  sh "cd desktop-apps/win-linux/package/linux && \
+    make clean && \
     make deploy"
 
   def deployData = readJSON file: "desktop-apps/win-linux/package/linux/deploy.json"
@@ -142,8 +145,8 @@ def linuxBuildDesktop(String platform = 'native') {
 }
 
 def linuxBuildBuilder(String platform = 'native') {
-  sh "cd document-builder-package &&\
-    make clean &&\
+  sh "cd document-builder-package && \
+    make clean && \
     make deploy"
 
   def deployData = readJSON file: "document-builder-package/deploy.json"
@@ -183,18 +186,10 @@ def linuxBuildServer(String platform = 'native', String productName='documentser
   }
 }
 
-def linuxBuildCore() {
-  sh "cd core && \
-    make deploy"
-
-  return this
-}
-
 def linuxTest() {
-  checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing',
-    dir: 'doc-builder-testing'], 'master')
+  checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing'], 'master')
   sh "docker rmi doc-builder-testing || true"
-  sh "cd doc-builder-testing &&\
+  sh "cd doc-builder-testing && \
     docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
     docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
 }
@@ -206,30 +201,57 @@ def macosBuild(String platform = 'native', String license = 'opensource') {
 }
 
 def macosBuildDesktop(String platform = 'native') {
-  sh "cd desktop-apps && \
-    make clean && \
-    make deploy"
+  sh "cd build_tools && ./make_packages.py"
 
-  def deployData = readJSON file: "desktop-apps/deploy.json"
-  for(item in deployData.items) {
-    println item
-    deployDesktopList.add(item)
+  sh """#!/bin/bash -xe
+    cd desktop-apps/macos/build
+
+    S3_SECTION_DIR="onlyoffice/\$RELEASE_BRANCH/macos"
+    S3_UPDATES_DIR="\$S3_SECTION_DIR/editors/\$PRODUCT_VERSION-\$BUILD_NUMBER"
+    DMG="ONLYOFFICE-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
+    ZIP="ONLYOFFICE-\${PRODUCT_VERSION%.0}.zip"
+    APPCAST="onlyoffice.xml"
+    CHANGES_EN="ONLYOFFICE-\${PRODUCT_VERSION%.0}.html"
+    CHANGES_RU="ONLYOFFICE-\${PRODUCT_VERSION%.0}.ru.html"
+
+    aws s3 cp --no-progress --acl public-read \
+      ONLYOFFICE.dmg s3://\$S3_BUCKET/\$S3_SECTION_DIR/\$DMG
+
+    aws s3 sync --no-progress --acl public-read \
+      update s3://\$S3_BUCKET/\$S3_UPDATES_DIR
+
+    echo -e "platform,title,path" > deploy.csv
+    echo -e "macos,macOS DMG,\$S3_SECTION_DIR/\$DMG" >> deploy.csv
+    echo -e "macos,macOS ZIP,\$S3_UPDATES_DIR/\$ZIP" >> deploy.csv
+    for i in update/*.delta; do
+      DELTA=\$(basename \$i)
+      echo -e "macos,macOS \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
+    done
+    echo -e "macos,macOS Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
+    echo -e "macos,macOS Release Notes EN,\$S3_UPDATES_DIR/\$CHANGES_EN" >> deploy.csv
+    echo -e "macos,macOS Release Notes RU,\$S3_UPDATES_DIR/\$CHANGES_RU" >> deploy.csv
+  """
+
+  def deployData = readCSV file: "desktop-apps/macos/build/deploy.csv", format: CSVFormat.DEFAULT.withHeader()
+  for(item in deployData) {
+    def temp = [ 
+      platform: item.get('platform'),
+      title: item.get('title'),
+      path: item.get('path') ]
+    println temp
+    deployDesktopList.add(temp)
   }
 }
 
-def macosBuildCore() {
-  sh "cd core && make deploy"
-}
-
 def windowsBuild(String platform = 'native', String license = 'opensource') {
-  bat "cd build_tools &&\
-    call python configure.py ${getConfParams(platform, license)} &&\
+  bat "cd build_tools && \
+    call python configure.py ${getConfParams(platform, license)} && \
     call python make.py"
 }
 
 def windowsBuildDesktop (String platform) {
-  bat "cd desktop-apps &&\
-    make clean-package &&\
+  bat "cd desktop-apps && \
+    make clean-package && \
     make deploy"
 
   def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
@@ -241,8 +263,8 @@ def windowsBuildDesktop (String platform) {
 }
 
 def windowsBuildBuilder(String platform) {
-  bat "cd document-builder-package &&\
-    make clean &&\
+  bat "cd document-builder-package && \
+    make clean && \
     make deploy"
 
   def deployData = readJSON file: "document-builder-package/deploy.json"
@@ -264,37 +286,11 @@ def windowsBuildServer(String platform = 'native', String productName='DocumentS
   for(item in deployData.items) {
     println item
     switch(productName) {
-      case 'DocumentServer':
-        deployServerCeList.add(item)
-        break
-      case 'DocumentServer-EE':
-        deployServerEeList.add(item)
-        break
-      case 'DocumentServer-DE':
-        deployServerDeList.add(item)
-        break
+      case 'DocumentServer':    deployServerCeList.add(item); break
+      case 'DocumentServer-EE': deployServerEeList.add(item); break
+      case 'DocumentServer-DE': deployServerDeList.add(item); break
     }
   }
-}
-
-def windowsBuildCore(String platform) {
-  String winSdkVersion = '10.0.14393.0'
-  String platformType
-  
-  switch (platform) {
-    case 'win_64':
-      platformType = 'x64'
-      break
-    case 'win_32':
-      platformType = 'x86'
-      break
-    default:
-      platformType = ''
-  }
-
-  bat "cd core && \
-    call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" ${platformType} ${winSdkVersion} && \
-    make deploy"
 }
 
 def androidBuild(String branch = 'master', String config = 'release') {
@@ -338,6 +334,51 @@ def androidBuild(String branch = 'master', String config = 'release') {
 
   println deployData
   deployAndroidList.add(deployData)
+}
+
+def deployCore(String platform) {
+  String dirRepo, platformType, version
+
+  switch(platform) {
+    case 'linux_64':
+      dirRepo = 'linux'
+      platformType = 'x64'
+      version = PRODUCT_VERSION + '-' + BUILD_NUMBER
+      break
+    case 'mac_64':
+      dirRepo = 'mac'
+      platformType = 'x64'
+      version = PRODUCT_VERSION + '-' + BUILD_NUMBER
+      break
+    case 'win_64':
+      dirRepo = 'windows'
+      platformType = 'x64'
+      version = PRODUCT_VERSION + '.' + BUILD_NUMBER
+      break
+    case 'win_32':
+      dirRepo = 'windows'
+      platformType = 'x86'
+      version = PRODUCT_VERSION + '.' + BUILD_NUMBER
+      break
+  }
+
+  String pathCore = "build_tools/out/${platform}/onlyoffice/core/core.7z"
+  String dirS3CoreV = "${dirRepo}/core/${BRANCH_NAME}/${version}/${platformType}"
+  String dirS3CoreL = "${dirRepo}/core/${BRANCH_NAME}/latest/${platformType}"
+  String label = 'Deploy Core to S3'
+  String script = """
+    aws s3 cp --acl public-read --no-progress \
+      ${pathCore} \
+      s3://${S3_BUCKET}/${dirS3CoreV}/
+    aws s3 sync --acl public-read --delete --no-progress \
+      s3://${S3_BUCKET}/${dirS3CoreV}/ \
+      s3://${S3_BUCKET}/${dirS3CoreL}/
+  """
+
+  switch(platform) {
+    case ['linux_64', 'mac_64']: sh  label: label, script: script; break
+    case ['win_64', 'win_32']:   bat label: label, script: script; break
+  }
 }
 
 def createReports() {
