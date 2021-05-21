@@ -16,10 +16,11 @@ defaults = [
   server_de:     true,
   beta:          false,
   test:          false,
-  sign:          true
+  sign:          true,
+  schedule:      'H 17 * * *'
 ]
 
-if ('develop' == BRANCH_NAME) {
+if (BRANCH_NAME == 'develop') {
   defaults.putAll([
     macos:         false,
     android:       false,
@@ -30,6 +31,9 @@ if ('develop' == BRANCH_NAME) {
     server_de:     false,
     beta:          true
   ])
+}
+if (BRANCH_NAME.startsWith('hotfix') || BRANCH_NAME.startsWith('release')) {
+  defaults.schedule = 'H 23 * * *'
 }
 
 node('master') {
@@ -145,7 +149,7 @@ pipeline {
     )
   }
   triggers {
-    cron('H 17 * * *')
+    cron(defaults.schedule)
   }
   stages {
     stage('Prepare') {
@@ -162,6 +166,8 @@ pipeline {
 
           if (params.signing) env.ENABLE_SIGNING=1
 
+          tgMessageCore = "Build [${currentBuild.fullDisplayName}]" \
+            + "(${currentBuild.absoluteUrl}) failed"
           deployDesktopList = []
           deployBuilderList = []
           deployServerCeList = []
@@ -196,7 +202,7 @@ pipeline {
                   ) {
                 utils.linuxBuild(platform)
                 if (params.core)
-                  utils.linuxBuildCore()
+                  utils.deployCore(platform)
                 if (params.documentbuilder)
                   utils.linuxBuildBuilder(platform)
                 if (params.documentserver)
@@ -225,9 +231,21 @@ pipeline {
               if (params.test) utils.linuxTest()
             }
           }
+          post {
+            success { script { tgMessageCore += "\n🔵 Linux 64-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Linux 64-bit" } }
+          }
         }
         stage('macOS build') {
           agent { label 'macos' }
+          environment {
+            FASTLANE_DISABLE_COLORS = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+          }
           when {
             expression { params.macos }
             beforeAgent true
@@ -245,15 +263,18 @@ pipeline {
 
               if (params.core) {
                 utils.macosBuild(platform)
-                utils.macosBuildCore()
+                utils.deployCore(platform)
               }
 
-              // if (params.desktopeditor) {
-              //   utils.macosBuild(platform, clean, "freemium")
-              //   clean = false
-              //   utils.macosBuildDesktop(platform)
-              // }
+              if (params.desktopeditor) {
+                utils.macosBuild(platform, "freemium")
+                utils.macosBuildDesktop()
+              }
             }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 macOS" } }
+            failure { script { tgMessageCore += "\n🔴 macOS" } }
           }
         }
         stage('Windows 64-bit build') {
@@ -284,7 +305,7 @@ pipeline {
                   ) {
                 utils.windowsBuild(platform)
                 if (params.core)
-                  utils.windowsBuildCore(platform)
+                  utils.deployCore(platform)
                 if (params.documentbuilder)
                   utils.windowsBuildBuilder(platform)
                 if (params.documentserver)
@@ -309,6 +330,10 @@ pipeline {
                   utils.windowsBuildServer(platform, "DocumentServer-DE")
               }
             }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows 64-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows 64-bit" } }
           }
         }
         stage('Windows 32-bit build') {
@@ -336,7 +361,7 @@ pipeline {
               if (params.core || params.documentbuilder) {
                 utils.windowsBuild(platform)
                 if (params.core)
-                  utils.windowsBuildCore(platform)
+                  utils.deployCore(platform)
                 if (params.documentbuilder)
                   utils.windowsBuildBuilder(platform)
               }
@@ -346,6 +371,10 @@ pipeline {
                 utils.windowsBuildDesktop(platform)
               }
             }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows 32-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows 32-bit" } }
           }
         }
         stage('Windows XP 64-bit build') {
@@ -378,6 +407,10 @@ pipeline {
               }
             }
           }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows XP 64-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows XP 64-bit" } }
+          }
         }
         stage('Windows XP 32-bit build') {
           agent {
@@ -409,6 +442,10 @@ pipeline {
               }
             }
           }
+          post {
+            success { script { tgMessageCore += "\n🔵 Windows XP 32-bit" } }
+            failure { script { tgMessageCore += "\n🔴 Windows XP 32-bit" } }
+          }
         }
         stage('Android build') {
           agent { label 'linux_64_new' }
@@ -422,6 +459,10 @@ pipeline {
 
               utils.androidBuild(env.BRANCH_NAME)
             }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 Android" } }
+            failure { script { tgMessageCore += "\n🔴 Android" } }
           }
         }
       }
@@ -438,17 +479,23 @@ pipeline {
         if (params.linux_64
           && (params.desktopeditor
           || params.documentbuilder
+          || params.documentserver
           || params.documentserver_ee
           || params.documentserver_ie
           || params.documentserver_de)) {
           build (
             job: 'onlyoffice-repo-manager',
             parameters: [
-              string (name: 'release_branch', value: env.RELEASE_BRANCH)
+              string (name: 'release_branch', value: RELEASE_BRANCH)
             ],
             wait: false
           )
         }
+      }
+    }
+    failure {
+      node('master') {
+        telegramSend(message: tgMessageCore, chatId: -342815292)
       }
     }
   }
