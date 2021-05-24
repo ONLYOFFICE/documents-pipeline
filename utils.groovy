@@ -247,11 +247,12 @@ def macosBuildDesktop(String platform = 'native') {
 
         S3_SECTION_DIR="onlyoffice/\$RELEASE_BRANCH/macos"
         S3_UPDATES_DIR="\$S3_SECTION_DIR/update/editors/\$PRODUCT_VERSION.\$BUILD_NUMBER"
+        APP_VERSION=\$(mdls -name kMDItemVersion -raw ONLYOFFICE.app)
         DMG="ONLYOFFICE-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
-        ZIP="ONLYOFFICE-\${PRODUCT_VERSION%.0}.zip"
+        ZIP="ONLYOFFICE-\$APP_VERSION.zip"
         APPCAST="onlyoffice.xml"
-        CHANGES_EN="ONLYOFFICE-\${PRODUCT_VERSION%.0}.html"
-        CHANGES_RU="ONLYOFFICE-\${PRODUCT_VERSION%.0}.ru.html"
+        CHANGES_EN="ONLYOFFICE-\$APP_VERSION.html"
+        CHANGES_RU="ONLYOFFICE-\$APP_VERSION.ru.html"
 
         aws s3 cp --no-progress --acl public-read \
             ONLYOFFICE.dmg s3://\$S3_BUCKET/\$S3_SECTION_DIR/\$DMG
@@ -267,8 +268,12 @@ def macosBuildDesktop(String platform = 'native') {
             echo -e "macos,macOS \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
         done
         echo -e "macos,macOS Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
-        echo -e "macos,macOS Release Notes EN,\$S3_UPDATES_DIR/\$CHANGES_EN" >> deploy.csv
-        echo -e "macos,macOS Release Notes RU,\$S3_UPDATES_DIR/\$CHANGES_RU" >> deploy.csv
+        if [[ -f update/\$CHANGES_EN ]]; then
+            echo -e "macos,macOS Release Notes EN,\$S3_UPDATES_DIR/\$CHANGES_EN" >> deploy.csv
+        fi
+        if [[ -f update/\$CHANGES_RU ]]; then
+            echo -e "macos,macOS Release Notes RU,\$S3_UPDATES_DIR/\$CHANGES_RU" >> deploy.csv
+        fi
     """
 
     def deployData = readCSV file: "desktop-apps/macos/build/deploy.csv", format: CSVFormat.DEFAULT.withHeader()
