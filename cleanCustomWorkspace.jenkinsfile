@@ -1,16 +1,5 @@
 pipeline {
   agent none
-  triggers {
-    GenericTrigger(
-      causeString: 'Started by webhook',
-      tokenCredentialId: 'clean-webhook-token',
-      genericVariables: [
-        [key: 'REF', value: '$.ref'],
-        [key: 'REF_TYPE', value: '$.ref_type']
-      ],
-      printPostContent: true
-    )
-  }
   parameters {
     string (
       defaultValue: '',
@@ -19,40 +8,22 @@ pipeline {
     )
   }
   stages {
-    stage('Prepare') {
-      steps {
-        script {
-          if ((env.REF_TYPE == "branch") && (env.REF != null)) {
-            branchName = env.REF
-          } else {
-            branchName = params.branch
-          }
-        }
-      }
-    }
     stage('Clean workspace') {
       steps {
         script {
-          def labelList = []
-          labelList.add('win_64')
-          labelList.add('win_32')
-          labelList.add('win_64_xp')
-          labelList.add('win_32_xp')
-
-          parallel winCleanStages(labelList, branchName)
+          ArrayList labelList = ['win_64', 'win_32', 'win_64_xp', 'win_32_xp']
+          parallel winCleanStages(labelList, params.branch)
         }
       }
       when {
-        expression { !branchName.isEmpty() }
+        expression { !params.branch.isEmpty() }
       }
     }
   }
 }
 
-String branchName
-
 def winCleanStages(ArrayList labels, String branch) {
-  def nodes = [:]
+  Map nodes = [:]
   String cleanDir
 
   labels.each { label ->
@@ -60,13 +31,7 @@ def winCleanStages(ArrayList labels, String branch) {
       nodes["${label} ${it}"] = { ->
         node(it) {
           stage("${label} ${it}") {
-            cleanDir = "C:/oo/${branch}/${label}"
-            dir (cleanDir) {
-              deleteDir()
-            }
-            dir (cleanDir + "@tmp") {
-              deleteDir()
-            }
+            dir ("C:/oo/${branch}/${label}") { deleteDir() }
           }
         }
       }
