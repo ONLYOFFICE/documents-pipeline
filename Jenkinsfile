@@ -148,7 +148,7 @@ pipeline {
     stage('Build') {
       parallel {
         stage('Linux 64-bit build') {
-          agent { label 'linux_64_new' }
+          agent { label 'linux_64' }
           when {
             expression { params.linux_64 }
             beforeAgent true
@@ -265,7 +265,7 @@ pipeline {
         stage('Windows 64-bit build') {
           agent {
             node {
-              label 'win_64_new'
+              label 'win_64'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64"
             }
           }
@@ -334,7 +334,7 @@ pipeline {
         stage('Windows 32-bit build') {
           agent {
             node {
-              label 'win_32_new'
+              label 'win_32'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32"
             }
           }
@@ -384,7 +384,7 @@ pipeline {
         stage('Windows XP 64-bit build') {
           agent {
             node {
-              label 'win_64_xp_new'
+              label 'win_64_xp'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64_xp"
             }
           }
@@ -426,7 +426,7 @@ pipeline {
         stage('Windows XP 32-bit build') {
           agent {
             node {
-              label 'win_32_xp_new'
+              label 'win_32_xp'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32_xp"
             }
           }
@@ -466,7 +466,7 @@ pipeline {
           }
         }
         stage('Android build') {
-          agent { label 'linux_64_new' }
+          agent { label 'linux_64' }
           when {
             expression { params.android && params.core }
             beforeAgent true
