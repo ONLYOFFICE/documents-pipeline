@@ -18,6 +18,10 @@ if (BRANCH_NAME == 'master' || BRANCH_NAME == 'develop') {
 
 pipeline {
   agent { label 'branch_manager' }
+  environment {
+    GITHUB_TOKEN = credentials('github-token')
+    TELEGRAM_TOKEN = credentials('telegram-bot-token')
+  }
   parameters {
     booleanParam (
       name:         'wipe',
@@ -350,20 +354,13 @@ def sendNotification() {
     text += ' ' + repo.replaceAll('_','\\\\_')
   }
 
-  if (params.notify && stats.success > 0
-    && (params.action_type == 'start_release'
-    || params.action_type == 'merge_release'
-    || params.action_type == 'finish_release')) {
-    withCredentials([string(
-      credentialsId: 'telegram-bot-token',
-      variable: 'TELEGRAM_TOKEN'
-    )]) {
-      sh label: "Send Telegram Notification", script: "curl -X POST -s -S \
-        -d parse_mode=markdown \
-        -d chat_id=${chatId} \
-        --data-urlencode text='${text}' \
-        https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
-    }
+  if (params.action_type in ['start_release', 'merge_release', 'finish_release']
+      && params.notify && stats.success > 0) {
+    sh label: "Send Telegram Notification", script: "curl -X POST -s -S \
+      -d parse_mode=markdown \
+      -d chat_id=${chatId} \
+      --data-urlencode text='${text}' \
+      https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage"
   } else {
     echo text
   }
