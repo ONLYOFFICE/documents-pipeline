@@ -17,7 +17,7 @@ if (BRANCH_NAME == 'master' || BRANCH_NAME == 'develop') {
 }
 
 pipeline {
-  agent { label 'linux_64' }
+  agent { label 'branch_manager' }
   parameters {
     booleanParam (
       name:         'wipe',
