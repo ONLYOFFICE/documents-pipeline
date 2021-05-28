@@ -22,6 +22,9 @@ pipeline {
     GITHUB_TOKEN = credentials('github-token')
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
   }
+  options {
+    disableConcurrentBuilds()
+  }
   parameters {
     booleanParam (
       name:         'wipe',
