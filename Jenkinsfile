@@ -30,6 +30,11 @@ pipeline {
     )
     booleanParam (
       defaultValue: true,
+      description: 'Build macOS x86 targets',
+      name: 'macos_86'
+    )
+    booleanParam (
+      defaultValue: true,
       description: 'Build Windows x64 targets',
       name: 'win_64'
     )
@@ -260,6 +265,48 @@ pipeline {
           post {
             success { script { tgMessageCore += "\n🔵 macOS" } }
             failure { script { tgMessageCore += "\n🔴 macOS" } }
+          }
+        }
+        stage('macOS x86 build') {
+          agent { label 'macos_86' }
+          environment {
+            FASTLANE_DISABLE_COLORS = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+            _X86 = '1'
+          }
+          when {
+            expression { params.macos_86 }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              
+              if (params.wipe) {
+                deleteDir()
+              } else if (params.clean && params.desktopeditor) {
+                dir (utils.getReposList().find { it.name == 'desktop-apps' }.dir) {
+                  deleteDir()
+                }
+              }
+
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "mac_64"
+
+              if (params.desktopeditor) {
+                utils.macosBuild(platform, "freemium")
+                utils.macosBuildDesktop()
+              }
+            }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 macOS x86" } }
+            failure { script { tgMessageCore += "\n🔴 macOS x86" } }
           }
         }
         stage('Windows 64-bit build') {
