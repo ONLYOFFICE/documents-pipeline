@@ -2,9 +2,9 @@ pipeline {
   agent none
   parameters {
     string (
-      defaultValue: '',
-      description: 'Branch name',
-      name: 'branch'
+      name:         'branch',
+      description:  'Branch name',
+      defaultValue: ''
     )
   }
   stages {
