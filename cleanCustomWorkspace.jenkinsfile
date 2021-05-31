@@ -24,7 +24,6 @@ pipeline {
 
 def winCleanStages(ArrayList labels, String branch) {
   Map nodes = [:]
-  String cleanDir
 
   labels.each { label ->
     nodesByLabel(label).each {
