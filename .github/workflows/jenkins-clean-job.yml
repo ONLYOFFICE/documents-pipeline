@@ -1,0 +1,14 @@
+name: Jenkins Clean Custom Workspace Job
+on: delete
+jobs:
+  jenkins-remote-job:
+    runs-on: ubuntu-latest
+    steps:
+    - name: curl
+      uses: wei/curl@v1
+      with:
+        args: >
+          -X POST -L
+          -u heatray:${{ secrets.JENKINS_TOKEN }}
+          -d branch=${{ github.event.ref }}
+          https://jenkins.teamlab.info/job/clean-ws/buildWithParameters
