@@ -26,7 +26,7 @@ pipeline {
     booleanParam (
       defaultValue: true,
       description: 'Build macOS targets',
-      name: 'macos'
+      name: 'macos_64'
     )
     booleanParam (
       defaultValue: true,
@@ -232,7 +232,7 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
           when {
-            expression { params.macos }
+            expression { params.macos_64 }
             beforeAgent true
           }
           steps {
