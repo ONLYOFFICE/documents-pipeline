@@ -223,7 +223,7 @@ pipeline {
           }
         }
         stage('macOS build') {
-          agent { label 'macos' }
+          agent { label 'macos_64' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
             APPLE_ID = credentials('macos-apple-id')
