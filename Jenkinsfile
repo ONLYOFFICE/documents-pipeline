@@ -26,7 +26,12 @@ pipeline {
     booleanParam (
       defaultValue: true,
       description: 'Build macOS targets',
-      name: 'macos'
+      name: 'macos_64'
+    )
+    booleanParam (
+      defaultValue: true,
+      description: 'Build macOS x86 targets',
+      name: 'macos_86'
     )
     booleanParam (
       defaultValue: true,
@@ -148,7 +153,7 @@ pipeline {
     stage('Build') {
       parallel {
         stage('Linux 64-bit build') {
-          agent { label 'linux_64_new' }
+          agent { label 'linux_64' }
           when {
             expression { params.linux_64 }
             beforeAgent true
@@ -218,7 +223,7 @@ pipeline {
           }
         }
         stage('macOS build') {
-          agent { label 'macos' }
+          agent { label 'macos_64' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
             APPLE_ID = credentials('macos-apple-id')
@@ -227,7 +232,7 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
           when {
-            expression { params.macos }
+            expression { params.macos_64 }
             beforeAgent true
           }
           steps {
@@ -262,10 +267,52 @@ pipeline {
             failure { script { tgMessageCore += "\n🔴 macOS" } }
           }
         }
+        stage('macOS x86 build') {
+          agent { label 'macos_86' }
+          environment {
+            FASTLANE_DISABLE_COLORS = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+            _X86 = '1'
+          }
+          when {
+            expression { params.macos_86 }
+            beforeAgent true
+          }
+          steps {
+            script {
+              def utils = load "utils.groovy"
+              
+              if (params.wipe) {
+                deleteDir()
+              } else if (params.clean && params.desktopeditor) {
+                dir (utils.getReposList().find { it.name == 'desktop-apps' }.dir) {
+                  deleteDir()
+                }
+              }
+
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "mac_64"
+
+              if (params.desktopeditor) {
+                utils.macosBuild(platform, "freemium")
+                utils.macosBuildDesktop()
+              }
+            }
+          }
+          post {
+            success { script { tgMessageCore += "\n🔵 macOS x86" } }
+            failure { script { tgMessageCore += "\n🔴 macOS x86" } }
+          }
+        }
         stage('Windows 64-bit build') {
           agent {
             node {
-              label 'win_64_new'
+              label 'win_64'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64"
             }
           }
@@ -334,7 +381,7 @@ pipeline {
         stage('Windows 32-bit build') {
           agent {
             node {
-              label 'win_32_new'
+              label 'win_32'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32"
             }
           }
@@ -384,7 +431,7 @@ pipeline {
         stage('Windows XP 64-bit build') {
           agent {
             node {
-              label 'win_64_xp_new'
+              label 'win_64_xp'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64_xp"
             }
           }
@@ -426,7 +473,7 @@ pipeline {
         stage('Windows XP 32-bit build') {
           agent {
             node {
-              label 'win_32_xp_new'
+              label 'win_32_xp'
               customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32_xp"
             }
           }
@@ -466,7 +513,7 @@ pipeline {
           }
         }
         stage('Android build') {
-          agent { label 'linux_64_new' }
+          agent { label 'linux_64' }
           when {
             expression { params.android && params.core }
             beforeAgent true
