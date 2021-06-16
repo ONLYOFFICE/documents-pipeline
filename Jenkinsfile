@@ -7,6 +7,9 @@ if (BRANCH_NAME.startsWith('hotfix') || BRANCH_NAME.startsWith('release')) {
 
 pipeline {
   agent none
+  environment {
+    TELEGRAM_TOKEN = credentials('telegram-bot-token')
+  }
   parameters {
     booleanParam (
       defaultValue: false,
@@ -136,18 +139,19 @@ pipeline {
             env.ENABLE_SIGNING=1
           }
 
-          tgMessageCore = "Build [${JOB_NAME}#${BUILD_NUMBER}](${BUILD_URL}) failed"
           deployDesktopList = []
           deployBuilderList = []
           deployServerCeList = []
           deployServerEeList = []
           deployServerDeList = []
           deployAndroidList = []
+          stageStats = [:]
         }
       }
       post {
-        success { script { tgMessageCore += "\n🔵 Prepare" } }
-        failure { script { tgMessageCore += "\n🔴 Prepare" } }
+        fixed   { script { setStageStats('fixed')   } }
+        failure { script { setStageStats('failure') } }
+        success { script { setStageStats('success') } }
       }
     }
     stage('Build') {
@@ -218,8 +222,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Linux 64-bit" } }
-            failure { script { tgMessageCore += "\n🔴 Linux 64-bit" } }
+            fixed   { script { setStageStats('fixed')   } }
+            failure { script { setStageStats('failure') } }
+            success { script { setStageStats('success') } }
           }
         }
         stage('macOS build') {
@@ -263,8 +268,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 macOS" } }
-            failure { script { tgMessageCore += "\n🔴 macOS" } }
+            fixed   { script { setStageStats('fixed')   } }
+            failure { script { setStageStats('failure') } }
+            success { script { setStageStats('success') } }
           }
         }
         stage('macOS x86 build') {
@@ -305,8 +311,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 macOS x86" } }
-            failure { script { tgMessageCore += "\n🔴 macOS x86" } }
+            fixed   { script { setStageStats('fixed')   } }
+            failure { script { setStageStats('failure') } }
+            success { script { setStageStats('success') } }
           }
         }
         stage('Windows 64-bit build') {
@@ -374,8 +381,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Windows 64-bit" } }
-            failure { script { tgMessageCore += "\n🔴 Windows 64-bit" } }
+            fixed   { script { setStageStats('fixed')   } }
+            failure { script { setStageStats('failure') } }
+            success { script { setStageStats('success') } }
           }
         }
         stage('Windows 32-bit build') {
@@ -424,8 +432,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Windows 32-bit" } }
-            failure { script { tgMessageCore += "\n🔴 Windows 32-bit" } }
+            fixed   { script { setStageStats('fixed')   } }
+            failure { script { setStageStats('failure') } }
+            success { script { setStageStats('success') } }
           }
         }
         stage('Windows XP 64-bit build') {
@@ -466,8 +475,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Windows XP 64-bit" } }
-            failure { script { tgMessageCore += "\n🔴 Windows XP 64-bit" } }
+            fixed   { script { setStageStats('fixed')   } }
+            failure { script { setStageStats('failure') } }
+            success { script { setStageStats('success') } }
           }
         }
         stage('Windows XP 32-bit build') {
@@ -508,8 +518,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Windows XP 32-bit" } }
-            failure { script { tgMessageCore += "\n🔴 Windows XP 32-bit" } }
+            fixed   { script { setStageStats('fixed')   } }
+            failure { script { setStageStats('failure') } }
+            success { script { setStageStats('success') } }
           }
         }
         stage('Android build') {
@@ -528,8 +539,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Android" } }
-            failure { script { tgMessageCore += "\n🔴 Android" } }
+            fixed   { script { setStageStats('fixed')   } }
+            failure { script { setStageStats('failure') } }
+            success { script { setStageStats('success') } }
           }
         }
       }
@@ -562,9 +574,14 @@ pipeline {
         }
       }
     }
+    fixed {
+      node('master') {
+        script { sendTelegramMessage(getJobStats('fixed'), '-342815292') }
+      }
+    }
     failure {
       node('master') {
-        telegramSend(message: tgMessageCore, chatId: -342815292)
+        script { sendTelegramMessage(getJobStats('failure'), '-342815292') }
       }
     }
   }
