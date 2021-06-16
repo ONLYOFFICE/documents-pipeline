@@ -1,91 +1,71 @@
-def checkoutRepo(String repo, String branch = 'master', String dir = repo, String company = 'ONLYOFFICE') {
+def checkoutRepo(Map repo, String branch = 'master') {
   checkout([
-      $class: 'GitSCM',
-      branches: [[
-          name: branch
-        ]
-      ],
-      doGenerateSubmoduleConfigurations: false,
-      extensions: [[
-          $class: 'RelativeTargetDirectory',
-          relativeTargetDir: dir
-        ],
-        [
-          $class: 'SubmoduleOption',
-          recursiveSubmodules: true,
-          shallow: true
-        ]
-      ],
-      submoduleCfg: [],
-      userRemoteConfigs: [[
-          url: "git@github.com:${company}/${repo}.git"
-        ]
-      ]
-    ]
-  )
+    $class: 'GitSCM',
+    branches: [[name: branch]],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [
+      [$class: 'SubmoduleOption', recursiveSubmodules: true],
+      [$class: 'RelativeTargetDirectory', relativeTargetDir: repo.dir],
+      [$class: 'ScmName', name: "${repo.owner}/${repo.name}"]
+    ],
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: "git@github.com:${repo.owner}/${repo.name}.git"]]
+  ])
+}
+
+listRepos = [
+  [name: 'build_tools'],
+  [name: 'core'],
+  [name: 'core-fonts'],
+  [name: 'desktop-apps'],
+  [name: 'desktop-sdk'],
+  [name: 'dictionaries'],
+  [name: 'document-builder-package'],
+  [name: 'document-server-integration'],
+  [name: 'document-server-package'],
+  // [name: 'document-templates'],
+  [name: 'documents-pipeline'],
+  [name: 'onlyoffice'],
+  [name: 'plugin-autocomplete',  dir: 'sdkjs-plugins/plugin-autocomplete'],
+  [name: 'plugin-easybib',       dir: 'sdkjs-plugins/plugin-easybib'],
+  [name: 'plugin-highlightcode', dir: 'sdkjs-plugins/plugin-highlightcode'],
+  [name: 'plugin-macros',        dir: 'sdkjs-plugins/plugin-macros'],
+  [name: 'plugin-mendeley',      dir: 'sdkjs-plugins/plugin-mendeley'],
+  [name: 'plugin-ocr',           dir: 'sdkjs-plugins/plugin-ocr'],
+  [name: 'plugin-photoeditor',   dir: 'sdkjs-plugins/plugin-photoeditor'],
+  [name: 'plugin-speech',        dir: 'sdkjs-plugins/plugin-speech'],
+  [name: 'plugin-thesaurus',     dir: 'sdkjs-plugins/plugin-thesaurus'],
+  [name: 'plugin-translator',    dir: 'sdkjs-plugins/plugin-translator'],
+  [name: 'plugin-wordpress',     dir: 'sdkjs-plugins/plugin-wordpress'],
+  [name: 'plugin-youtube',       dir: 'sdkjs-plugins/plugin-youtube'],
+  [name: 'plugin-zotero',        dir: 'sdkjs-plugins/plugin-zotero'],
+  [name: 'sdkjs'],
+  [name: 'sdkjs-comparison'],
+  [name: 'sdkjs-content-controls'],
+  [name: 'sdkjs-disable-features'],
+  [name: 'sdkjs-sheet-views'],
+  [name: 'server'],
+  [name: 'server-license'],
+  [name: 'server-lockstorage'],
+  [name: 'web-apps'],
+  [name: 'web-apps-mobile'],
+  [name: 'Docker-DocumentServer'],
+  [name: 'DocumentBuilder']
+].each {
+  if (it.owner == null) it.owner = 'ONLYOFFICE'
+  if (it.dir == null)   it.dir = it.name
 }
 
 return this
 
-def getRepoMap(String name, String dir = name, String owner = 'ONLYOFFICE')
-{
-  return [owner: owner, name: name, dir: dir]
-}
-
-def getReposList()
-{
-  def repos = []
-  repos.add(getRepoMap('build_tools'))
-  repos.add(getRepoMap('core'))
-  repos.add(getRepoMap('core-fonts'))
-  repos.add(getRepoMap('desktop-apps'))
-  repos.add(getRepoMap('desktop-sdk'))
-  repos.add(getRepoMap('dictionaries'))
-  repos.add(getRepoMap('document-builder-package'))
-  repos.add(getRepoMap('document-server-integration'))
-  repos.add(getRepoMap('document-server-package'))
-  repos.add(getRepoMap('documents-pipeline'))
-  repos.add(getRepoMap('onlyoffice'))
-  repos.add(getRepoMap('plugin-ocr',           'sdkjs-plugins/plugin-ocr'))
-  repos.add(getRepoMap('plugin-macros',        'sdkjs-plugins/plugin-macros'))
-  repos.add(getRepoMap('plugin-highlightcode', 'sdkjs-plugins/plugin-highlightcode'))
-  repos.add(getRepoMap('plugin-photoeditor',   'sdkjs-plugins/plugin-photoeditor'))
-  repos.add(getRepoMap('plugin-youtube',       'sdkjs-plugins/plugin-youtube'))
-  repos.add(getRepoMap('plugin-speech',        'sdkjs-plugins/plugin-speech'))
-  repos.add(getRepoMap('plugin-thesaurus',     'sdkjs-plugins/plugin-thesaurus'))
-  repos.add(getRepoMap('plugin-translator',    'sdkjs-plugins/plugin-translator'))
-  repos.add(getRepoMap('plugin-autocomplete',  'sdkjs-plugins/plugin-autocomplete'))
-  repos.add(getRepoMap('plugin-easybib',       'sdkjs-plugins/plugin-easybib'))
-  repos.add(getRepoMap('plugin-wordpress',     'sdkjs-plugins/plugin-wordpress'))
-  repos.add(getRepoMap('plugin-zotero',        'sdkjs-plugins/plugin-zotero'))
-  repos.add(getRepoMap('plugin-mendeley',      'sdkjs-plugins/plugin-mendeley'))
-  repos.add(getRepoMap('sdkjs'))
-  repos.add(getRepoMap('sdkjs-comparison'))
-  repos.add(getRepoMap('sdkjs-content-controls'))
-  repos.add(getRepoMap('sdkjs-disable-features'))
-  repos.add(getRepoMap('sdkjs-sheet-views'))
-  repos.add(getRepoMap('server'))
-  repos.add(getRepoMap('server-license'))
-  repos.add(getRepoMap('server-lockstorage'))
-  repos.add(getRepoMap('web-apps'))
-  repos.add(getRepoMap('web-apps-mobile'))
-  repos.add(getRepoMap('Docker-DocumentServer'))
-  repos.add(getRepoMap('DocumentBuilder'))
-  return repos
-}
-
-def checkoutRepos(String branch = 'master')
-{
-  for (repo in getReposList()) {
-    checkoutRepo(repo.name, branch, repo.dir, repo.owner)
+def checkoutRepos(String branch = 'master') {    
+  for (repo in listRepos) {
+    checkoutRepo(repo, branch)
   }
-
-  return this
 }
 
-def tagRepos(String tag)
-{
-  for (repo in getReposList()) {
+def tagRepos(String tag) {
+  for (repo in listRepos) {
     sh "cd ${repo.dir} && \
       git tag -l | xargs git tag -d && \
       git fetch --tags && \
@@ -96,8 +76,7 @@ def tagRepos(String tag)
   return this
 }
 
-def getConfParams(String platform, String license)
-{
+def getConfParams(String platform, String license) {
   def modules = []
   if (params.core && license == "opensource") {
     modules.add('core')
@@ -148,20 +127,16 @@ def getConfParams(String platform, String license)
   return confParams.join(' ')
 }
 
-def linuxBuild(String platform = 'native', String license = 'opensource')
-{
+def linuxBuild(String platform = 'native', String license = 'opensource') {
   sh "cd build_tools && \
     ./configure.py ${getConfParams(platform, license)} &&\
     ./make.py"
-
-  return this
 }
 
-def linuxBuildDesktop(String platform = 'native')
-{
+def linuxBuildDesktop(String platform = 'native') {
   sh "cd desktop-apps/win-linux/package/linux &&\
-     make clean &&\
-     make deploy"
+    make clean &&\
+    make deploy"
 
   def deployData = readJSON file: "desktop-apps/win-linux/package/linux/deploy.json"
 
@@ -169,15 +144,12 @@ def linuxBuildDesktop(String platform = 'native')
     println item
     deployDesktopList.add(item)
   }
-
-  return this
 }
 
-def linuxBuildBuilder(String platform = 'native')
-{
+def linuxBuildBuilder(String platform = 'native') {
   sh "cd document-builder-package &&\
-     make clean &&\
-     make deploy"
+    make clean &&\
+    make deploy"
 
   def deployData = readJSON file: "document-builder-package/deploy.json"
 
@@ -185,12 +157,9 @@ def linuxBuildBuilder(String platform = 'native')
     println item
     deployBuilderList.add(item)
   }
-
-  return this
 }
 
-def linuxBuildServer(String platform = 'native', String productName='documentserver')
-{
+def linuxBuildServer(String platform = 'native', String productName='documentserver') {
   sh "cd document-server-package && \
     export PRODUCT_NAME=${productName} && \
     make clean && \
@@ -217,27 +186,21 @@ def linuxBuildServer(String platform = 'native', String productName='documentser
         break
     }
   }
-
-  return this
 }
 
-def linuxTest()
-{
-  checkoutRepo('doc-builder-testing', 'master')
+def linuxTest() {
+  checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing',
+    dir: 'doc-builder-testing'], 'master')
   sh "docker rmi doc-builder-testing || true"
   sh "cd doc-builder-testing &&\
     docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
     docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
-
-  return this
 }
 
 def macosBuild(String platform = 'native', String license = 'opensource') {
   sh "cd build_tools && \
     ./configure.py ${getConfParams(platform, license)} && \
     ./make.py"
-
-  return this
 }
 
 def macosBuildDesktop(String platform = 'native') {
@@ -289,24 +252,18 @@ def macosBuildDesktop(String platform = 'native') {
     println temp
     deployDesktopList.add(temp)
   }
-
-  return this
 }
 
-def windowsBuild(String platform = 'native', String license = 'opensource')
-{
+def windowsBuild(String platform = 'native', String license = 'opensource') {
   bat "cd build_tools &&\
-      call python configure.py ${getConfParams(platform, license)} &&\
-      call python make.py"
-
-  return this
+    call python configure.py ${getConfParams(platform, license)} &&\
+    call python make.py"
 }
 
-def windowsBuildDesktop (String platform)
-{
+def windowsBuildDesktop (String platform) {
   bat "cd desktop-apps &&\
-      make clean-package &&\
-      make deploy"
+    make clean-package &&\
+    make deploy"
 
   def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
 
@@ -314,12 +271,9 @@ def windowsBuildDesktop (String platform)
     println item
     deployDesktopList.add(item)
   }
-
-  return this
 }
 
-def windowsBuildBuilder(String platform)
-{
+def windowsBuildBuilder(String platform) {
   bat "cd document-builder-package &&\
     make clean &&\
     make deploy"
@@ -330,12 +284,9 @@ def windowsBuildBuilder(String platform)
     println item
     deployBuilderList.add(item)
   }
-
-  return this
 }
 
-def windowsBuildServer(String platform = 'native', String productName='DocumentServer')
-{
+def windowsBuildServer(String platform = 'native', String productName='DocumentServer') {
   bat "cd document-server-package && \
     set \"PRODUCT_NAME=${productName}\" && \
     make clean && \
@@ -357,12 +308,9 @@ def windowsBuildServer(String platform = 'native', String productName='DocumentS
         break
     }
   }
-
-  return this
 }
 
-def androidBuild(String branch = 'master', String config = 'release')
-{
+def androidBuild(String branch = 'master', String config = 'release') {
   if (params.wipe) {
     sh "docker image rm -f onlyoffice/android-core-builder"
   }
@@ -403,8 +351,6 @@ def androidBuild(String branch = 'master', String config = 'release')
 
   println deployData
   deployAndroidList.add(deployData)
-
-  return this
 }
 
 def deployCore(String platform) {
@@ -452,8 +398,7 @@ def deployCore(String platform) {
   }
 }
 
-def createReports()
-{
+def createReports() {
   Boolean desktop = !deployDesktopList.isEmpty()
   Boolean builder = !deployBuilderList.isEmpty()
   Boolean serverc = !deployServerCeList.isEmpty()
@@ -532,12 +477,9 @@ def createReports()
       reportTitles: ''
     ])
   }
-
-  return this
 }
 
-def genHtml(ArrayList deployList)
-{
+def genHtml(ArrayList deployList) {
   String url = ''
   String html = """\
     |<html>
