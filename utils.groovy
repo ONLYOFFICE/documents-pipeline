@@ -566,3 +566,31 @@ def genHtml(ArrayList deployList)
     return html
 }
 
+def setStageStats(String stageStatus) {
+    if (stageStats."${STAGE_NAME}" == null) {
+        stageStats."${STAGE_NAME}" = stageStatus
+    }
+}
+
+def getJobStats(String jobStatus) {
+    String text = "Build [${currentBuild.fullDisplayName}]" \
+        + "(${currentBuild.absoluteUrl}) ${jobStatus}"
+    String icon
+    stageStats.each { stage, status ->
+        switch(status) {
+            case 'fixed':   icon = '🟢'; break
+            case 'failure': icon = '🔴'; break
+            case 'success': icon = '🔵'; break
+        }
+        text += "\n${icon} ${stage}"
+    }
+    return text
+}
+
+def sendTelegramMessage(String text, String chatId, Boolean markdown = true) {
+    sh label: "Send Telegram Message", script: "curl -X POST -s -S \
+        ${markdown ? '-d parse_mode=markdown' : ''} \
+        -d chat_id=${chatId} \
+        --data-urlencode text='${text}' \
+        https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
+}
