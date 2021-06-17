@@ -310,15 +310,10 @@ pipeline {
           }
           steps {
             script {
-              def utils = load "utils.groovy"
-              
-              if (params.wipe) {
+              if (params.wipe)
                 deleteDir()
-              } else if (params.clean && params.desktopeditor) {
-                dir (utils.getReposList().find { it.name == 'desktop-apps' }.dir) {
-                  deleteDir()
-                }
-              }
+              else if (params.clean && params.desktopeditor)
+                dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
