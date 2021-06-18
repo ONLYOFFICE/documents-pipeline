@@ -109,32 +109,32 @@ pipeline {
       defaultValue: defaults.core
     )
     booleanParam (
-      name:         'desktopeditor',
+      name:         'editors',
       description:  'Build and publish DesktopEditors packages',
       defaultValue: defaults.editors
     )
     booleanParam (
-      name:         'documentbuilder',
+      name:         'builder',
       description:  'Build and publish DocumentBuilder packages',
       defaultValue: defaults.builder
     )
     booleanParam (
-      name:         'documentserver',
+      name:         'server_ce',
       description:  'Build and publish DocumentServer packages',
       defaultValue: defaults.server_ce
     )
     booleanParam (
-      name:         'documentserver_ee',
+      name:         'server_ee',
       description:  'Build and publish DocumentServer-EE packages',
       defaultValue: defaults.server_ee
     )
     booleanParam (
-      name:         'documentserver_ie',
+      name:         'server_ie',
       description:  'Build and publish DocumentServer-IE packages',
       defaultValue: defaults.server_ie
     )
     booleanParam (
-      name:         'documentserver_de',
+      name:         'server_de',
       description:  'Build and publish DocumentServer-DE packages',
       defaultValue: defaults.server_de
     )
@@ -154,8 +154,8 @@ pipeline {
       defaultValue: defaults.sign
     )
     string (
-      name:         'extra_params',
-      description:  'configure.py extra params',
+      name:         'extra_args',
+      description:  'configure.py extra args',
       defaultValue: ''
     )
   }
@@ -204,43 +204,37 @@ pipeline {
             script {
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.desktopeditor)
+              else if (params.clean && params.editors)
                 dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "linux_64"
 
-              if (params.core
-                  || params.documentbuilder
-                  || params.documentserver
-                  ) {
+              if (params.core || params.builder || params.server_ce) {
                 utils.linuxBuild(platform)
                 if (params.core)
                   utils.deployCore(platform)
-                if (params.documentbuilder)
+                if (params.builder)
                   utils.linuxBuildBuilder(platform)
-                if (params.documentserver)
+                if (params.server_ce)
                   utils.linuxBuildServer(platform)
               }
 
-              if (params.desktopeditor) {
+              if (params.editors) {
                 utils.linuxBuild(platform, "freemium")
                 utils.linuxBuildDesktop(platform)
               }
 
-              if (params.documentserver_ee
-                  || params.documentserver_ie
-                  || params.documentserver_de
-                ) {
+              if (params.server_ee || params.server_ie || params.server_de) {
                 utils.linuxBuild(platform, "commercial")
-                if (params.documentserver_ee)
+                if (params.server_ee)
                   utils.linuxBuildServer(platform, "documentserver-ee")
-                if (params.documentserver_ie)
+                if (params.server_ie)
                   utils.linuxBuildServer(platform, "documentserver-ie")
-                if (params.documentserver_ee || params.documentserver_ie)
+                if (params.server_ee || params.server_ie)
                   utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
-                if (params.documentserver_de)
+                if (params.server_de)
                   utils.linuxBuildServer(platform, "documentserver-de")
               }
               if (params.test) utils.linuxTest()
@@ -270,7 +264,7 @@ pipeline {
             script {
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.desktopeditor)
+              else if (params.clean && params.editors)
                 dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
@@ -282,7 +276,7 @@ pipeline {
                 utils.deployCore(platform)
               }
 
-              if (params.desktopeditor) {
+              if (params.editors) {
                 utils.macosBuild(platform, "freemium")
                 utils.macosBuildDesktop()
               }
@@ -313,14 +307,14 @@ pipeline {
             script {
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.desktopeditor)
+              else if (params.clean && params.editors)
                 dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "mac_64"
 
-              if (params.desktopeditor) {
+              if (params.editors) {
                 utils.macosBuild(platform, "freemium")
                 utils.macosBuildDesktop()
               }
@@ -347,41 +341,35 @@ pipeline {
             script {
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.desktopeditor)
+              else if (params.clean && params.editors)
                 dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_64"
 
-              if (params.core
-                  || params.documentbuilder
-                  || params.documentserver
-                  ) {
+              if (params.core || params.builder || params.server_ce) {
                 utils.windowsBuild(platform)
                 if (params.core)
                   utils.deployCore(platform)
-                if (params.documentbuilder)
+                if (params.builder)
                   utils.windowsBuildBuilder(platform)
-                if (params.documentserver)
+                if (params.server_ce)
                   utils.windowsBuildServer(platform)
               }
 
-              if (params.desktopeditor) {
+              if (params.editors) {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
 
-              if (params.documentserver_ee
-                  || params.documentserver_ie
-                  || params.documentserver_de
-                ) {
+              if (params.server_ee || params.server_ie || params.server_de) {
                 utils.windowsBuild(platform, "commercial")
-                if (params.documentserver_ee)
+                if (params.server_ee)
                   utils.windowsBuildServer(platform, "DocumentServer-EE")
-                if (params.documentserver_ie)
+                if (params.server_ie)
                   utils.windowsBuildServer(platform, "DocumentServer-IE")
-                if (params.documentserver_de)
+                if (params.server_de)
                   utils.windowsBuildServer(platform, "DocumentServer-DE")
               }
             }
@@ -407,22 +395,22 @@ pipeline {
             script {
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.desktopeditor)
+              else if (params.clean && params.editors)
                 dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_32"
 
-              if (params.core || params.documentbuilder) {
+              if (params.core || params.builder) {
                 utils.windowsBuild(platform)
                 if (params.core)
                   utils.deployCore(platform)
-                if (params.documentbuilder)
+                if (params.builder)
                   utils.windowsBuildBuilder(platform)
               }
 
-              if (params.desktopeditor) {
+              if (params.editors) {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
@@ -452,13 +440,13 @@ pipeline {
             script {
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.desktopeditor)
+              else if (params.clean && params.editors)
                 dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_64_xp"
-              if (params.desktopeditor) {
+              if (params.editors) {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
@@ -488,13 +476,13 @@ pipeline {
             script {
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.desktopeditor)
+              else if (params.clean && params.editors)
                 dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_32_xp"
-              if (params.desktopeditor) {
+              if (params.editors) {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
@@ -537,12 +525,12 @@ pipeline {
       }
       script {
         if (params.linux_64
-          && (params.desktopeditor
-          || params.documentbuilder
-          || params.documentserver
-          || params.documentserver_ee
-          || params.documentserver_ie
-          || params.documentserver_de)) {
+          && (params.editors
+          || params.builder
+          || params.server_ce
+          || params.server_ee
+          || params.server_ie
+          || params.server_de)) {
           build (
             job: 'onlyoffice-repo-manager',
             parameters: [

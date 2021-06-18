@@ -84,16 +84,16 @@ def getConfigArgs(String platform, String license = 'opensource') {
   switch(license) {
     case 'opensource':
       core = params.core
-      editors = params.desktopeditor
-      builder = params.documentbuilder
-      server = params.documentserver
+      editors = params.editors
+      builder = params.builder
+      server = params.server_ce
       break
     case 'freemium':
-      editors = params.desktopeditor
+      editors = params.editors
       branding = true
       break
     case 'commercial':
-      server = params.documentserver_ee || params.documentserver_ie || params.documentserver_de
+      server = params.server_ee || params.server_ie || params.server_de
       branding = true
       break
   }
@@ -124,7 +124,7 @@ def getConfigArgs(String platform, String license = 'opensource') {
   }
   if (isMacOS86) args.add("--config \"use_v8\"")
   if (params.beta) args.add("--beta 1")
-  if (!params.extra_params.isEmpty()) args.add(params.extra_params)
+  if (!params.extra_args.isEmpty()) args.add(params.extra_args)
 
   return args.join(' ')
 }
