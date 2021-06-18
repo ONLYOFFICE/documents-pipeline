@@ -114,6 +114,7 @@ def getConfParams(String platform, String license) {
   if (platform == "mac_64") {
     confParams.add("--branding-name \"onlyoffice\"")
     confParams.add("--compiler \"clang\"")
+    if (env._X86 == "1") confParams.add("--config \"use_v8\"")
   }
   if (params.beta) {
     confParams.add("--beta 1")
@@ -206,13 +207,17 @@ def macosBuildDesktop(String platform = 'native') {
   sh """#!/bin/bash -xe
     cd desktop-apps/macos/build
 
+    PACKAGE_NAME="ONLYOFFICE\${_X86:+"-x86"}"
+    DEPLOY_TITLE="macOS\${_X86:+" x86"}"
+
     S3_SECTION_DIR="onlyoffice/\$RELEASE_BRANCH/macos"
-    S3_UPDATES_DIR="\$S3_SECTION_DIR/editors/\$PRODUCT_VERSION-\$BUILD_NUMBER"
-    DMG="ONLYOFFICE-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
-    ZIP="ONLYOFFICE-\${PRODUCT_VERSION%.0}.zip"
+    S3_UPDATES_DIR="\$S3_SECTION_DIR/update/editors\${_X86:+"_x86"}/\$PRODUCT_VERSION.\$BUILD_NUMBER"
+    APP_VERSION=\$(mdls -name kMDItemVersion -raw ONLYOFFICE.app)
+    DMG="\$PACKAGE_NAME-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
+    ZIP="\$PACKAGE_NAME-\$APP_VERSION.zip"
     APPCAST="onlyoffice.xml"
-    CHANGES_EN="ONLYOFFICE-\${PRODUCT_VERSION%.0}.html"
-    CHANGES_RU="ONLYOFFICE-\${PRODUCT_VERSION%.0}.ru.html"
+    CHANGES_EN="\$PACKAGE_NAME-\$APP_VERSION.html"
+    CHANGES_RU="\$PACKAGE_NAME-\$APP_VERSION.ru.html"
 
     aws s3 cp --no-progress --acl public-read \
       ONLYOFFICE.dmg s3://\$S3_BUCKET/\$S3_SECTION_DIR/\$DMG
@@ -221,15 +226,19 @@ def macosBuildDesktop(String platform = 'native') {
       update s3://\$S3_BUCKET/\$S3_UPDATES_DIR
 
     echo -e "platform,title,path" > deploy.csv
-    echo -e "macos,macOS DMG,\$S3_SECTION_DIR/\$DMG" >> deploy.csv
-    echo -e "macos,macOS ZIP,\$S3_UPDATES_DIR/\$ZIP" >> deploy.csv
+    echo -e "macos,\$DEPLOY_TITLE DMG,\$S3_SECTION_DIR/\$DMG" >> deploy.csv
+    echo -e "macos,\$DEPLOY_TITLE ZIP,\$S3_UPDATES_DIR/\$ZIP" >> deploy.csv
     for i in update/*.delta; do
       DELTA=\$(basename \$i)
-      echo -e "macos,macOS \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
+      echo -e "macos,\$DEPLOY_TITLE \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
     done
-    echo -e "macos,macOS Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
-    echo -e "macos,macOS Release Notes EN,\$S3_UPDATES_DIR/\$CHANGES_EN" >> deploy.csv
-    echo -e "macos,macOS Release Notes RU,\$S3_UPDATES_DIR/\$CHANGES_RU" >> deploy.csv
+    echo -e "macos,\$DEPLOY_TITLE Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
+    if [[ -f update/\$CHANGES_EN ]]; then
+      echo -e "macos,\$DEPLOY_TITLE Release Notes EN,\$S3_UPDATES_DIR/\$CHANGES_EN" >> deploy.csv
+    fi
+    if [[ -f update/\$CHANGES_RU ]]; then
+      echo -e "macos,\$DEPLOY_TITLE Release Notes RU,\$S3_UPDATES_DIR/\$CHANGES_RU" >> deploy.csv
+    fi
   """
 
   def deployData = readCSV file: "desktop-apps/macos/build/deploy.csv", format: CSVFormat.DEFAULT.withHeader()
@@ -489,4 +498,33 @@ def genHtml(ArrayList deployList) {
     |""".stripMargin()
 
   return html
+}
+
+def setStageStats(String stageStatus) {
+  if (stageStats."${STAGE_NAME}" == null) {
+    stageStats."${STAGE_NAME}" = stageStatus
+  }
+}
+
+def getJobStats(String jobStatus) {
+  String text = "Build [${currentBuild.fullDisplayName}]" \
+    + "(${currentBuild.absoluteUrl}) ${jobStatus}"
+  String icon
+  stageStats.each { stage, status ->
+    switch(status) {
+      case 'fixed':   icon = '🟢'; break
+      case 'failure': icon = '🔴'; break
+      case 'success': icon = '🔵'; break
+    }
+    text += "\n${icon} ${stage}"
+  }
+  return text
+}
+
+def sendTelegramMessage(String text, String chatId, Boolean markdown = true) {
+  sh label: "Send Telegram Message", script: "curl -X POST -s -S \
+    ${markdown ? '-d parse_mode=markdown' : ''} \
+    -d chat_id=${chatId} \
+    --data-urlencode text='${text}' \
+    https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
 }
