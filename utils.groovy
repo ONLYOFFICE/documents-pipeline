@@ -225,17 +225,25 @@ def buildEditors (String platform) {
   }
 }
 
-def linuxBuildBuilder(String platform = 'native') {
-  sh "cd document-builder-package && \
-    make clean && \
-    make deploy"
+// Build Builder
+
+def buildBuilder(String platform) {
+  if (platform == 'win_64') {
+
+    bat "cd document-builder-package && \
+      make clean && \
+      make deploy"
+
+  } else if (platform == 'linux_64') {
+
+    sh "cd document-builder-package && \
+      make clean && \
+      make deploy"
+
+  }
 
   def deployData = readJSON file: "document-builder-package/deploy.json"
-
-  for(item in deployData.items) {
-    println item
-    deployBuilderList.add(item)
-  }
+  for(item in deployData.items) { deployBuilderList.add(item) }
 }
 
 def linuxBuildServer(String platform = 'native', String productName='documentserver') {
@@ -273,19 +281,6 @@ def linuxTest() {
   sh "cd doc-builder-testing && \
     docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
     docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
-}
-
-def windowsBuildBuilder(String platform) {
-  bat "cd document-builder-package && \
-    make clean && \
-    make deploy"
-
-  def deployData = readJSON file: "document-builder-package/deploy.json"
-
-  for(item in deployData.items) {
-    println item
-    deployBuilderList.add(item)
-  }
 }
 
 def windowsBuildServer(String platform = 'native', String productName='DocumentServer') {
