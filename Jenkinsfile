@@ -34,7 +34,8 @@ if (BRANCH_NAME == 'develop') {
     beta:          true
   ])
 }
-if (BRANCH_NAME.startsWith('hotfix') || BRANCH_NAME.startsWith('release')) {
+
+if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
   defaults.schedule = 'H 23 * * *'
 }
 
@@ -545,7 +546,7 @@ pipeline {
           build (
             job: 'onlyoffice-repo-manager',
             parameters: [
-              string (name: 'release_branch', value: RELEASE_BRANCH)
+              string (name: 'release_branch', value: env.RELEASE_BRANCH)
             ],
             wait: false
           )

@@ -58,14 +58,13 @@ listRepos = [
 
 return this
 
-def checkoutRepos(String branch = 'master') {    
+def checkoutRepos(String branch = 'master') {
   for (repo in listRepos) {
     checkoutRepo(repo, branch)
   }
 }
 
-def tagRepos(String tag)
-{
+def tagRepos(String tag) {
   for (repo in listRepos) {
     sh "cd ${repo.dir} && \
       git tag -l | xargs git tag -d && \
@@ -81,8 +80,8 @@ def getConfParams(String platform, String license) {
     modules.add('core')
   }
   // Add module to build to enforce clean it on build
-  if (params.desktopeditor && ((license == "opensource" && params.clean)
-    || license == "freemium")) {
+  if (params.desktopeditor
+      && (license == "opensource" || license == "freemium")) {
     modules.add('desktop')
   }
   if (platform != "mac_64") {
