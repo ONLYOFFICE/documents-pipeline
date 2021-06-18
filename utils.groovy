@@ -74,55 +74,59 @@ def tagRepos(String tag) {
   }
 }
 
-def getConfParams(String platform, String license) {
-  def modules = []
-  if (params.core && license == "opensource") {
-    modules.add('core')
-  }
-  // Add module to build to enforce clean it on build
-  if (params.desktopeditor
-      && (license == "opensource" || license == "freemium")) {
-    modules.add('desktop')
-  }
-  if (platform != "mac_64") {
-    if (params.documentbuilder && license == "opensource") {
-      modules.add('builder')
-    }
-    if ((params.documentserver && license == "opensource")
-      || ((params.documentserver_ee || params.documentserver_ie
-      || params.documentserver_de) && license == "commercial")) {
-      modules.add('server')
-    }
-  }
-  if (platform.startsWith("win")) {
-    modules.add('tests')
+def getConfigArgs(String platform, String license = 'opensource') {
+  Boolean core = false
+  Boolean editors = false
+  Boolean builder = false
+  Boolean server = false
+  Boolean branding = false
+
+  switch(license) {
+    case 'opensource':
+      core = params.core
+      editors = params.desktopeditor
+      builder = params.documentbuilder
+      server = params.documentserver
+      break
+    case 'freemium':
+      editors = params.desktopeditor
+      branding = true
+      break
+    case 'commercial':
+      server = params.documentserver_ee || params.documentserver_ie || params.documentserver_de
+      branding = true
+      break
   }
 
-  def confParams = []
-  confParams.add("--module \"${modules.join(' ')}\"")
-  confParams.add("--platform ${platform}")
-  confParams.add("--update false")
-  confParams.add("--clean ${params.clean.toString()}")
-  confParams.add("--qt-dir ${env.QT_PATH}")
-  if (platform.endsWith("_xp")) {
-    confParams.add("--qt-dir-xp ${env.QT56_PATH}")
-  }
-  if (license == "freemium" || license == "commercial") {
-    confParams.add("--branding onlyoffice")
-  }
-  if (platform == "mac_64") {
-    confParams.add("--branding-name \"onlyoffice\"")
-    confParams.add("--compiler \"clang\"")
-    if (env._X86 == "1") confParams.add("--config \"use_v8\"")
-  }
-  if (params.beta) {
-    confParams.add("--beta 1")
-  }
-  if (!params.extra_params.isEmpty()) {
-    confParams.add(params.extra_params)
-  }
+  Boolean isWin = platform.startsWith('win')
+  Boolean isWinXP = isWin && platform.endsWith('_xp')
+  Boolean isMacOS = platform.startsWith('mac')
+  Boolean isMacOS86 = isMacOS && env._X86 == "1"
 
-  return confParams.join(' ')
+  ArrayList modules = []
+  if (core)                modules.add('core')
+  if (editors)             modules.add('desktop')
+  if (builder && !isMacOS) modules.add('builder')
+  if (server && !isMacOS)  modules.add('server')
+  if (isWin)               modules.add('tests')
+
+  ArrayList args = []
+  args.add("--module \"${modules.join(' ')}\"")
+  args.add("--platform \"${platform}\"")
+  args.add("--update false")
+  args.add("--clean ${params.clean.toString()}")
+  args.add("--qt-dir \"${env.QT_PATH}\"")
+  if (isWinXP) args.add("--qt-dir-xp \"${env.QT56_PATH}\"")
+  if (branding) args.add("--branding \"onlyoffice\"")
+  if (isMacOS) {
+    args.add("--branding-name \"onlyoffice\"")
+    args.add("--compiler \"clang\"")
+  }
+  if (isMacOS86) args.add("--config \"use_v8\"")
+  if (params.beta) args.add("--beta 1")
+  if (!params.extra_params.isEmpty()) args.add(params.extra_params)
+
+  return args.join(' ')
 }
 
 def linuxBuild(String platform = 'native', String license = 'opensource') {
