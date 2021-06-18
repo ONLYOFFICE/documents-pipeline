@@ -129,10 +129,22 @@ def getConfigArgs(String platform, String license = 'opensource') {
   return args.join(' ')
 }
 
-def linuxBuild(String platform = 'native', String license = 'opensource') {
-  sh "cd build_tools && \
-    ./configure.py ${getConfParams(platform, license)} && \
-    ./make.py"
+// Build
+
+def build(String platform, String license = 'opensource') {
+  if (platform == 'win_64') {
+
+    bat "cd build_tools && \
+      call python configure.py ${getConfParams(platform, license)} && \
+      call python make.py"
+
+  } else if (platform in ['mac_64', 'linux_64']) {
+
+    sh "cd build_tools && \
+      ./configure.py ${getConfParams(platform, license)} && \
+      ./make.py"
+
+  }
 }
 
 def linuxBuildDesktop(String platform = 'native') {
@@ -198,12 +210,6 @@ def linuxTest() {
     docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
 }
 
-def macosBuild(String platform = 'native', String license = 'opensource') {
-  sh "cd build_tools && \
-    ./configure.py ${getConfParams(platform, license)} && \
-    ./make.py"
-}
-
 def macosBuildDesktop(String platform = 'native') {
   sh "cd build_tools && ./make_packages.py"
 
@@ -253,12 +259,6 @@ def macosBuildDesktop(String platform = 'native') {
     println temp
     deployDesktopList.add(temp)
   }
-}
-
-def windowsBuild(String platform = 'native', String license = 'opensource') {
-  bat "cd build_tools && \
-    call python configure.py ${getConfParams(platform, license)} && \
-    call python make.py"
 }
 
 def windowsBuildDesktop (String platform) {
