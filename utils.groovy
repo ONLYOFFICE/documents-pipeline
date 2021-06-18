@@ -246,31 +246,44 @@ def buildBuilder(String platform) {
   for(item in deployData.items) { deployBuilderList.add(item) }
 }
 
-def linuxBuildServer(String platform = 'native', String productName='documentserver') {
-  sh "cd document-server-package && \
-    export PRODUCT_NAME=${productName} && \
-    make clean && \
-    make deploy"
+// Build Server
 
-  sh "cd Docker-DocumentServer && \
-    export PRODUCT_NAME=${productName} && \
-    make clean && \
-    make deploy"
+def buildServer(String platform = 'native', String edition='community') {
+  String productName
+  switch(edition) {
+    case 'community':   productName = 'DocumentServer'; break
+    case 'integration': productName = 'DocumentServer-IE'; break
+    case 'enterprise':  productName = 'DocumentServer-EE'; break
+    case 'developer':   productName = 'DocumentServer-DE'; break
+  }
+
+  if (platform == 'win_64') {
+
+    bat "cd document-server-package && \
+      set \"PRODUCT_NAME=${productName}\" && \
+      make clean && \
+      make deploy"
+
+  } else if (platform == 'linux_64') {
+
+    sh "cd document-server-package && \
+      export PRODUCT_NAME=${productName.toLowerCase()} && \
+      make clean && \
+      make deploy"
+
+    sh "cd Docker-DocumentServer && \
+      export PRODUCT_NAME=${productName.toLowerCase()} && \
+      make clean && \
+      make deploy"
+
+  }
 
   def deployData = readJSON file: "document-server-package/deploy.json"
-
   for(item in deployData.items) {
-    println item
-    switch(productName) {
-      case 'documentserver':
-        deployServerCeList.add(item)
-        break
-      case 'documentserver-ee':
-        deployServerEeList.add(item)
-        break
-      case 'documentserver-de':
-        deployServerDeList.add(item)
-        break
+    switch(edition) {
+      case 'community':  deployServerCeList.add(item); break
+      case 'enterprise': deployServerEeList.add(item); break
+      case 'developer':  deployServerDeList.add(item); break
     }
   }
 }
@@ -281,24 +294,6 @@ def linuxTest() {
   sh "cd doc-builder-testing && \
     docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
     docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
-}
-
-def windowsBuildServer(String platform = 'native', String productName='DocumentServer') {
-  bat "cd document-server-package && \
-    set \"PRODUCT_NAME=${productName}\" && \
-    make clean && \
-    make deploy"
-
-  def deployData = readJSON file: "document-server-package/deploy.json"
-
-  for(item in deployData.items) {
-    println item
-    switch(productName) {
-      case 'DocumentServer':    deployServerCeList.add(item); break
-      case 'DocumentServer-EE': deployServerEeList.add(item); break
-      case 'DocumentServer-DE': deployServerDeList.add(item); break
-    }
-  }
 }
 
 def androidBuild(String branch = 'master', String config = 'release') {
