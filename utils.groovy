@@ -147,16 +147,81 @@ def build(String platform, String license = 'opensource') {
   }
 }
 
-def linuxBuildDesktop(String platform = 'native') {
-  sh "cd desktop-apps/win-linux/package/linux && \
-    make clean && \
-    make deploy"
+// Build Editors
 
-  def deployData = readJSON file: "desktop-apps/win-linux/package/linux/deploy.json"
+def buildEditors (String platform) {
+  if (platform == 'win_64') {
 
-  for(item in deployData.items) {
-    println item
-    deployDesktopList.add(item)
+    bat "cd desktop-apps && \
+      make clean-package && \
+      make deploy"
+
+    def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
+    for(item in deployData.items) {
+      deployDesktopList.add(item)
+    }
+
+  } else if (platform == 'mac_64') {
+
+    sh "cd build_tools && ./make_packages.py"
+
+    sh """#!/bin/bash -xe
+      cd desktop-apps/macos/build
+
+      PACKAGE_NAME="ONLYOFFICE\${_X86:+"-x86"}"
+      DEPLOY_TITLE="macOS\${_X86:+" x86"}"
+
+      S3_SECTION_DIR="onlyoffice/\$RELEASE_BRANCH/macos"
+      S3_UPDATES_DIR="\$S3_SECTION_DIR/update/editors\${_X86:+"_x86"}/\$PRODUCT_VERSION.\$BUILD_NUMBER"
+      APP_VERSION=\$(mdls -name kMDItemVersion -raw ONLYOFFICE.app)
+      DMG="\$PACKAGE_NAME-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
+      ZIP="\$PACKAGE_NAME-\$APP_VERSION.zip"
+      APPCAST="onlyoffice.xml"
+      CHANGES_EN="\$PACKAGE_NAME-\$APP_VERSION.html"
+      CHANGES_RU="\$PACKAGE_NAME-\$APP_VERSION.ru.html"
+
+      aws s3 cp --no-progress --acl public-read \
+        ONLYOFFICE.dmg s3://\$S3_BUCKET/\$S3_SECTION_DIR/\$DMG
+
+      aws s3 sync --no-progress --acl public-read \
+        update s3://\$S3_BUCKET/\$S3_UPDATES_DIR
+
+      echo -e "platform,title,path" > deploy.csv
+      echo -e "macos,\$DEPLOY_TITLE DMG,\$S3_SECTION_DIR/\$DMG" >> deploy.csv
+      echo -e "macos,\$DEPLOY_TITLE ZIP,\$S3_UPDATES_DIR/\$ZIP" >> deploy.csv
+      for i in update/*.delta; do
+        DELTA=\$(basename \$i)
+        echo -e "macos,\$DEPLOY_TITLE \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
+      done
+      echo -e "macos,\$DEPLOY_TITLE Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
+      if [[ -f update/\$CHANGES_EN ]]; then
+        echo -e "macos,\$DEPLOY_TITLE Release Notes EN,\$S3_UPDATES_DIR/\$CHANGES_EN" >> deploy.csv
+      fi
+      if [[ -f update/\$CHANGES_RU ]]; then
+        echo -e "macos,\$DEPLOY_TITLE Release Notes RU,\$S3_UPDATES_DIR/\$CHANGES_RU" >> deploy.csv
+      fi
+    """
+
+    def deployData = readCSV file: "desktop-apps/macos/build/deploy.csv", format: CSVFormat.DEFAULT.withHeader()
+    for(item in deployData) {
+      def temp = [ 
+        platform: item.get('platform'),
+        title: item.get('title'),
+        path: item.get('path') ]
+      deployDesktopList.add(temp)
+    }
+
+  } else if (platform == 'linux_64') {
+
+    sh "cd desktop-apps/win-linux/package/linux && \
+      make clean && \
+      make deploy"
+
+    def deployData = readJSON file: "desktop-apps/win-linux/package/linux/deploy.json"
+    for(item in deployData.items) {
+      deployDesktopList.add(item)
+    }
+
   }
 }
 
@@ -208,70 +273,6 @@ def linuxTest() {
   sh "cd doc-builder-testing && \
     docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
     docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
-}
-
-def macosBuildDesktop(String platform = 'native') {
-  sh "cd build_tools && ./make_packages.py"
-
-  sh """#!/bin/bash -xe
-    cd desktop-apps/macos/build
-
-    PACKAGE_NAME="ONLYOFFICE\${_X86:+"-x86"}"
-    DEPLOY_TITLE="macOS\${_X86:+" x86"}"
-
-    S3_SECTION_DIR="onlyoffice/\$RELEASE_BRANCH/macos"
-    S3_UPDATES_DIR="\$S3_SECTION_DIR/update/editors\${_X86:+"_x86"}/\$PRODUCT_VERSION.\$BUILD_NUMBER"
-    APP_VERSION=\$(mdls -name kMDItemVersion -raw ONLYOFFICE.app)
-    DMG="\$PACKAGE_NAME-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
-    ZIP="\$PACKAGE_NAME-\$APP_VERSION.zip"
-    APPCAST="onlyoffice.xml"
-    CHANGES_EN="\$PACKAGE_NAME-\$APP_VERSION.html"
-    CHANGES_RU="\$PACKAGE_NAME-\$APP_VERSION.ru.html"
-
-    aws s3 cp --no-progress --acl public-read \
-      ONLYOFFICE.dmg s3://\$S3_BUCKET/\$S3_SECTION_DIR/\$DMG
-
-    aws s3 sync --no-progress --acl public-read \
-      update s3://\$S3_BUCKET/\$S3_UPDATES_DIR
-
-    echo -e "platform,title,path" > deploy.csv
-    echo -e "macos,\$DEPLOY_TITLE DMG,\$S3_SECTION_DIR/\$DMG" >> deploy.csv
-    echo -e "macos,\$DEPLOY_TITLE ZIP,\$S3_UPDATES_DIR/\$ZIP" >> deploy.csv
-    for i in update/*.delta; do
-      DELTA=\$(basename \$i)
-      echo -e "macos,\$DEPLOY_TITLE \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
-    done
-    echo -e "macos,\$DEPLOY_TITLE Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
-    if [[ -f update/\$CHANGES_EN ]]; then
-      echo -e "macos,\$DEPLOY_TITLE Release Notes EN,\$S3_UPDATES_DIR/\$CHANGES_EN" >> deploy.csv
-    fi
-    if [[ -f update/\$CHANGES_RU ]]; then
-      echo -e "macos,\$DEPLOY_TITLE Release Notes RU,\$S3_UPDATES_DIR/\$CHANGES_RU" >> deploy.csv
-    fi
-  """
-
-  def deployData = readCSV file: "desktop-apps/macos/build/deploy.csv", format: CSVFormat.DEFAULT.withHeader()
-  for(item in deployData) {
-    def temp = [ 
-      platform: item.get('platform'),
-      title: item.get('title'),
-      path: item.get('path') ]
-    println temp
-    deployDesktopList.add(temp)
-  }
-}
-
-def windowsBuildDesktop (String platform) {
-  bat "cd desktop-apps && \
-    make clean-package && \
-    make deploy"
-
-  def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
-
-  for(item in deployData.items) {
-    println item
-    deployDesktopList.add(item)
-  }
 }
 
 def windowsBuildBuilder(String platform) {
