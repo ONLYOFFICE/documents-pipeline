@@ -26,7 +26,6 @@ if (BRANCH_NAME == 'develop') {
     macos_64:      false,
     macos_86:      false,
     android:       false,
-    core:          false,
     builder:       false,
     server_ce:     false,
     server_ie:     false,
