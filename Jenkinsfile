@@ -24,7 +24,6 @@ if (BRANCH_NAME == 'develop') {
   defaults.putAll([
     macos:         false,
     android:       false,
-    core:          false,
     builder:       false,
     server_ce:     false,
     server_ie:     false,
