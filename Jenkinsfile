@@ -185,11 +185,6 @@ pipeline {
           stageStats = [:]
         }
       }
-      post {
-        fixed   { script { utils.setStageStats('fixed')   } }
-        failure { script { utils.setStageStats('failure') } }
-        success { script { utils.setStageStats('success') } }
-      }
     }
     stage('Build') {
       parallel {
@@ -201,6 +196,8 @@ pipeline {
           }
           steps {
             script {
+              stageStats."${STAGE_NAME}" = 'failure'
+
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.editors)
@@ -237,12 +234,9 @@ pipeline {
                   utils.linuxBuildServer(platform, "documentserver-de")
               }
               if (params.test) utils.linuxTest()
+
+              stageStats."${STAGE_NAME}" = 'success'
             }
-          }
-          post {
-            fixed   { script { utils.setStageStats('fixed')   } }
-            failure { script { utils.setStageStats('failure') } }
-            success { script { utils.setStageStats('success') } }
           }
         }
         stage('macOS build') {
@@ -261,6 +255,8 @@ pipeline {
           }
           steps {
             script {
+              stageStats."${STAGE_NAME}" = 'failure'
+
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.editors)
@@ -279,12 +275,9 @@ pipeline {
                 utils.macosBuild(platform, "freemium")
                 utils.macosBuildDesktop()
               }
+
+              stageStats."${STAGE_NAME}" = 'success'
             }
-          }
-          post {
-            fixed   { script { utils.setStageStats('fixed')   } }
-            failure { script { utils.setStageStats('failure') } }
-            success { script { utils.setStageStats('success') } }
           }
         }
         stage('macOS x86 build') {
@@ -304,6 +297,8 @@ pipeline {
           }
           steps {
             script {
+              stageStats."${STAGE_NAME}" = 'failure'
+
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.editors)
@@ -317,12 +312,9 @@ pipeline {
                 utils.macosBuild(platform, "freemium")
                 utils.macosBuildDesktop()
               }
+
+              stageStats."${STAGE_NAME}" = 'success'              
             }
-          }
-          post {
-            fixed   { script { utils.setStageStats('fixed')   } }
-            failure { script { utils.setStageStats('failure') } }
-            success { script { utils.setStageStats('success') } }
           }
         }
         stage('Windows 64-bit build') {
@@ -338,6 +330,8 @@ pipeline {
           }
           steps {
             script {
+              stageStats."${STAGE_NAME}" = 'failure'
+
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.editors)
@@ -371,12 +365,9 @@ pipeline {
                 if (params.server_de)
                   utils.windowsBuildServer(platform, "DocumentServer-DE")
               }
+
+              stageStats."${STAGE_NAME}" = 'success'
             }
-          }
-          post {
-            fixed   { script { utils.setStageStats('fixed')   } }
-            failure { script { utils.setStageStats('failure') } }
-            success { script { utils.setStageStats('success') } }
           }
         }
         stage('Windows 32-bit build') {
@@ -392,6 +383,8 @@ pipeline {
           }
           steps {
             script {
+              stageStats."${STAGE_NAME}" = 'failure'
+
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.editors)
@@ -413,12 +406,9 @@ pipeline {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
+
+              stageStats."${STAGE_NAME}" = 'success'
             }
-          }
-          post {
-            fixed   { script { utils.setStageStats('fixed')   } }
-            failure { script { utils.setStageStats('failure') } }
-            success { script { utils.setStageStats('success') } }
           }
         }
         stage('Windows XP 64-bit build') {
@@ -437,6 +427,8 @@ pipeline {
           }
           steps {
             script {
+              stageStats."${STAGE_NAME}" = 'failure'
+
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.editors)
@@ -449,12 +441,9 @@ pipeline {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
+
+              stageStats."${STAGE_NAME}" = 'success'
             }
-          }
-          post {
-            fixed   { script { utils.setStageStats('fixed')   } }
-            failure { script { utils.setStageStats('failure') } }
-            success { script { utils.setStageStats('success') } }
           }
         }
         stage('Windows XP 32-bit build') {
@@ -473,6 +462,8 @@ pipeline {
           }
           steps {
             script {
+              stageStats."${STAGE_NAME}" = 'failure'
+
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.editors)
@@ -485,12 +476,9 @@ pipeline {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
               }
+
+              stageStats."${STAGE_NAME}" = 'success'
             }
-          }
-          post {
-            fixed   { script { utils.setStageStats('fixed')   } }
-            failure { script { utils.setStageStats('failure') } }
-            success { script { utils.setStageStats('success') } }
           }
         }
         stage('Android build') {
@@ -501,15 +489,14 @@ pipeline {
           }
           steps {
             script {
+              stageStats."${STAGE_NAME}" = 'failure'
+
               if (params.wipe) deleteDir()
 
               utils.androidBuild(env.BRANCH_NAME)
+
+              stageStats."${STAGE_NAME}" = 'success'
             }
-          }
-          post {
-            fixed   { script { utils.setStageStats('fixed')   } }
-            failure { script { utils.setStageStats('failure') } }
-            success { script { utils.setStageStats('success') } }
           }
         }
       }

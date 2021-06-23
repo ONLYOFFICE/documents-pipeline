@@ -502,19 +502,12 @@ def genHtml(ArrayList deployList) {
 
 // Notifications
 
-def setStageStats(String stageStatus) {
-  if (stageStats."${STAGE_NAME}" == null) {
-    stageStats."${STAGE_NAME}" = stageStatus
-  }
-}
-
 def getJobStats(String jobStatus) {
   String text = "Build [${currentBuild.fullDisplayName}]" \
     + "(${currentBuild.absoluteUrl}) ${jobStatus}"
   String icon
   stageStats.each { stage, status ->
     switch(status) {
-      case 'fixed':   icon = '🟢'; break
       case 'failure': icon = '🔴'; break
       case 'success': icon = '🔵'; break
     }
