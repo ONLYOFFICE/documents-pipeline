@@ -1,18 +1,6 @@
-def checkoutRepo(Map repo, String branch = 'master') {
-  if (repo.dir == null) repo.dir = repo.name
-  checkout([
-    $class: 'GitSCM',
-    branches: [[name: branch]],
-    doGenerateSubmoduleConfigurations: false,
-    extensions: [
-      [$class: 'SubmoduleOption', recursiveSubmodules: true],
-      [$class: 'RelativeTargetDirectory', relativeTargetDir: repo.dir],
-      [$class: 'ScmName', name: "${repo.owner}/${repo.name}"]
-    ],
-    submoduleCfg: [],
-    userRemoteConfigs: [[url: "git@github.com:${repo.owner}/${repo.name}.git"]]
-  ])
-}
+return this
+
+// Repos
 
 listRepos = [
   [name: 'build_tools'],
@@ -56,7 +44,21 @@ listRepos = [
   if (it.owner == null) it.owner = 'ONLYOFFICE'
 }
 
-return this
+def checkoutRepo(Map repo, String branch = 'master') {
+  if (repo.dir == null) repo.dir = repo.name
+  checkout([
+    $class: 'GitSCM',
+    branches: [[name: branch]],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [
+      [$class: 'SubmoduleOption', recursiveSubmodules: true],
+      [$class: 'RelativeTargetDirectory', relativeTargetDir: repo.dir],
+      [$class: 'ScmName', name: "${repo.owner}/${repo.name}"]
+    ],
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: "git@github.com:${repo.owner}/${repo.name}.git"]]
+  ])
+}
 
 def checkoutRepos(String branch = 'master') {
   for (repo in listRepos) {
@@ -73,6 +75,8 @@ def tagRepos(String tag) {
       git push origin --tags"
   }
 }
+
+// Configure
 
 def getConfigArgs(String platform, String license = 'opensource') {
   Boolean core = false
@@ -147,7 +151,7 @@ def build(String platform, String license = 'opensource') {
   }
 }
 
-// Build Editors
+// Build Packages
 
 def buildEditors (String platform) {
   if (platform == 'win_64') {
@@ -225,8 +229,6 @@ def buildEditors (String platform) {
   }
 }
 
-// Build Builder
-
 def buildBuilder(String platform) {
   if (platform == 'win_64') {
 
@@ -245,8 +247,6 @@ def buildBuilder(String platform) {
   def deployData = readJSON file: "document-builder-package/deploy.json"
   for(item in deployData.items) { deployBuilderList.add(item) }
 }
-
-// Build Server
 
 def buildServer(String platform = 'native', String edition='community') {
   String productName
@@ -288,15 +288,7 @@ def buildServer(String platform = 'native', String edition='community') {
   }
 }
 
-def linuxTest() {
-  checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing'], 'master')
-  sh "docker rmi doc-builder-testing || true"
-  sh "cd doc-builder-testing && \
-    docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
-    docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
-}
-
-def androidBuild(String branch = 'master', String config = 'release') {
+def buildAndroid(String branch = 'master', String config = 'release') {
   if (params.wipe) {
     sh "docker image rm -f onlyoffice/android-core-builder"
   }
@@ -338,6 +330,8 @@ def androidBuild(String branch = 'master', String config = 'release') {
   println deployData
   deployAndroidList.add(deployData)
 }
+
+// Deploy Packages
 
 def deployCore(String platform) {
   String dirRepo, platformType, version
@@ -383,6 +377,18 @@ def deployCore(String platform) {
     case ['win_64', 'win_32']:   bat label: label, script: script; break
   }
 }
+
+// Tests
+
+def linuxTest() {
+  checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing'], 'master')
+  sh "docker rmi doc-builder-testing || true"
+  sh "cd doc-builder-testing && \
+    docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
+    docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
+}
+
+// Reports
 
 def createReports() {
   Boolean desktop = !deployDesktopList.isEmpty()
@@ -493,6 +499,8 @@ def genHtml(ArrayList deployList) {
 
   return html
 }
+
+// Notifications
 
 def setStageStats(String stageStatus) {
   if (stageStats."${STAGE_NAME}" == null) {
