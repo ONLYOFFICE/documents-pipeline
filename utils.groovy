@@ -139,13 +139,13 @@ def build(String platform, String license = 'opensource') {
   if (platform == 'win_64') {
 
     bat "cd build_tools && \
-      call python configure.py ${getConfParams(platform, license)} && \
+      call python configure.py ${getConfigArgs(platform, license)} && \
       call python make.py"
 
   } else if (platform in ['mac_64', 'linux_64']) {
 
     sh "cd build_tools && \
-      ./configure.py ${getConfParams(platform, license)} && \
+      ./configure.py ${getConfigArgs(platform, license)} && \
       ./make.py"
 
   }
@@ -154,7 +154,7 @@ def build(String platform, String license = 'opensource') {
 // Build Packages
 
 def buildEditors (String platform) {
-  if (platform == 'win_64') {
+  if (platform.startsWith('win')) {
 
     bat "cd desktop-apps && \
       make clean-package && \
