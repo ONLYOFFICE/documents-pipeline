@@ -208,30 +208,24 @@ pipeline {
               String platform = "linux_64"
 
               if (params.core || params.builder || params.server_ce) {
-                utils.linuxBuild(platform)
-                if (params.core)
-                  utils.deployCore(platform)
-                if (params.builder)
-                  utils.linuxBuildBuilder(platform)
-                if (params.server_ce)
-                  utils.linuxBuildServer(platform)
+                utils.build(platform)
+                if (params.core)      utils.deployCore(platform)
+                if (params.builder)   utils.buildBuilder(platform)
+                if (params.server_ce) utils.buildServer(platform)
               }
 
               if (params.editors) {
-                utils.linuxBuild(platform, "freemium")
-                utils.linuxBuildDesktop(platform)
+                utils.build(platform, 'freemium')
+                utils.buildEditors(platform)
               }
 
               if (params.server_ee || params.server_ie || params.server_de) {
-                utils.linuxBuild(platform, "commercial")
-                if (params.server_ee)
-                  utils.linuxBuildServer(platform, "documentserver-ee")
-                if (params.server_ie)
-                  utils.linuxBuildServer(platform, "documentserver-ie")
+                utils.build(platform, 'commercial')
+                if (params.server_ee) utils.buildServer(platform, 'enterprise')
+                if (params.server_ie) utils.buildServer(platform, 'integration')
                 if (params.server_ee || params.server_ie)
                   utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
-                if (params.server_de)
-                  utils.linuxBuildServer(platform, "documentserver-de")
+                if (params.server_de) utils.buildServer(platform, 'developer')
               }
               if (params.test) utils.linuxTest()
 
@@ -267,13 +261,13 @@ pipeline {
               String platform = "mac_64"
 
               if (params.core) {
-                utils.macosBuild(platform)
+                utils.build(platform)
                 utils.deployCore(platform)
               }
 
               if (params.editors) {
-                utils.macosBuild(platform, "freemium")
-                utils.macosBuildDesktop()
+                utils.build(platform, 'freemium')
+                utils.buildEditors(platform)
               }
 
               stageStats."${STAGE_NAME}" = 'success'
@@ -309,8 +303,8 @@ pipeline {
               String platform = "mac_64"
 
               if (params.editors) {
-                utils.macosBuild(platform, "freemium")
-                utils.macosBuildDesktop()
+                utils.build(platform, 'freemium')
+                utils.buildEditors(platform)
               }
 
               stageStats."${STAGE_NAME}" = 'success'              
@@ -342,28 +336,22 @@ pipeline {
               String platform = "win_64"
 
               if (params.core || params.builder || params.server_ce) {
-                utils.windowsBuild(platform)
-                if (params.core)
-                  utils.deployCore(platform)
-                if (params.builder)
-                  utils.windowsBuildBuilder(platform)
-                if (params.server_ce)
-                  utils.windowsBuildServer(platform)
+                utils.build(platform)
+                if (params.core)      utils.deployCore(platform)
+                if (params.builder)   utils.buildBuilder(platform)
+                if (params.server_ce) utils.buildServer(platform)
               }
 
               if (params.editors) {
-                utils.windowsBuild(platform, "freemium")
-                utils.windowsBuildDesktop(platform)
+                utils.build(platform, 'freemium')
+                utils.buildEditors(platform)
               }
 
               if (params.server_ee || params.server_ie || params.server_de) {
-                utils.windowsBuild(platform, "commercial")
-                if (params.server_ee)
-                  utils.windowsBuildServer(platform, "DocumentServer-EE")
-                if (params.server_ie)
-                  utils.windowsBuildServer(platform, "DocumentServer-IE")
-                if (params.server_de)
-                  utils.windowsBuildServer(platform, "DocumentServer-DE")
+                utils.build(platform, 'commercial')
+                if (params.server_ee) utils.buildServer(platform, 'enterprise')
+                if (params.server_ie) utils.buildServer(platform, 'integration')
+                if (params.server_de) utils.buildServer(platform, 'developer')
               }
 
               stageStats."${STAGE_NAME}" = 'success'
@@ -395,16 +383,14 @@ pipeline {
               String platform = "win_32"
 
               if (params.core || params.builder) {
-                utils.windowsBuild(platform)
-                if (params.core)
-                  utils.deployCore(platform)
-                if (params.builder)
-                  utils.windowsBuildBuilder(platform)
+                utils.build(platform)
+                if (params.core)    utils.deployCore(platform)
+                if (params.builder) utils.buildBuilder(platform)
               }
 
               if (params.editors) {
-                utils.windowsBuild(platform, "freemium")
-                utils.windowsBuildDesktop(platform)
+                utils.build(platform, 'freemium')
+                utils.buildEditors(platform)
               }
 
               stageStats."${STAGE_NAME}" = 'success'
@@ -437,9 +423,10 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_64_xp"
+
               if (params.editors) {
-                utils.windowsBuild(platform, "freemium")
-                utils.windowsBuildDesktop(platform)
+                utils.build(platform, 'freemium')
+                utils.buildEditors(platform)
               }
 
               stageStats."${STAGE_NAME}" = 'success'
@@ -472,9 +459,10 @@ pipeline {
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "win_32_xp"
+
               if (params.editors) {
-                utils.windowsBuild(platform, "freemium")
-                utils.windowsBuildDesktop(platform)
+                utils.build(platform, 'freemium')
+                utils.buildEditors(platform)
               }
 
               stageStats."${STAGE_NAME}" = 'success'
@@ -493,7 +481,7 @@ pipeline {
 
               if (params.wipe) deleteDir()
 
-              utils.androidBuild(env.BRANCH_NAME)
+              utils.buildAndroid(env.BRANCH_NAME)
 
               stageStats."${STAGE_NAME}" = 'success'
             }
