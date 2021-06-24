@@ -13,7 +13,7 @@ defaults = [
   builder:       true,
   server_ce:     true,
   server_ee:     true,
-  server_ie:     true,
+  server_ie:     false,
   server_de:     true,
   beta:          false,
   test:          false,
