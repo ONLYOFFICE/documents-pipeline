@@ -176,12 +176,14 @@ pipeline {
 
           if (params.signing) env.ENABLE_SIGNING=1
 
-          deployDesktopList = []
-          deployBuilderList = []
-          deployServerCeList = []
-          deployServerEeList = []
-          deployServerDeList = []
-          deployAndroidList = []
+          deployMap = [
+            editors: [],
+            builder: [],
+            server_ce: [],
+            server_ee: [],
+            server_de: [],
+            android: []
+          ]
           stageStats = [:]
         }
       }

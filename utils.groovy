@@ -161,9 +161,8 @@ def buildEditors (String platform) {
       make deploy"
 
     def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
-    for(item in deployData.items) {
-      deployDesktopList.add(item)
-    }
+    if (deployMap.editors == null) deployMap.editors = []
+    deployMap.editors.addAll(deployData.items)
 
   } else if (platform == 'mac_64') {
 
@@ -212,7 +211,7 @@ def buildEditors (String platform) {
         platform: item.get('platform'),
         title: item.get('title'),
         path: item.get('path') ]
-      deployDesktopList.add(temp)
+      deployMap.editors.add(temp)
     }
 
   } else if (platform == 'linux_64') {
@@ -222,9 +221,7 @@ def buildEditors (String platform) {
       make deploy"
 
     def deployData = readJSON file: "desktop-apps/win-linux/package/linux/deploy.json"
-    for(item in deployData.items) {
-      deployDesktopList.add(item)
-    }
+    deployMap.editors.addAll(deployData.items)
 
   }
 }
@@ -245,7 +242,7 @@ def buildBuilder(String platform) {
   }
 
   def deployData = readJSON file: "document-builder-package/deploy.json"
-  for(item in deployData.items) { deployBuilderList.add(item) }
+  deployMap.builder.addAll(deployData.items)
 }
 
 def buildServer(String platform = 'native', String edition='community') {
@@ -279,12 +276,10 @@ def buildServer(String platform = 'native', String edition='community') {
   }
 
   def deployData = readJSON file: "document-server-package/deploy.json"
-  for(item in deployData.items) {
-    switch(edition) {
-      case 'community':  deployServerCeList.add(item); break
-      case 'enterprise': deployServerEeList.add(item); break
-      case 'developer':  deployServerDeList.add(item); break
-    }
+  switch(edition) {
+    case 'community':  deployMap.server_ce.addAll(deployData.items); break
+    case 'enterprise': deployMap.server_ee.addAll(deployData.items); break
+    case 'developer':  deployMap.server_de.addAll(deployData.items); break
   }
 }
 
@@ -325,10 +320,11 @@ def buildAndroid(String branch = 'master', String config = 'release') {
       ${androidLibsFile} s3://\$S3_BUCKET/${androidLibsUri}
   """
 
-  def deployData = [ platform: 'android', title: 'Android libs', path: androidLibsUri ]
-
-  println deployData
-  deployAndroidList.add(deployData)
+  deployMap.android.add([
+    platform: 'android',
+    title: 'Android libs',
+    path: androidLibsUri
+  ])
 }
 
 // Deploy Packages
@@ -391,83 +387,49 @@ def linuxTest() {
 // Reports
 
 def createReports() {
-  Boolean desktop = !deployDesktopList.isEmpty()
-  Boolean builder = !deployBuilderList.isEmpty()
-  Boolean serverc = !deployServerCeList.isEmpty()
-  Boolean servere = !deployServerEeList.isEmpty() 
-  Boolean serverd = !deployServerDeList.isEmpty()
-  Boolean android = !deployAndroidList.isEmpty()
+  Boolean editors = !deployMap.editors.isEmpty()
+  Boolean builder = !deployMap.builder.isEmpty()
+  Boolean server_ce = !deployMap.server_ce.isEmpty()
+  Boolean server_ee = !deployMap.server_ee.isEmpty()
+  Boolean server_de = !deployMap.server_de.isEmpty()
+  Boolean android = !deployMap.android.isEmpty()
 
   dir ('html') {
     deleteDir()
 
-    sh "wget -nv https://unpkg.com/style.css -O style.css"
-    sh "echo \"body { margin: 16px; }\" > custom.css"
+    sh """
+      test -f style.css || wget -nv https://unpkg.com/style.css -O style.css
+      test -f custom.css || echo \"body { margin: 16px; }\" > custom.css
+    """
 
-    if (desktop) { writeFile file: 'desktopeditors.html', text: genHtml(deployDesktopList) }
-    if (builder) { writeFile file: 'documentbuilder.html', text: genHtml(deployBuilderList) }
-    if (serverc) { writeFile file: 'documentserver_ce.html', text: genHtml(deployServerCeList) }
-    if (servere) { writeFile file: 'documentserver_ee.html', text: genHtml(deployServerEeList) }
-    if (serverd) { writeFile file: 'documentserver_de.html', text: genHtml(deployServerDeList) }
-    if (android) { writeFile file: 'android.html', text: genHtml(deployAndroidList) }
-  }
-
-  if (desktop) {
-    publishHTML([
-      allowMissing: false,
-      alwaysLinkToLastBuild: false,
-      includes: 'desktopeditors.html,*.css',
-      keepAll: true,
-      reportDir: 'html',
-      reportFiles: 'desktopeditors.html',
-      reportName: "DesktopEditors",
-      reportTitles: ''
-    ])
-  }
-  
-  if (builder) {
-    publishHTML([
-      allowMissing: false,
-      alwaysLinkToLastBuild: false,
-      includes: 'documentbuilder.html,*.css',
-      keepAll: true,
-      reportDir: 'html',
-      reportFiles: 'documentbuilder.html',
-      reportName: "DocumentBuilder",
-      reportTitles: ''
-    ])
-  }
-
-  if (serverc || servere || serverd) {
-    // compatibility for htmlpublisher-1.18
-    def serverIndexFiles = []
-    if (serverc) { serverIndexFiles.add('documentserver_ce.html') }
-    if (servere) { serverIndexFiles.add('documentserver_ee.html') }
-    if (serverd) { serverIndexFiles.add('documentserver_de.html') }
-
-    publishHTML([
-      allowMissing: false,
-      alwaysLinkToLastBuild: false,
-      includes: 'documentserver_*.html,*.css',
-      keepAll: true,
-      reportDir: 'html',
-      reportFiles: serverIndexFiles.join(','),
-      reportName: "DocumentServer",
-      reportTitles: ''
-    ])
-  }
-
-  if (android) {
-    publishHTML([
-      allowMissing: false,
-      alwaysLinkToLastBuild: false,
-      includes: 'android.html,*.css',
-      keepAll: true,
-      reportDir: 'html',
-      reportFiles: 'android.html',
-      reportName: "Android",
-      reportTitles: ''
-    ])
+    if (editors) {
+      writeFile file: 'editors.html', text: genHtml(deployMap.editors)
+      publishReport('DesktopEditors', 'editors.html')
+    }
+    if (builder) {
+      writeFile file: 'builder.html', text: genHtml(deployMap.builder)
+      publishReport('DocumentBuilder', 'builder.html')
+    }
+    if (server_ce || server_ee || server_de) {
+      ArrayList serverIndexFiles = []
+      if (server_ce) {
+        writeFile file: 'server_ce.html', text: genHtml(deployMap.server_ce)
+        serverIndexFiles.add('server_ce.html')
+      }
+      if (server_ee) {
+        writeFile file: 'server_ee.html', text: genHtml(deployMap.server_ee)
+        serverIndexFiles.add('server_ee.html')
+      }
+      if (server_de) {
+        writeFile file: 'server_de.html', text: genHtml(deployMap.server_de)
+        serverIndexFiles.add('server_de.html')
+      }
+      publishReport('DocumentServer', serverIndexFiles.join(','))
+    }
+    if (android) {
+      writeFile file: 'android.html', text: genHtml(deployMap.android)
+      publishReport('Android', 'android.html')
+    }
   }
 }
 
@@ -484,10 +446,10 @@ def genHtml(ArrayList deployList) {
     |""".stripMargin()
 
   for(p in deployList) {
-    url = "https://${env.S3_BUCKET}.s3-eu-west-1.amazonaws.com/${p.path}"
+    url = "https://s3.eu-west-1.amazonaws.com/${env.S3_BUCKET}/${p.path}"
     html += """\
       |    <dt>${p.title}</dt>
-      |    <dd><a href="${url}">${url}</a></dd>
+      |    <dd><a href="${url}">${p.path}</a></dd>
       |""".stripMargin()
   }
 
@@ -498,6 +460,19 @@ def genHtml(ArrayList deployList) {
     |""".stripMargin()
 
   return html
+}
+
+def publishReport(String title, String files) {
+  publishHTML([
+    allowMissing: false,
+    alwaysLinkToLastBuild: false,
+    includes: "${files},*.css",
+    keepAll: true,
+    reportDir: '',
+    reportFiles: files,
+    reportName: title,
+    reportTitles: ''
+  ])
 }
 
 // Notifications
