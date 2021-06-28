@@ -354,14 +354,15 @@ def sendNotification() {
       case 'delete':  text += '♻️'; break
       default:        text += '➖'
     }
-    text += " [${repo.replaceAll('_','\\\\_')}](https://github.com/${repo})"
+    text += " [${repo}](https://github.com/${repo})"
   }
 
   if (params.action_type in ['start_release', 'merge_release', 'finish_release']
       && params.notify && stats.success > 0) {
     sh label: "Send Telegram Message", script: "curl -X POST -s -S \
-      -d parse_mode=markdown \
       -d chat_id=${chatId} \
+      -d parse_mode=markdown \
+      -d disable_web_page_preview=true \
       --data-urlencode text='${text}' \
       https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
   } else {

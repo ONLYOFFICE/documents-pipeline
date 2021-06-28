@@ -493,8 +493,9 @@ def getJobStats(String jobStatus) {
 
 def sendTelegramMessage(String text, String chatId, Boolean markdown = true) {
   sh label: "Send Telegram Message", script: "curl -X POST -s -S \
-    ${markdown ? '-d parse_mode=markdown' : ''} \
     -d chat_id=${chatId} \
+    ${markdown ? '-d parse_mode=markdown' : ''} \
+    -d disable_web_page_preview=true \
     --data-urlencode text='${text}' \
     https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
 }
