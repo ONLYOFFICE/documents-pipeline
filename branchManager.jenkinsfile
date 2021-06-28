@@ -71,7 +71,7 @@ pipeline {
           String branch = BRANCH_NAME
           ArrayList baseBranches = []
           def utils = load 'utils.groovy'
-          utils.getReposList().each {
+          utils.listRepos.each {
             stats.repos.put(it.owner + '/' + it.name, [:])
           }
           Boolean pAction
@@ -338,32 +338,32 @@ def sendNotification() {
       text = "Branch `${stats.branch}` merged into "
       text += stats.baseBranches.collect({"`$it`"}).join(', ')
       break
-    default:
-      text = 'Stats'
-      break
+    default: text = 'Stats'
   }
   text += " \\[${stats.success}/${stats.total}]"
   stats.repos.each { repo, status ->
     text += '\n'
     switch(status.primary) {
-      case 'skip':    text += '🆗'; break
-      case 'success': text += '✅'; break
-      case 'failure': text += '❎'; break
+      case 'skip':    text += '🔘'; break
+      case 'success': text += '☑️'; break
+      case 'failure': text += '🛑'; break
+      default:        text += '➖'
     }
     switch(status.secondary) {
       case 'lock':    text += '🔒'; break
       case 'delete':  text += '♻️'; break
+      default:        text += '➖'
     }
-    text += ' ' + repo.replaceAll('_','\\\\_')
+    text += " [${repo.replaceAll('_','\\\\_')}](https://github.com/${repo})"
   }
 
   if (params.action_type in ['start_release', 'merge_release', 'finish_release']
       && params.notify && stats.success > 0) {
-    sh label: "Send Telegram Notification", script: "curl -X POST -s -S \
+    sh label: "Send Telegram Message", script: "curl -X POST -s -S \
       -d parse_mode=markdown \
       -d chat_id=${chatId} \
       --data-urlencode text='${text}' \
-      https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage"
+      https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
   } else {
     echo text
   }
