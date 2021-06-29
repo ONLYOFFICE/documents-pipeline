@@ -1,5 +1,3 @@
-return this
-
 // Repos
 
 listRepos = [
@@ -43,6 +41,8 @@ listRepos = [
 ].each {
   if (it.owner == null) it.owner = 'ONLYOFFICE'
 }
+
+return this
 
 def checkoutRepo(Map repo, String branch = 'master') {
   if (repo.dir == null) repo.dir = repo.name
