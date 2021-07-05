@@ -500,17 +500,12 @@ pipeline {
         }
       }
       script {
-        if (params.linux_64
-          && (params.editors
-          || params.builder
-          || params.server_ce
-          || params.server_ee
-          || params.server_ie
-          || params.server_de)) {
+        if (params.linux_64)
           build (
-            job: 'onlyoffice-repo-manager',
+            job: 'repo-manager',
             parameters: [
-              string (name: 'release_branch', value: env.RELEASE_BRANCH)
+              string (name: 'company', value: 'onlyoffice'),
+              string (name: 'branch', value: env.RELEASE_BRANCH)
             ],
             wait: false
           )
