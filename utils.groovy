@@ -146,6 +146,34 @@ def build(String platform, String license = 'opensource') {
       ./make.py"
 
   }
+
+  if (license == 'opensource') {
+    String os, arch, div
+    String branch = env.BRANCH_NAME
+    GString version = "${env.PRODUCT_VERSION}${->div<<'-'}${env.BUILD_NUMBER}"
+
+    if      (platform.startsWith('win'))   os = 'windows'
+    else if (platform.startsWith('mac'))   os = 'mac'
+    else if (platform.startsWith('linux')) os = 'linux'
+
+    if      (platform in ['win_64', 'win_32'])   div = '.'
+    else if (platform in ['linux_64', 'mac_64']) div = '-'
+
+    if      (platform.endsWith('_32')) arch = 'x86'
+    else if (platform.endsWith('_64')) arch = 'x64'
+
+    String deployPath = "repo-doc-onlyoffice-com/${os}/core/${branch}/%s/${arch}"
+    String cmdUpload = """
+      aws s3 cp --acl public-read --no-progress \
+        build_tools/out/${platform}/onlyoffice/core/core.7z \
+        s3://${printf(deployPath, version)}/
+      aws s3 sync --delete --acl public-read --no-progress \
+        s3://${printf(deployPath, version)}/ \
+        s3://${printf(deployPath, 'latest')}/
+    """
+
+    if (isUnix) sh cmdUpload else bat cmdUpload
+  }
 }
 
 // Build Packages
@@ -321,53 +349,6 @@ def buildAndroid(String branch = 'master', String config = 'release') {
     title: 'Android libs',
     path: androidLibsUri
   ])
-}
-
-// Deploy Packages
-
-def deployCore(String platform) {
-  String dirRepo, platformType, version
-
-  switch(platform) {
-    case 'linux_64':
-      dirRepo = 'linux'
-      platformType = 'x64'
-      version = PRODUCT_VERSION + '-' + BUILD_NUMBER
-      break
-    case 'mac_64':
-      dirRepo = 'mac'
-      platformType = 'x64'
-      version = PRODUCT_VERSION + '-' + BUILD_NUMBER
-      break
-    case 'win_64':
-      dirRepo = 'windows'
-      platformType = 'x64'
-      version = PRODUCT_VERSION + '.' + BUILD_NUMBER
-      break
-    case 'win_32':
-      dirRepo = 'windows'
-      platformType = 'x86'
-      version = PRODUCT_VERSION + '.' + BUILD_NUMBER
-      break
-  }
-
-  String pathCore = "build_tools/out/${platform}/onlyoffice/core/core.7z"
-  String dirS3CoreV = "${dirRepo}/core/${BRANCH_NAME}/${version}/${platformType}"
-  String dirS3CoreL = "${dirRepo}/core/${BRANCH_NAME}/latest/${platformType}"
-  String label = 'Deploy Core to S3'
-  String script = """
-    aws s3 cp --acl public-read --no-progress \
-      ${pathCore} \
-      s3://${S3_BUCKET}/${dirS3CoreV}/
-    aws s3 sync --acl public-read --delete --no-progress \
-      s3://${S3_BUCKET}/${dirS3CoreV}/ \
-      s3://${S3_BUCKET}/${dirS3CoreL}/
-  """
-
-  switch(platform) {
-    case ['linux_64', 'mac_64']: sh  label: label, script: script; break
-    case ['win_64', 'win_32']:   bat label: label, script: script; break
-  }
 }
 
 // Tests

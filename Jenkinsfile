@@ -204,7 +204,6 @@ pipeline {
 
               if (params.core || params.builder || params.server_ce) {
                 utils.build(platform)
-                if (params.core)      utils.deployCore(platform)
                 if (params.builder)   utils.buildBuilder(platform)
                 if (params.server_ce) utils.buildServer(platform)
               }
@@ -255,10 +254,8 @@ pipeline {
 
               String platform = "mac_64"
 
-              if (params.core) {
+              if (params.core)
                 utils.build(platform)
-                utils.deployCore(platform)
-              }
 
               if (params.editors) {
                 utils.build(platform, 'freemium')
@@ -332,7 +329,6 @@ pipeline {
 
               if (params.core || params.builder || params.server_ce) {
                 utils.build(platform)
-                if (params.core)      utils.deployCore(platform)
                 if (params.builder)   utils.buildBuilder(platform)
                 if (params.server_ce) utils.buildServer(platform)
               }
@@ -378,7 +374,6 @@ pipeline {
 
               if (params.core || params.builder) {
                 utils.build(platform)
-                if (params.core)    utils.deployCore(platform)
                 if (params.builder) utils.buildBuilder(platform)
               }
 
