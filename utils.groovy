@@ -97,7 +97,7 @@ def getConfigArgs(String platform, String license = 'opensource') {
       branding = true
       break
     case 'commercial':
-      server = params.server_ee || params.server_ie || params.server_de
+      server = params.server_ee || params.server_de
       branding = true
       break
   }
@@ -249,7 +249,6 @@ def buildServer(String platform = 'native', String edition='community') {
   String productName
   switch(edition) {
     case 'community':   productName = 'DocumentServer'; break
-    case 'integration': productName = 'DocumentServer-IE'; break
     case 'enterprise':  productName = 'DocumentServer-EE'; break
     case 'developer':   productName = 'DocumentServer-DE'; break
   }

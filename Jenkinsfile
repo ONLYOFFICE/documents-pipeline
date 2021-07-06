@@ -13,7 +13,6 @@ defaults = [
   builder:       true,
   server_ce:     true,
   server_ee:     true,
-  server_ie:     true,
   server_de:     true,
   beta:          false,
   test:          false,
@@ -28,7 +27,6 @@ if (BRANCH_NAME == 'develop') {
     android:       false,
     builder:       false,
     server_ce:     false,
-    server_ie:     false,
     server_de:     false,
     beta:          true
   ])
@@ -128,11 +126,6 @@ pipeline {
       defaultValue: defaults.server_ee
     )
     booleanParam (
-      name:         'server_ie',
-      description:  'Build and publish DocumentServer-IE packages',
-      defaultValue: defaults.server_ie
-    )
-    booleanParam (
       name:         'server_de',
       description:  'Build and publish DocumentServer-DE packages',
       defaultValue: defaults.server_de
@@ -221,12 +214,12 @@ pipeline {
                 utils.buildEditors(platform)
               }
 
-              if (params.server_ee || params.server_ie || params.server_de) {
+              if (params.server_ee || params.server_de) {
                 utils.build(platform, 'commercial')
-                if (params.server_ee) utils.buildServer(platform, 'enterprise')
-                if (params.server_ie) utils.buildServer(platform, 'integration')
-                if (params.server_ee || params.server_ie)
+                if (params.server_ee) {
+                  utils.buildServer(platform, 'enterprise')
                   utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
+                }
                 if (params.server_de) utils.buildServer(platform, 'developer')
               }
               if (params.test) utils.linuxTest()
@@ -349,10 +342,9 @@ pipeline {
                 utils.buildEditors(platform)
               }
 
-              if (params.server_ee || params.server_ie || params.server_de) {
+              if (params.server_ee || params.server_de) {
                 utils.build(platform, 'commercial')
                 if (params.server_ee) utils.buildServer(platform, 'enterprise')
-                if (params.server_ie) utils.buildServer(platform, 'integration')
                 if (params.server_de) utils.buildServer(platform, 'developer')
               }
 
