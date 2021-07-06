@@ -79,7 +79,7 @@ def tagRepos(String tag) {
 
 // Configure
 
-def getConfigArgs(String platform, String license = 'opensource') {
+def getConfigArgs(String platform = 'native', String license = 'opensource') {
   Boolean core = false
   Boolean editors = false
   Boolean builder = false
@@ -89,7 +89,6 @@ def getConfigArgs(String platform, String license = 'opensource') {
   switch(license) {
     case 'opensource':
       core = params.core
-      editors = params.editors
       builder = params.builder
       server = params.server_ce
       break
@@ -123,10 +122,7 @@ def getConfigArgs(String platform, String license = 'opensource') {
   args.add("--qt-dir \"${env.QT_PATH}\"")
   if (isWinXP) args.add("--qt-dir-xp \"${env.QT56_PATH}\"")
   if (branding) args.add("--branding \"onlyoffice\"")
-  if (isMacOS) {
-    args.add("--branding-name \"onlyoffice\"")
-    args.add("--compiler \"clang\"")
-  }
+  if (isMacOS) args.add("--compiler \"clang\"")
   if (isMacOS86) args.add("--config \"use_v8\"")
   if (params.beta) args.add("--beta 1")
   if (!params.extra_args.isEmpty()) args.add(params.extra_args)
