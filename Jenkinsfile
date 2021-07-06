@@ -544,7 +544,6 @@ pipeline {
             ],
             wait: false
           )
-        }
       }
     }
     fixed {
