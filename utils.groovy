@@ -457,13 +457,8 @@ def publishReport(String title, String files, String dir = '') {
 def getJobStats(String jobStatus) {
   String text = "Build [${currentBuild.fullDisplayName}]" \
     + "(${currentBuild.absoluteUrl}) ${jobStatus}"
-  String icon
   stageStats.each { stage, status ->
-    switch(status) {
-      case 'failure': icon = '🔴'; break
-      case 'success': icon = '🔵'; break
-    }
-    text += "\n${icon} ${stage}"
+    text += "\n${status ? '🔵' : '🔴'} ${stage}"
   }
   return text
 }

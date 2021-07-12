@@ -191,7 +191,7 @@ pipeline {
           }
           steps {
             script {
-              stageStats."${STAGE_NAME}" = "failure"
+              stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -224,7 +224,7 @@ pipeline {
               }
               if (params.test) utils.linuxTest()
 
-              stageStats."${STAGE_NAME}" = "success"
+              stageStats."${STAGE_NAME}" = true
             }
           }
         }
@@ -244,7 +244,7 @@ pipeline {
           }
           steps {
             script {
-              stageStats."${STAGE_NAME}" = "failure"
+              stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -263,7 +263,7 @@ pipeline {
                 utils.buildEditors(platform)
               }
 
-              stageStats."${STAGE_NAME}" = "success"
+              stageStats."${STAGE_NAME}" = true
             }
           }
         }
@@ -284,7 +284,7 @@ pipeline {
           }
           steps {
             script {
-              stageStats."${STAGE_NAME}" = "failure"
+              stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -300,7 +300,7 @@ pipeline {
                 utils.buildEditors(platform)
               }
 
-              stageStats."${STAGE_NAME}" = "success"              
+              stageStats."${STAGE_NAME}" = true              
             }
           }
         }
@@ -317,7 +317,7 @@ pipeline {
           }
           steps {
             script {
-              stageStats."${STAGE_NAME}" = "failure"
+              stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -345,7 +345,7 @@ pipeline {
                 if (params.server_de) utils.buildServer(platform, "developer")
               }
 
-              stageStats."${STAGE_NAME}" = "success"
+              stageStats."${STAGE_NAME}" = true
             }
           }
         }
@@ -362,7 +362,7 @@ pipeline {
           }
           steps {
             script {
-              stageStats."${STAGE_NAME}" = "failure"
+              stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -383,7 +383,7 @@ pipeline {
                 utils.buildEditors(platform)
               }
 
-              stageStats."${STAGE_NAME}" = "success"
+              stageStats."${STAGE_NAME}" = true
             }
           }
         }
@@ -403,7 +403,7 @@ pipeline {
           }
           steps {
             script {
-              stageStats."${STAGE_NAME}" = "failure"
+              stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -419,7 +419,7 @@ pipeline {
                 utils.buildEditors(platform)
               }
 
-              stageStats."${STAGE_NAME}" = "success"
+              stageStats."${STAGE_NAME}" = true
             }
           }
         }
@@ -439,7 +439,7 @@ pipeline {
           }
           steps {
             script {
-              stageStats."${STAGE_NAME}" = "failure"
+              stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -455,7 +455,7 @@ pipeline {
                 utils.buildEditors(platform)
               }
 
-              stageStats."${STAGE_NAME}" = "success"
+              stageStats."${STAGE_NAME}" = true
             }
           }
         }
@@ -467,13 +467,13 @@ pipeline {
           }
           steps {
             script {
-              stageStats."${STAGE_NAME}" = "failure"
+              stageStats."${STAGE_NAME}" = false
 
               if (params.wipe) deleteDir()
 
               utils.buildAndroid(env.BRANCH_NAME)
 
-              stageStats."${STAGE_NAME}" = "success"
+              stageStats."${STAGE_NAME}" = true
             }
           }
         }
