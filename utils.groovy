@@ -87,32 +87,32 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   Boolean branding = false
 
   switch(license) {
-    case 'opensource':
+    case "opensource":
       core = params.core
       builder = params.builder
       server = params.server_ce
       break
-    case 'freemium':
+    case "freemium":
       editors = params.editors
       branding = true
       break
-    case 'commercial':
+    case "commercial":
       server = params.server_ee || params.server_de
       branding = true
       break
   }
 
-  Boolean isWin = platform.startsWith('win')
-  Boolean isWinXP = isWin && platform.endsWith('_xp')
-  Boolean isMacOS = platform.startsWith('mac')
+  Boolean isWin = platform.startsWith("win")
+  Boolean isWinXP = isWin && platform.endsWith("_xp")
+  Boolean isMacOS = platform.startsWith("mac")
   Boolean isMacOS86 = isMacOS && env._X86 == "1"
 
   ArrayList modules = []
-  if (core)                modules.add('core')
-  if (editors)             modules.add('desktop')
-  if (builder && !isMacOS) modules.add('builder')
-  if (server && !isMacOS)  modules.add('server')
-  if (isWin)               modules.add('tests')
+  if (core)                modules.add("core")
+  if (editors)             modules.add("desktop")
+  if (builder && !isMacOS) modules.add("builder")
+  if (server && !isMacOS)  modules.add("server")
+  if (isWin)               modules.add("tests")
 
   ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
@@ -133,13 +133,13 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
 // Build
 
 def build(String platform, String license = 'opensource') {
-  if (platform == 'win_64') {
+  if (platform.startsWith("win")) {
 
     bat "cd build_tools && \
       call python configure.py ${getConfigArgs(platform, license)} && \
       call python make.py"
 
-  } else if (platform in ['mac_64', 'linux_64']) {
+  } else if (platform in ["mac_64", "linux_64"]) {
 
     sh "cd build_tools && \
       ./configure.py ${getConfigArgs(platform, license)} && \
@@ -147,20 +147,20 @@ def build(String platform, String license = 'opensource') {
 
   }
 
-  if (license == 'opensource') {
+  if (license == "opensource") {
     String os, arch, div
     String branch = env.BRANCH_NAME
     GString version = "${env.PRODUCT_VERSION}${->div<<'-'}${env.BUILD_NUMBER}"
 
-    if      (platform.startsWith('win'))   os = 'windows'
-    else if (platform.startsWith('mac'))   os = 'mac'
-    else if (platform.startsWith('linux')) os = 'linux'
+    if      (platform.startsWith("win"))   os = "windows"
+    else if (platform.startsWith("mac"))   os = "mac"
+    else if (platform.startsWith("linux")) os = "linux"
 
-    if      (platform in ['win_64', 'win_32'])   div = '.'
-    else if (platform in ['linux_64', 'mac_64']) div = '-'
+    if      (platform in ["win_64", "win_32"])   div = "."
+    else if (platform in ["linux_64", "mac_64"]) div = "-"
 
-    if      (platform.endsWith('_32')) arch = 'x86'
-    else if (platform.endsWith('_64')) arch = 'x64'
+    if      (platform.endsWith("_32")) arch = "x86"
+    else if (platform.endsWith("_64")) arch = "x64"
 
     String deployPath = "repo-doc-onlyoffice-com/${os}/core/${branch}/%s/${arch}"
     String cmdUpload = """
@@ -371,7 +371,7 @@ def createReports() {
   Boolean server_de = !deployMap.server_de.isEmpty()
   Boolean android = !deployMap.android.isEmpty()
 
-  dir ('html') {
+  dir ("html") {
     deleteDir()
 
     sh """
@@ -380,32 +380,32 @@ def createReports() {
     """
 
     if (editors) {
-      writeFile file: 'editors.html', text: genHtml(deployMap.editors)
-      publishReport('DesktopEditors', 'editors.html')
+      writeFile file: "editors.html", text: genHtml(deploy.editors)
+      publishReport("DesktopEditors", "editors.html")
     }
     if (builder) {
-      writeFile file: 'builder.html', text: genHtml(deployMap.builder)
-      publishReport('DocumentBuilder', 'builder.html')
+      writeFile file: "builder.html", text: genHtml(deploy.builder)
+      publishReport("DocumentBuilder", "builder.html")
     }
     if (server_ce || server_ee || server_de) {
       ArrayList serverIndexFiles = []
       if (server_ce) {
-        writeFile file: 'server_ce.html', text: genHtml(deployMap.server_ce)
-        serverIndexFiles.add('server_ce.html')
+        writeFile file: "server_ce.html", text: genHtml(deploy.server_ce)
+        serverIndexFiles.add("server_ce.html")
       }
       if (server_ee) {
-        writeFile file: 'server_ee.html', text: genHtml(deployMap.server_ee)
-        serverIndexFiles.add('server_ee.html')
+        writeFile file: "server_ee.html", text: genHtml(deploy.server_ee)
+        serverIndexFiles.add("server_ee.html")
       }
       if (server_de) {
-        writeFile file: 'server_de.html', text: genHtml(deployMap.server_de)
-        serverIndexFiles.add('server_de.html')
+        writeFile file: "server_de.html", text: genHtml(deploy.server_de)
+        serverIndexFiles.add("server_de.html")
       }
-      publishReport('DocumentServer', serverIndexFiles.join(','))
+      publishReport("DocumentServer", serverIndexFiles.join(","))
     }
     if (android) {
-      writeFile file: 'android.html', text: genHtml(deployMap.android)
-      publishReport('Android', 'android.html')
+      writeFile file: "android.html", text: genHtml(deploy.android)
+      publishReport("Android", "android.html")
     }
   }
 }
@@ -439,13 +439,13 @@ def genHtml(ArrayList deployList) {
   return html
 }
 
-def publishReport(String title, String files) {
+def publishReport(String title, String files, String dir = '') {
   publishHTML([
     allowMissing: false,
     alwaysLinkToLastBuild: false,
     includes: "${files},*.css",
     keepAll: true,
-    reportDir: '',
+    reportDir: dir,
     reportFiles: files,
     reportName: title,
     reportTitles: ''
