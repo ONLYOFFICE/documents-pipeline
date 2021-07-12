@@ -227,7 +227,7 @@ pipeline {
             }
           }
         }
-        stage('macOS build') {
+        stage('macOS 64-bit build') {
           agent { label 'macos_64' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
@@ -266,7 +266,7 @@ pipeline {
             }
           }
         }
-        stage('macOS x86 build') {
+        stage('macOS 32-bit build') {
           agent { label 'macos_86' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
