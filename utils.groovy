@@ -133,6 +133,8 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
 // Build
 
 def build(String platform, String license = 'opensource') {
+  Boolean isUnix = isUnix()
+
   if (platform.startsWith("win")) {
 
     bat "cd build_tools && \
@@ -148,28 +150,32 @@ def build(String platform, String license = 'opensource') {
   }
 
   if (license == "opensource") {
-    String os, arch, div
+    String os, arch, version
     String branch = env.BRANCH_NAME
-    GString version = "${env.PRODUCT_VERSION}${->div<<'-'}${env.BUILD_NUMBER}"
 
     if      (platform.startsWith("win"))   os = "windows"
     else if (platform.startsWith("mac"))   os = "mac"
     else if (platform.startsWith("linux")) os = "linux"
 
-    if      (platform in ["win_64", "win_32"])   div = "."
-    else if (platform in ["linux_64", "mac_64"]) div = "-"
+    if (platform in ["win_64", "win_32"])
+      version = "${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}"
+    else if (platform in ["linux_64", "mac_64"])
+      version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
 
     if      (platform.endsWith("_32")) arch = "x86"
     else if (platform.endsWith("_64")) arch = "x64"
 
-    String deployPath = "repo-doc-onlyoffice-com/${os}/core/${branch}/%s/${arch}"
+    def deployPath = {
+      return "repo-doc-onlyoffice-com/${os}/core/${branch}/${it}/${arch}"
+    }
+
     String cmdUpload = """
       aws s3 cp --acl public-read --no-progress \
         build_tools/out/${platform}/onlyoffice/core/core.7z \
-        s3://${printf(deployPath, version)}/
+        s3://${deployPath(version)}/
       aws s3 sync --delete --acl public-read --no-progress \
-        s3://${printf(deployPath, version)}/ \
-        s3://${printf(deployPath, 'latest')}/
+        s3://${deployPath(version)}/ \
+        s3://${deployPath('latest')}/
     """
 
     if (isUnix) sh cmdUpload else bat cmdUpload
