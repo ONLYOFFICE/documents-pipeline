@@ -185,7 +185,7 @@ def build(String platform, String license = 'opensource') {
 // Build Packages
 
 def buildEditors (String platform) {
-  if (platform.startsWith('win')) {
+  if (platform.startsWith("win")) {
 
     bat "cd desktop-apps && \
       make clean-package && \
@@ -195,7 +195,7 @@ def buildEditors (String platform) {
     if (deployMap.editors == null) deployMap.editors = []
     deployMap.editors.addAll(deployData.items)
 
-  } else if (platform == 'mac_64') {
+  } else if (platform == "mac_64") {
 
     sh "cd build_tools && ./make_packages.py"
 
@@ -245,7 +245,7 @@ def buildEditors (String platform) {
       deployMap.editors.add(temp)
     }
 
-  } else if (platform == 'linux_64') {
+  } else if (platform == "linux_64") {
 
     sh "cd desktop-apps/win-linux/package/linux && \
       make clean && \
@@ -258,13 +258,13 @@ def buildEditors (String platform) {
 }
 
 def buildBuilder(String platform) {
-  if (platform == 'win_64') {
+  if (platform in ["win_64", "win_32"]) {
 
     bat "cd document-builder-package && \
       make clean && \
       make deploy"
 
-  } else if (platform == 'linux_64') {
+  } else if (platform == "linux_64") {
 
     sh "cd document-builder-package && \
       make clean && \
@@ -279,19 +279,19 @@ def buildBuilder(String platform) {
 def buildServer(String platform = 'native', String edition='community') {
   String productName
   switch(edition) {
-    case 'community':   productName = 'DocumentServer'; break
-    case 'enterprise':  productName = 'DocumentServer-EE'; break
-    case 'developer':   productName = 'DocumentServer-DE'; break
+    case "community":   productName = "DocumentServer"; break
+    case "enterprise":  productName = "DocumentServer-EE"; break
+    case "developer":   productName = "DocumentServer-DE"; break
   }
 
-  if (platform == 'win_64') {
+  if (platform == "win_64") {
 
     bat "cd document-server-package && \
       set \"PRODUCT_NAME=${productName}\" && \
       make clean && \
       make deploy"
 
-  } else if (platform == 'linux_64') {
+  } else if (platform == "linux_64") {
 
     sh "cd document-server-package && \
       export PRODUCT_NAME=${productName.toLowerCase()} && \
@@ -307,9 +307,9 @@ def buildServer(String platform = 'native', String edition='community') {
 
   def deployData = readJSON file: "document-server-package/deploy.json"
   switch(edition) {
-    case 'community':  deployMap.server_ce.addAll(deployData.items); break
-    case 'enterprise': deployMap.server_ee.addAll(deployData.items); break
-    case 'developer':  deployMap.server_de.addAll(deployData.items); break
+    case "community":  deployMap.server_ce.addAll(deployData.items); break
+    case "enterprise": deployMap.server_ee.addAll(deployData.items); break
+    case "developer":  deployMap.server_de.addAll(deployData.items); break
   }
 }
 
