@@ -432,7 +432,7 @@ def genHtml(ArrayList deployList) {
     url = "https://s3.eu-west-1.amazonaws.com/${env.S3_BUCKET}/${p.path}"
     html += """\
       |    <dt>${p.title}</dt>
-      |    <dd><a href="${url}">${p.path}</a></dd>
+      |    <dd><a href="${url}" target="_blank">${p.path}</a></dd>
       |""".stripMargin()
   }
 
