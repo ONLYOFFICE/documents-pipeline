@@ -45,7 +45,7 @@ listRepos = [
 
 return this
 
-def checkoutRepo(Map repo, String branch = 'master') {
+void checkoutRepo(Map repo, String branch = 'master') {
   if (repo.dir == null) repo.dir = repo.name
   checkout([
     $class: 'GitSCM',
@@ -61,13 +61,13 @@ def checkoutRepo(Map repo, String branch = 'master') {
   ])
 }
 
-def checkoutRepos(String branch = 'master') {
+void checkoutRepos(String branch = 'master') {
   for (repo in listRepos) {
     checkoutRepo(repo, branch)
   }
 }
 
-def tagRepos(String tag) {
+void tagRepos(String tag) {
   for (repo in listRepos) {
     sh "cd ${repo.dir} && \
       git tag -l | xargs git tag -d && \
@@ -132,7 +132,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
 
 // Build
 
-def build(String platform, String license = 'opensource') {
+void build(String platform, String license = 'opensource') {
   Boolean isUnix = isUnix()
 
   if (platform.startsWith("win")) {
@@ -184,7 +184,7 @@ def build(String platform, String license = 'opensource') {
 
 // Build Packages
 
-def buildEditors (String platform) {
+void buildEditors (String platform) {
   if (platform.startsWith("win")) {
 
     bat "cd desktop-apps && \
@@ -257,7 +257,7 @@ def buildEditors (String platform) {
   }
 }
 
-def buildBuilder(String platform) {
+void buildBuilder(String platform) {
   if (platform in ["win_64", "win_32"]) {
 
     bat "cd document-builder-package && \
@@ -276,7 +276,7 @@ def buildBuilder(String platform) {
   deployMap.builder.addAll(deployData.items)
 }
 
-def buildServer(String platform = 'native', String edition='community') {
+void buildServer(String platform = 'native', String edition='community') {
   String productName
   switch(edition) {
     case "community":   productName = "DocumentServer"; break
@@ -313,7 +313,7 @@ def buildServer(String platform = 'native', String edition='community') {
   }
 }
 
-def buildAndroid(String branch = 'master', String config = 'release') {
+void buildAndroid(String branch = 'master', String config = 'release') {
   if (params.wipe) {
     sh "docker image rm -f onlyoffice/android-core-builder"
   }
@@ -359,7 +359,7 @@ def buildAndroid(String branch = 'master', String config = 'release') {
 
 // Tests
 
-def linuxTest() {
+void linuxTest() {
   checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing'], 'master')
   sh "docker rmi doc-builder-testing || true"
   sh "cd doc-builder-testing && \
@@ -369,7 +369,7 @@ def linuxTest() {
 
 // Reports
 
-def createReports() {
+void createReports() {
   Boolean editors = !deployMap.editors.isEmpty()
   Boolean builder = !deployMap.builder.isEmpty()
   Boolean server_ce = !deployMap.server_ce.isEmpty()
@@ -445,7 +445,7 @@ def genHtml(ArrayList deployList) {
   return html
 }
 
-def publishReport(String title, String files, String dir = '') {
+void publishReport(String title, String files, String dir = '') {
   publishHTML([
     allowMissing: false,
     alwaysLinkToLastBuild: false,
@@ -469,7 +469,7 @@ def getJobStats(String jobStatus) {
   return text
 }
 
-def sendTelegramMessage(String text, String chatId, Boolean markdown = true) {
+void sendTelegramMessage(String text, String chatId, Boolean markdown = true) {
   sh label: "Send Telegram Message", script: "curl -X POST -s -S \
     -d chat_id=${chatId} \
     ${markdown ? '-d parse_mode=markdown' : ''} \
