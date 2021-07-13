@@ -185,74 +185,57 @@ void build(String platform, String license = 'opensource') {
 // Build Packages
 
 void buildEditors (String platform) {
+  String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
+  String product = "editors"
+  String fplatform
+
   if (platform.startsWith("win")) {
 
     bat "cd desktop-apps && \
       make clean-package && \
-      make deploy"
+      make packages"
 
-    def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
-    if (deployMap.editors == null) deployMap.editors = []
-    deployMap.editors.addAll(deployData.items)
+    if (platform.startsWith("win_64") fplatform = "Windows x64" else
+    if (platform.startsWith("win_32") fplatform = "Windows x86"
+
+    dir ("desktop-apps/win-linux/package/windows") {
+      uploadFiles("*.exe", "windows/", product, fplatform, "Installer")
+      uploadFiles("*.zip", "windows/", product, fplatform, "Portable")
+      uploadFiles("update/*.exe,update/*.xml,update/*.html",
+        "windows/editors/${version}/", product, fplatform, "WinSparkle")
+    }
 
   } else if (platform == "mac_64") {
 
     sh "cd build_tools && ./make_packages.py"
 
-    sh """#!/bin/bash -xe
-      cd desktop-apps/macos/build
+    String package = (env._X86 != 1) ? "ONLYOFFICE" : "ONLYOFFICE-x86"
+    String subdir = (env._X86 != 1) ? "editors_x64" : "editors_x86"
+    fplatform = (env._X86 != 1) ? "macOS x64" : "macOS x86"
 
-      PACKAGE_NAME="ONLYOFFICE\${_X86:+"-x86"}"
-      DEPLOY_TITLE="macOS\${_X86:+" x86"}"
-
-      S3_SECTION_DIR="onlyoffice/\$RELEASE_BRANCH/macos"
-      S3_UPDATES_DIR="\$S3_SECTION_DIR/update/editors\${_X86:+"_x86"}/\$PRODUCT_VERSION.\$BUILD_NUMBER"
-      APP_VERSION=\$(mdls -name kMDItemVersion -raw ONLYOFFICE.app)
-      DMG="\$PACKAGE_NAME-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
-      ZIP="\$PACKAGE_NAME-\$APP_VERSION.zip"
-      APPCAST="onlyoffice.xml"
-      CHANGES_EN="\$PACKAGE_NAME-\$APP_VERSION.html"
-      CHANGES_RU="\$PACKAGE_NAME-\$APP_VERSION.ru.html"
-
-      aws s3 cp --no-progress --acl public-read \
-        ONLYOFFICE.dmg s3://\$S3_BUCKET/\$S3_SECTION_DIR/\$DMG
-
-      aws s3 sync --no-progress --acl public-read \
-        update s3://\$S3_BUCKET/\$S3_UPDATES_DIR
-
-      echo -e "platform,title,path" > deploy.csv
-      echo -e "macos,\$DEPLOY_TITLE DMG,\$S3_SECTION_DIR/\$DMG" >> deploy.csv
-      echo -e "macos,\$DEPLOY_TITLE ZIP,\$S3_UPDATES_DIR/\$ZIP" >> deploy.csv
-      for i in update/*.delta; do
-        DELTA=\$(basename \$i)
-        echo -e "macos,\$DEPLOY_TITLE \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
-      done
-      echo -e "macos,\$DEPLOY_TITLE Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
-      if [[ -f update/\$CHANGES_EN ]]; then
-        echo -e "macos,\$DEPLOY_TITLE Release Notes EN,\$S3_UPDATES_DIR/\$CHANGES_EN" >> deploy.csv
-      fi
-      if [[ -f update/\$CHANGES_RU ]]; then
-        echo -e "macos,\$DEPLOY_TITLE Release Notes RU,\$S3_UPDATES_DIR/\$CHANGES_RU" >> deploy.csv
-      fi
-    """
-
-    def deployData = readCSV file: "desktop-apps/macos/build/deploy.csv", format: CSVFormat.DEFAULT.withHeader()
-    for(item in deployData) {
-      def temp = [ 
-        platform: item.get('platform'),
-        title: item.get('title'),
-        path: item.get('path') ]
-      deployMap.editors.add(temp)
+    dir ("desktop-apps/macos/build") {
+      uploadFiles("*.dmg",
+        "macos/${package}-${version}.dmg", product, fplatform, "Disk Image")
+      uploadFiles("update/*.zip,update/*.delta,update/*.xml,update/*.html",
+        "macos/${subdir}/${version}/", product, fplatform, "Sparkle")
     }
 
   } else if (platform == "linux_64") {
 
     sh "cd desktop-apps/win-linux/package/linux && \
       make clean && \
-      make deploy"
+      make packages"
 
-    def deployData = readJSON file: "desktop-apps/win-linux/package/linux/deploy.json"
-    deployMap.editors.addAll(deployData.items)
+    fplatform = "Linux x64"
+
+    dir ("desktop-apps/win-linux/package/linux") {
+      uploadFiles("deb/*.deb",        "ubuntu/",   product, fplatform, "Ubuntu")
+      uploadFiles("rpm/**/*.rpm",     "centos/",   product, fplatform, "CentOS")
+      uploadFiles("apt-rpm/**/*.rpm", "altlinux/", product, fplatform, "AltLinux")
+      uploadFiles("urpmi/**/*.rpm",   "rosa/",     product, fplatform, "Rosa")
+      uploadFiles("tar/*.tar.gz",     "linux/",    product, fplatform, "Portable")
+      // uploadFiles("deb-astra/*.deb", "astralinux/", product, fplatform, "AstraLinux Signed")
+    }
 
   }
 }
