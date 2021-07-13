@@ -313,18 +313,15 @@ void buildServer(String platform = 'native', String edition='community') {
 }
 
 void buildAndroid(String branch = 'master', String config = 'release') {
-  if (params.wipe) {
-    sh "docker image rm -f onlyoffice/android-core-builder"
-  }
+  String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
+
+  if (params.wipe) sh "docker image rm -f onlyoffice/android-core-builder"
 
   sh """#!/bin/bash -xe
     [[ ! -d android/workspace ]] && mkdir -p android/workspace
     cd android
 
-    rm -rf \
-      workspace/build_tools/out \
-      index.html \
-      *.zip
+    rm -rf workspace/build_tools/out *.zip
   """
 
   def dockerRunOptions = []
@@ -336,24 +333,12 @@ void buildAndroid(String branch = 'master', String config = 'release') {
     sh "docker logs -f ${c.id}"
   }
 
-  String androidLibsFile = "android-libs-${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}.zip"
-  String androidLibsUri = "onlyoffice/${env.RELEASE_BRANCH}/android/${androidLibsFile}"
+  sh "cd android/workspace/build_tools/out && \
+    zip -r ../../../android-libs-${version}.zip ./android* ./js"
 
-  sh """#!/bin/bash -xe
-    cd android
-    pushd workspace/build_tools/out
-    zip -r ../../../${androidLibsFile} ./android* ./js
-    popd
-
-    aws s3 cp --no-progress --acl public-read \
-      ${androidLibsFile} s3://\$S3_BUCKET/${androidLibsUri}
-  """
-
-  deployMap.android.add([
-    platform: 'android',
-    title: 'Android libs',
-    path: androidLibsUri
-  ])
+  dir ("android") {
+    uploadFiles("*.zip", "android/", "android", "Android", "Libs")
+  }
 }
 
 // Tests
