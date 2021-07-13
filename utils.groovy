@@ -241,22 +241,38 @@ void buildEditors (String platform) {
 }
 
 void buildBuilder(String platform) {
-  if (platform in ["win_64", "win_32"]) {
+  String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
+  String product = "editors"
+  String fplatform
+
+  if (platform.startsWith("win")) {
 
     bat "cd document-builder-package && \
       make clean && \
-      make deploy"
+      make packages"
+
+    fplatform = "Windows x64"
+
+    dir ("document-builder-package") {
+      uploadFiles("exe/*.exe", "windows/", product, fplatform, "Installer")
+      uploadFiles("zip/*.zip", "windows/", product, fplatform, "Portable")
+    }
 
   } else if (platform == "linux_64") {
 
     sh "cd document-builder-package && \
       make clean && \
-      make deploy"
+      make packages"
+
+    fplatform = "Linux x64"
+
+    dir ("document-builder-package") {
+      uploadFiles("deb/*.deb",    "ubuntu/", product, fplatform, "Ubuntu")
+      uploadFiles("rpm/**/*.rpm", "centos/", product, fplatform, "CentOS")
+      uploadFiles("tar/*.tar.gz", "linux/",  product, fplatform, "Portable")
+    }
 
   }
-
-  def deployData = readJSON file: "document-builder-package/deploy.json"
-  deployMap.builder.addAll(deployData.items)
 }
 
 void buildServer(String platform = 'native', String edition='community') {
