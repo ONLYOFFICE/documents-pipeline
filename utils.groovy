@@ -133,7 +133,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
 // Build
 
 void build(String platform, String license = 'opensource') {
-  Boolean isUnix = isUnix()
+  Boolean isUnix = false
 
   if (platform.startsWith("win")) {
 
@@ -146,6 +146,7 @@ void build(String platform, String license = 'opensource') {
     sh "cd build_tools && \
       ./configure.py ${getConfigArgs(platform, license)} && \
       ./make.py"
+    isUnix = true
 
   }
 
@@ -153,19 +154,19 @@ void build(String platform, String license = 'opensource') {
     String os, arch, version
     String branch = env.BRANCH_NAME
 
-    if      (platform.startsWith("win"))   os = "windows"
-    else if (platform.startsWith("mac"))   os = "mac"
-    else if (platform.startsWith("linux")) os = "linux"
+    if (platform.startsWith("win"))   os = "windows" else
+    if (platform.startsWith("mac"))   os = "mac"     else
+    if (platform.startsWith("linux")) os = "linux"
 
     if (platform in ["win_64", "win_32"])
-      version = "${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}"
-    else if (platform in ["linux_64", "mac_64"])
+      version = "${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}" else
+    if (platform in ["linux_64", "mac_64"])
       version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
 
-    if      (platform.endsWith("_32")) arch = "x86"
-    else if (platform.endsWith("_64")) arch = "x64"
+    if (platform.endsWith("_32")) arch = "x86" else
+    if (platform.endsWith("_64")) arch = "x64"
 
-    def deployPath = {
+    Closure deployPath = {
       return "repo-doc-onlyoffice-com/${os}/core/${branch}/${it}/${arch}"
     }
 
