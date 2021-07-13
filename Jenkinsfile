@@ -44,6 +44,7 @@ node('master') {
 pipeline {
   agent none
   environment {
+    COMPANY_NAME = 'ONLYOFFICE'
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
   }
   options {
@@ -492,7 +493,7 @@ pipeline {
           build (
             job: 'repo-manager',
             parameters: [
-              string (name: 'company', value: 'onlyoffice'),
+              string (name: 'company', value: env.COMPANY_NAME.toLowerCase()),
               string (name: 'branch', value: env.RELEASE_BRANCH)
             ],
             wait: false
