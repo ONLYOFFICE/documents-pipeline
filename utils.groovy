@@ -407,93 +407,83 @@ void linuxTest() {
 
 // Reports
 
-void createReports() {
-  Boolean editors = !deployMap.editors.isEmpty()
-  Boolean builder = !deployMap.builder.isEmpty()
-  Boolean server_ce = !deployMap.server_ce.isEmpty()
-  Boolean server_ee = !deployMap.server_ee.isEmpty()
-  Boolean server_de = !deployMap.server_de.isEmpty()
-  Boolean android = !deployMap.android.isEmpty()
+void generateReports() {
+  Map deploy = listDeploy.groupBy { it.product }
+
+  Boolean editors = deploy.editors != null
+  Boolean builder = deploy.builder != null
+  Boolean server_ce = deploy.server_ce != null
+  Boolean server_ee = deploy.server_ee != null
+  Boolean server_de = deploy.server_de != null
+  Boolean android = deploy.android != null
 
   dir ("html") {
-    deleteDir()
-
     sh """
+      rm -fv *.html
       test -f style.css || wget -nv https://unpkg.com/style.css -O style.css
-      test -f custom.css || echo \"body { margin: 16px; }\" > custom.css
     """
 
-    if (editors) {
-      writeFile file: "editors.html", text: genHtml(deploy.editors)
-      publishReport("DesktopEditors", "editors.html")
-    }
-    if (builder) {
-      writeFile file: "builder.html", text: genHtml(deploy.builder)
-      publishReport("DocumentBuilder", "builder.html")
-    }
+    if (editors)
+      publishReport("DesktopEditors", ["editors.html": deploy.editors])
+    if (builder)
+      publishReport("DocumentBuilder", ["builder.html": deploy.builder])
     if (server_ce || server_ee || server_de) {
-      ArrayList serverIndexFiles = []
-      if (server_ce) {
-        writeFile file: "server_ce.html", text: genHtml(deploy.server_ce)
-        serverIndexFiles.add("server_ce.html")
-      }
-      if (server_ee) {
-        writeFile file: "server_ee.html", text: genHtml(deploy.server_ee)
-        serverIndexFiles.add("server_ee.html")
-      }
-      if (server_de) {
-        writeFile file: "server_de.html", text: genHtml(deploy.server_de)
-        serverIndexFiles.add("server_de.html")
-      }
-      publishReport("DocumentServer", serverIndexFiles.join(","))
+      Map serverReports
+      if (server_ce) serverReports."server_ce.html" = deploy.server_ce
+      if (server_ee) serverReports."server_ee.html" = deploy.server_ee
+      if (server_de) serverReports."server_de.html" = deploy.server_de
+      publishReport("DocumentServer", serverReports)
     }
-    if (android) {
-      writeFile file: "android.html", text: genHtml(deploy.android)
-      publishReport("Android", "android.html")
-    }
+    if (android)
+      publishReport("Android", ["android.html": deploy.android])
   }
 }
 
-def genHtml(ArrayList deployList) {
-  String url = ''
-  String html = """\
-    |<html>
-    |<head>
-    |  <link rel="stylesheet" href="style.css">
-    |  <link rel="stylesheet" href="custom.css">
-    |<head>
-    |<body>
-    |  <dl>
-    |""".stripMargin()
-
-  for(p in deployList) {
-    url = "https://s3.eu-west-1.amazonaws.com/${env.S3_BUCKET}/${p.path}"
-    html += """\
-      |    <dt>${p.title}</dt>
-      |    <dd><a href="${url}" target="_blank">${p.path}</a></dd>
-      |""".stripMargin()
+void publishReport(String title, Map files) {
+  files.each {
+    writeFile file: it.key, text: getHtml(it.value)
   }
-
-  html += """\
-    |  </dl>
-    |</body>
-    |</html>
-    |""".stripMargin()
-
-  return html
-}
-
-void publishReport(String title, String files, String dir = '') {
   publishHTML([
     allowMissing: false,
     alwaysLinkToLastBuild: false,
-    includes: "${files},*.css",
+    includes: files.collect({ it.key }).join(',') + ",*.css",
     keepAll: true,
-    reportDir: dir,
-    reportFiles: files,
+    reportDir: '',
+    reportFiles: files.collect({ it.key }).join(','),
     reportName: title,
     reportTitles: ''
   ])
+}
+
+def getHtml(ArrayList data) {
+  String text, url
+  Closure size = {
+    return sh (script: "LANG=C numfmt --to=iec-i ${it}", returnStdout: true).trim()
+  }
+
+  text = "<html>\n<head>" \
+    + "\n  <link rel=\"stylesheet\" href=\"style.css\">" \
+    + "\n  <style type=\"text/css\">body { margin: 24px; }</style>" \
+    + "\n<head>\n<body>"
+  data.groupBy { it.platform }.each { platform, sections ->
+    text += "\n  <h3>${platform}</h3>\n  <ul>"
+    sections.groupBy { it.section }.each { section, files ->
+      text += "\n    <li><b>${section}</b></li>\n    <ul>"
+      files.each {
+        url = "https://s3.${s3region}.amazonaws.com/${it.path}"
+        text += "\n      <li>" \
+          + "\n        <a href=\"${url}\">${it.file}</a>" \
+          + ", Size: ${size(it.size)}B" \
+          + ", MD5: <code>${it.md5}</code>" \
+          + "\n      </li>"
+      }
+      text += "\n    </ul>"
+    }
+    text += "\n  </ul>"
+  }
+  text += "\n</body>\n</html>"
+
+  return text
 }
 
 // Notifications

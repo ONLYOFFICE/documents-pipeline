@@ -482,7 +482,7 @@ pipeline {
     always {
       node('master') {
         script {
-          utils.createReports()
+          utils.generateReports()
         }
       }
       script {
