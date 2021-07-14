@@ -209,9 +209,9 @@ void buildEditors (String platform) {
 
     sh "cd build_tools && ./make_packages.py"
 
-    String package = (env._X86 != '1') ? "ONLYOFFICE" : "ONLYOFFICE-x86"
-    String subdir = (env._X86 != '1') ? "editors_x64" : "editors_x86"
-    fplatform = (env._X86 != '1') ? "macOS x64" : "macOS x86"
+    String package = env._X86 != '1' ? "ONLYOFFICE" : "ONLYOFFICE-x86"
+    String subdir = env._X86 != '1' ? "editors_x64" : "editors_x86"
+    fplatform = env._X86 != '1' ? "macOS x64" : "macOS x86"
 
     dir ("desktop-apps/macos/build") {
       uploadFiles("${package}.dmg",
