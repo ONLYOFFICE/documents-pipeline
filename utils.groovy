@@ -360,6 +360,41 @@ void buildAndroid(String branch = 'master', String config = 'release') {
   }
 }
 
+// Deploy
+
+void uploadFiles(String glob, String dest, String product, String platform, String section) {
+  String s3uri
+  Closure cmdUpload = { local, remote ->
+    String cmd = "aws s3 cp --acl public-read --no-progress ${local} s3://${remote}"
+    if (platform ==~ /^Windows.*/) bat cmd else sh cmd
+  }
+  Closure cmdMd5sum = {
+    if (platform ==~ /^Windows.*/) {
+      return bat (script: "md5sum ${it} | cut -c -32", returnStdout: true).trim()
+    } else if (platform ==~ /^macOS.*/) {
+      return sh (script: "md5 -qs ${it}", returnStdout: true).trim()
+    } else {
+      return sh (script: "md5sum ${it} | cut -c -32", returnStdout: true).trim()
+    }
+  }
+
+  findFiles(glob: glob).each {
+    s3uri = "${s3deploy}/${dest}${dest.endsWith('/') ? it.name : ''}"
+    cmdUpload(it.path, s3uri)
+
+    listDeploy.add([
+      product: product,
+      platform: platform,
+      section: section,
+      path: s3uri,
+      file: it.name,
+      size: it.length,
+      md5: cmdMd5sum(it.path)
+      // sha256: cmdSha256sum(it.path)
+    ])
+  }
+}
+
 // Tests
 
 void linuxTest() {
