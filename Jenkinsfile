@@ -171,14 +171,10 @@ pipeline {
         script {
           if (params.signing) env.ENABLE_SIGNING=1
 
-          deployMap = [
-            editors: [],
-            builder: [],
-            server_ce: [],
-            server_ee: [],
-            server_de: [],
-            android: []
-          ]
+          s3region = "eu-west-1"
+          s3bucket = "repo-doc-onlyoffice-com"
+          s3deploy = "${s3bucket}/${env.COMPANY_NAME.toLowerCase()}/${env.RELEASE_BRANCH}"
+          listDeploy = []
           stageStats = [:]
         }
       }
@@ -486,7 +482,7 @@ pipeline {
     always {
       node('master') {
         script {
-          utils.createReports()
+          utils.generateReports()
         }
       }
       script {
