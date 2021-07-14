@@ -166,17 +166,17 @@ void build(String platform, String license = 'opensource') {
     if (platform.endsWith("_32")) arch = "x86" else
     if (platform.endsWith("_64")) arch = "x64"
 
-    Closure deployPath = {
-      return "repo-doc-onlyoffice-com/${os}/core/${branch}/${it}/${arch}"
+    Closure coreDeployPath = {
+      return "${env.S3_BUCKET}/${os}/core/${branch}/${it}/${arch}"
     }
 
     String cmdUpload = """
       aws s3 cp --acl public-read --no-progress \
         build_tools/out/${platform}/onlyoffice/core/core.7z \
-        s3://${deployPath(version)}/
+        s3://${coreDeployPath(version)}/
       aws s3 sync --delete --acl public-read --no-progress \
-        s3://${deployPath(version)}/ \
-        s3://${deployPath('latest')}/
+        s3://${coreDeployPath(version)}/ \
+        s3://${coreDeployPath('latest')}/
     """
 
     if (isUnix) sh cmdUpload else bat cmdUpload
