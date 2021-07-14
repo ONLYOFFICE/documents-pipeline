@@ -15,7 +15,6 @@ listRepos = [
   [name: 'onlyoffice'],
   [name: 'plugin-autocomplete',  dir: 'sdkjs-plugins/plugin-autocomplete'],
   [name: 'plugin-easybib',       dir: 'sdkjs-plugins/plugin-easybib'],
-  [name: 'plugin-glavred',       dir: 'sdkjs-plugins/plugin-glavred'],
   [name: 'plugin-highlightcode', dir: 'sdkjs-plugins/plugin-highlightcode'],
   [name: 'plugin-macros',        dir: 'sdkjs-plugins/plugin-macros'],
   [name: 'plugin-mendeley',      dir: 'sdkjs-plugins/plugin-mendeley'],
