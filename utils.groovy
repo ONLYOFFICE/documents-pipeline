@@ -185,103 +185,113 @@ void build(String platform, String license = 'opensource') {
 // Build Packages
 
 void buildEditors (String platform) {
+  String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
+  String product = "editors"
+  String fplatform
+
   if (platform.startsWith("win")) {
 
     bat "cd desktop-apps && \
       make clean-package && \
-      make deploy"
+      make packages"
 
-    def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
-    if (deployMap.editors == null) deployMap.editors = []
-    deployMap.editors.addAll(deployData.items)
+    if (platform.startsWith("win_64") fplatform = "Windows x64" else
+    if (platform.startsWith("win_32") fplatform = "Windows x86"
+
+    dir ("desktop-apps/win-linux/package/windows") {
+      uploadFiles("*.exe", "windows/", product, fplatform, "Installer")
+      uploadFiles("*.zip", "windows/", product, fplatform, "Portable")
+      uploadFiles("update/*.exe,update/*.xml,update/*.html",
+        "windows/editors/${version}/", product, fplatform, "WinSparkle")
+    }
 
   } else if (platform == "mac_64") {
 
     sh "cd build_tools && ./make_packages.py"
 
-    sh """#!/bin/bash -xe
-      cd desktop-apps/macos/build
+    String package = (env._X86 != '1') ? "ONLYOFFICE" : "ONLYOFFICE-x86"
+    String subdir = (env._X86 != '1') ? "editors_x64" : "editors_x86"
+    fplatform = (env._X86 != '1') ? "macOS x64" : "macOS x86"
 
-      PACKAGE_NAME="ONLYOFFICE\${_X86:+"-x86"}"
-      DEPLOY_TITLE="macOS\${_X86:+" x86"}"
-
-      S3_SECTION_DIR="onlyoffice/\$RELEASE_BRANCH/macos"
-      S3_UPDATES_DIR="\$S3_SECTION_DIR/update/editors\${_X86:+"_x86"}/\$PRODUCT_VERSION.\$BUILD_NUMBER"
-      APP_VERSION=\$(mdls -name kMDItemVersion -raw ONLYOFFICE.app)
-      DMG="\$PACKAGE_NAME-\$PRODUCT_VERSION-\$BUILD_NUMBER.dmg"
-      ZIP="\$PACKAGE_NAME-\$APP_VERSION.zip"
-      APPCAST="onlyoffice.xml"
-      CHANGES_EN="\$PACKAGE_NAME-\$APP_VERSION.html"
-      CHANGES_RU="\$PACKAGE_NAME-\$APP_VERSION.ru.html"
-
-      aws s3 cp --no-progress --acl public-read \
-        ONLYOFFICE.dmg s3://\$S3_BUCKET/\$S3_SECTION_DIR/\$DMG
-
-      aws s3 sync --no-progress --acl public-read \
-        update s3://\$S3_BUCKET/\$S3_UPDATES_DIR
-
-      echo -e "platform,title,path" > deploy.csv
-      echo -e "macos,\$DEPLOY_TITLE DMG,\$S3_SECTION_DIR/\$DMG" >> deploy.csv
-      echo -e "macos,\$DEPLOY_TITLE ZIP,\$S3_UPDATES_DIR/\$ZIP" >> deploy.csv
-      for i in update/*.delta; do
-        DELTA=\$(basename \$i)
-        echo -e "macos,\$DEPLOY_TITLE \$DELTA,\$S3_UPDATES_DIR/\$DELTA" >> deploy.csv
-      done
-      echo -e "macos,\$DEPLOY_TITLE Appcast,\$S3_UPDATES_DIR/\$APPCAST" >> deploy.csv
-      if [[ -f update/\$CHANGES_EN ]]; then
-        echo -e "macos,\$DEPLOY_TITLE Release Notes EN,\$S3_UPDATES_DIR/\$CHANGES_EN" >> deploy.csv
-      fi
-      if [[ -f update/\$CHANGES_RU ]]; then
-        echo -e "macos,\$DEPLOY_TITLE Release Notes RU,\$S3_UPDATES_DIR/\$CHANGES_RU" >> deploy.csv
-      fi
-    """
-
-    def deployData = readCSV file: "desktop-apps/macos/build/deploy.csv", format: CSVFormat.DEFAULT.withHeader()
-    for(item in deployData) {
-      def temp = [ 
-        platform: item.get('platform'),
-        title: item.get('title'),
-        path: item.get('path') ]
-      deployMap.editors.add(temp)
+    dir ("desktop-apps/macos/build") {
+      uploadFiles("${package}.dmg",
+        "macos/${package}-${version}.dmg", product, fplatform, "Disk Image")
+      uploadFiles("update/*.zip,update/*.delta,update/*.xml,update/*.html",
+        "macos/${subdir}/${version}/", product, fplatform, "Sparkle")
     }
 
   } else if (platform == "linux_64") {
 
     sh "cd desktop-apps/win-linux/package/linux && \
       make clean && \
-      make deploy"
+      make packages"
 
-    def deployData = readJSON file: "desktop-apps/win-linux/package/linux/deploy.json"
-    deployMap.editors.addAll(deployData.items)
+    fplatform = "Linux x64"
+
+    dir ("desktop-apps/win-linux/package/linux") {
+      uploadFiles("deb/*.deb",        "ubuntu/",   product, fplatform, "Ubuntu")
+      uploadFiles("rpm/**/*.rpm",     "centos/",   product, fplatform, "CentOS")
+      uploadFiles("apt-rpm/**/*.rpm", "altlinux/", product, fplatform, "AltLinux")
+      uploadFiles("urpmi/**/*.rpm",   "rosa/",     product, fplatform, "Rosa")
+      uploadFiles("tar/*.tar.gz",     "linux/",    product, fplatform, "Portable")
+      // uploadFiles("deb-astra/*.deb", "astralinux/", product, fplatform, "AstraLinux Signed")
+    }
 
   }
 }
 
 void buildBuilder(String platform) {
-  if (platform in ["win_64", "win_32"]) {
+  String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
+  String product = "editors"
+  String fplatform
+
+  if (platform.startsWith("win")) {
 
     bat "cd document-builder-package && \
       make clean && \
-      make deploy"
+      make packages"
+
+    fplatform = "Windows x64"
+
+    dir ("document-builder-package") {
+      uploadFiles("exe/*.exe", "windows/", product, fplatform, "Installer")
+      uploadFiles("zip/*.zip", "windows/", product, fplatform, "Portable")
+    }
 
   } else if (platform == "linux_64") {
 
     sh "cd document-builder-package && \
       make clean && \
-      make deploy"
+      make packages"
+
+    fplatform = "Linux x64"
+
+    dir ("document-builder-package") {
+      uploadFiles("deb/*.deb",    "ubuntu/", product, fplatform, "Ubuntu")
+      uploadFiles("rpm/**/*.rpm", "centos/", product, fplatform, "CentOS")
+      uploadFiles("tar/*.tar.gz", "linux/",  product, fplatform, "Portable")
+    }
 
   }
-
-  def deployData = readJSON file: "document-builder-package/deploy.json"
-  deployMap.builder.addAll(deployData.items)
 }
 
-void buildServer(String platform = 'native', String edition='community') {
-  String productName
+void buildServer(String platform, String edition='community') {
+  String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
+  String product, productName
+
   switch(edition) {
-    case "community":   productName = "DocumentServer"; break
-    case "enterprise":  productName = "DocumentServer-EE"; break
-    case "developer":   productName = "DocumentServer-DE"; break
+    case "community":
+      product = "server_ce"
+      productName = "DocumentServer"
+      break
+    case "enterprise":
+      product = "server_ee"
+      productName = "DocumentServer-EE"
+      break
+    case "developer":
+      product = "server_de"
+      productName = "DocumentServer-DE"
+      break
   }
 
   if (platform == "win_64") {
@@ -289,14 +299,29 @@ void buildServer(String platform = 'native', String edition='community') {
     bat "cd document-server-package && \
       set \"PRODUCT_NAME=${productName}\" && \
       make clean && \
-      make deploy"
+      make packages"
+
+    fplatform = "Windows x64"
+
+    dir ("document-server-package") {
+      uploadFiles("exe/*.exe", "windows/", product, fplatform, "Installer")
+    }
 
   } else if (platform == "linux_64") {
 
     sh "cd document-server-package && \
       export PRODUCT_NAME=${productName.toLowerCase()} && \
       make clean && \
-      make deploy"
+      make packages"
+
+    fplatform = "Linux x64"
+
+    dir ("document-server-package") {
+      uploadFiles("deb/*.deb",        "ubuntu/",   product, fplatform, "Ubuntu")
+      uploadFiles("rpm/**/*.rpm",     "centos/",   product, fplatform, "CentOS")
+      uploadFiles("apt-rpm/**/*.rpm", "altlinux/", product, fplatform, "AltLinux")
+      uploadFiles("*.tar.gz",         "linux/",    product, fplatform, "Portable")
+    }
 
     sh "cd Docker-DocumentServer && \
       export PRODUCT_NAME=${productName.toLowerCase()} && \
@@ -304,28 +329,18 @@ void buildServer(String platform = 'native', String edition='community') {
       make deploy"
 
   }
-
-  def deployData = readJSON file: "document-server-package/deploy.json"
-  switch(edition) {
-    case "community":  deployMap.server_ce.addAll(deployData.items); break
-    case "enterprise": deployMap.server_ee.addAll(deployData.items); break
-    case "developer":  deployMap.server_de.addAll(deployData.items); break
-  }
 }
 
 void buildAndroid(String branch = 'master', String config = 'release') {
-  if (params.wipe) {
-    sh "docker image rm -f onlyoffice/android-core-builder"
-  }
+  String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
+
+  if (params.wipe) sh "docker image rm -f onlyoffice/android-core-builder"
 
   sh """#!/bin/bash -xe
     [[ ! -d android/workspace ]] && mkdir -p android/workspace
     cd android
 
-    rm -rf \
-      workspace/build_tools/out \
-      index.html \
-      *.zip
+    rm -rf workspace/build_tools/out *.zip
   """
 
   def dockerRunOptions = []
@@ -337,24 +352,47 @@ void buildAndroid(String branch = 'master', String config = 'release') {
     sh "docker logs -f ${c.id}"
   }
 
-  String androidLibsFile = "android-libs-${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}.zip"
-  String androidLibsUri = "onlyoffice/${env.RELEASE_BRANCH}/android/${androidLibsFile}"
+  sh "cd android/workspace/build_tools/out && \
+    zip -r ../../../android-libs-${version}.zip ./android* ./js"
 
-  sh """#!/bin/bash -xe
-    cd android
-    pushd workspace/build_tools/out
-    zip -r ../../../${androidLibsFile} ./android* ./js
-    popd
+  dir ("android") {
+    uploadFiles("*.zip", "android/", "android", "Android", "Libs")
+  }
+}
 
-    aws s3 cp --no-progress --acl public-read \
-      ${androidLibsFile} s3://\$S3_BUCKET/${androidLibsUri}
-  """
+// Upload
 
-  deployMap.android.add([
-    platform: 'android',
-    title: 'Android libs',
-    path: androidLibsUri
-  ])
+void uploadFiles(String glob, String dest, String product, String platform, String section) {
+  String s3uri
+  Closure cmdUpload = { local, remote ->
+    String cmd = "aws s3 cp --acl public-read --no-progress ${local} s3://${remote}"
+    if (platform ==~ /^Windows.*/) bat cmd else sh cmd
+  }
+  Closure cmdMd5sum = {
+    if (platform ==~ /^Windows.*/) {
+      return bat (script: "md5sum ${it} | cut -c -32", returnStdout: true).trim()
+    } else if (platform ==~ /^macOS.*/) {
+      return sh (script: "md5 -qs ${it}", returnStdout: true).trim()
+    } else {
+      return sh (script: "md5sum ${it} | cut -c -32", returnStdout: true).trim()
+    }
+  }
+
+  findFiles(glob: glob).each {
+    s3uri = "${s3deploy}/${dest}${dest.endsWith('/') ? it.name : ''}"
+    cmdUpload(it.path, s3uri)
+
+    listDeploy.add([
+      product: product,
+      platform: platform,
+      section: section,
+      path: s3uri,
+      file: it.name,
+      size: it.length,
+      md5: cmdMd5sum(it.path)
+      // sha256: cmdSha256sum(it.path)
+    ])
+  }
 }
 
 // Tests
@@ -369,93 +407,83 @@ void linuxTest() {
 
 // Reports
 
-void createReports() {
-  Boolean editors = !deployMap.editors.isEmpty()
-  Boolean builder = !deployMap.builder.isEmpty()
-  Boolean server_ce = !deployMap.server_ce.isEmpty()
-  Boolean server_ee = !deployMap.server_ee.isEmpty()
-  Boolean server_de = !deployMap.server_de.isEmpty()
-  Boolean android = !deployMap.android.isEmpty()
+void generateReports() {
+  Map deploy = listDeploy.groupBy { it.product }
+
+  Boolean editors = deploy.editors != null
+  Boolean builder = deploy.builder != null
+  Boolean server_ce = deploy.server_ce != null
+  Boolean server_ee = deploy.server_ee != null
+  Boolean server_de = deploy.server_de != null
+  Boolean android = deploy.android != null
 
   dir ("html") {
-    deleteDir()
-
     sh """
+      rm -fv *.html
       test -f style.css || wget -nv https://unpkg.com/style.css -O style.css
-      test -f custom.css || echo \"body { margin: 16px; }\" > custom.css
     """
 
-    if (editors) {
-      writeFile file: "editors.html", text: genHtml(deploy.editors)
-      publishReport("DesktopEditors", "editors.html")
-    }
-    if (builder) {
-      writeFile file: "builder.html", text: genHtml(deploy.builder)
-      publishReport("DocumentBuilder", "builder.html")
-    }
+    if (editors)
+      publishReport("DesktopEditors", ["editors.html": deploy.editors])
+    if (builder)
+      publishReport("DocumentBuilder", ["builder.html": deploy.builder])
     if (server_ce || server_ee || server_de) {
-      ArrayList serverIndexFiles = []
-      if (server_ce) {
-        writeFile file: "server_ce.html", text: genHtml(deploy.server_ce)
-        serverIndexFiles.add("server_ce.html")
-      }
-      if (server_ee) {
-        writeFile file: "server_ee.html", text: genHtml(deploy.server_ee)
-        serverIndexFiles.add("server_ee.html")
-      }
-      if (server_de) {
-        writeFile file: "server_de.html", text: genHtml(deploy.server_de)
-        serverIndexFiles.add("server_de.html")
-      }
-      publishReport("DocumentServer", serverIndexFiles.join(","))
+      Map serverReports
+      if (server_ce) serverReports."server_ce.html" = deploy.server_ce
+      if (server_ee) serverReports."server_ee.html" = deploy.server_ee
+      if (server_de) serverReports."server_de.html" = deploy.server_de
+      publishReport("DocumentServer", serverReports)
     }
-    if (android) {
-      writeFile file: "android.html", text: genHtml(deploy.android)
-      publishReport("Android", "android.html")
-    }
+    if (android)
+      publishReport("Android", ["android.html": deploy.android])
   }
 }
 
-def genHtml(ArrayList deployList) {
-  String url = ''
-  String html = """\
-    |<html>
-    |<head>
-    |  <link rel="stylesheet" href="style.css">
-    |  <link rel="stylesheet" href="custom.css">
-    |<head>
-    |<body>
-    |  <dl>
-    |""".stripMargin()
-
-  for(p in deployList) {
-    url = "https://s3.eu-west-1.amazonaws.com/${env.S3_BUCKET}/${p.path}"
-    html += """\
-      |    <dt>${p.title}</dt>
-      |    <dd><a href="${url}" target="_blank">${p.path}</a></dd>
-      |""".stripMargin()
+void publishReport(String title, Map files) {
+  files.each {
+    writeFile file: it.key, text: getHtml(it.value)
   }
-
-  html += """\
-    |  </dl>
-    |</body>
-    |</html>
-    |""".stripMargin()
-
-  return html
-}
-
-void publishReport(String title, String files, String dir = '') {
   publishHTML([
     allowMissing: false,
     alwaysLinkToLastBuild: false,
-    includes: "${files},*.css",
+    includes: files.collect({ it.key }).join(',') + ",*.css",
     keepAll: true,
-    reportDir: dir,
-    reportFiles: files,
+    reportDir: '',
+    reportFiles: files.collect({ it.key }).join(','),
     reportName: title,
     reportTitles: ''
   ])
+}
+
+def getHtml(ArrayList data) {
+  String text, url
+  Closure size = {
+    return sh (script: "LANG=C numfmt --to=iec-i ${it}", returnStdout: true).trim()
+  }
+
+  text = "<html>\n<head>" \
+    + "\n  <link rel=\"stylesheet\" href=\"style.css\">" \
+    + "\n  <style type=\"text/css\">body { margin: 24px; }</style>" \
+    + "\n<head>\n<body>"
+  data.groupBy { it.platform }.each { platform, sections ->
+    text += "\n  <h3>${platform}</h3>\n  <ul>"
+    sections.groupBy { it.section }.each { section, files ->
+      text += "\n    <li><b>${section}</b></li>\n    <ul>"
+      files.each {
+        url = "https://s3.${s3region}.amazonaws.com/${it.path}"
+        text += "\n      <li>" \
+          + "\n        <a href=\"${url}\">${it.file}</a>" \
+          + ", Size: ${size(it.size)}B" \
+          + ", MD5: <code>${it.md5}</code>" \
+          + "\n      </li>"
+      }
+      text += "\n    </ul>"
+    }
+    text += "\n  </ul>"
+  }
+  text += "\n</body>\n</html>"
+
+  return text
 }
 
 // Notifications
