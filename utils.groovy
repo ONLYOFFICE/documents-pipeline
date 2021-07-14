@@ -195,8 +195,8 @@ void buildEditors (String platform) {
       make clean-package && \
       make packages"
 
-    if (platform.startsWith("win_64") fplatform = "Windows x64" else
-    if (platform.startsWith("win_32") fplatform = "Windows x86"
+    if (platform.startsWith("win_64")) fplatform = "Windows x64" else
+    if (platform.startsWith("win_32")) fplatform = "Windows x86"
 
     dir ("desktop-apps/win-linux/package/windows") {
       uploadFiles("*.exe", "windows/", product, fplatform, "Installer")
