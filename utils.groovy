@@ -275,12 +275,23 @@ void buildBuilder(String platform) {
   }
 }
 
-void buildServer(String platform = 'native', String edition='community') {
-  String productName
+void buildServer(String platform, String edition='community') {
+  String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
+  String product, productName
+
   switch(edition) {
-    case "community":   productName = "DocumentServer"; break
-    case "enterprise":  productName = "DocumentServer-EE"; break
-    case "developer":   productName = "DocumentServer-DE"; break
+    case "community":
+      product = "server_ce"
+      productName = "DocumentServer"
+      break
+    case "enterprise":
+      product = "server_ee"
+      productName = "DocumentServer-EE"
+      break
+    case "developer":
+      product = "server_de"
+      productName = "DocumentServer-DE"
+      break
   }
 
   if (platform == "win_64") {
@@ -288,27 +299,35 @@ void buildServer(String platform = 'native', String edition='community') {
     bat "cd document-server-package && \
       set \"PRODUCT_NAME=${productName}\" && \
       make clean && \
-      make deploy"
+      make packages"
+
+    fplatform = "Windows x64"
+
+    dir ("document-server-package") {
+      uploadFiles("exe/*.exe", "windows/", product, fplatform, "Installer")
+    }
 
   } else if (platform == "linux_64") {
 
     sh "cd document-server-package && \
       export PRODUCT_NAME=${productName.toLowerCase()} && \
       make clean && \
-      make deploy"
+      make packages"
+
+    fplatform = "Linux x64"
+
+    dir ("document-server-package") {
+      uploadFiles("deb/*.deb",        "ubuntu/",   product, fplatform, "Ubuntu")
+      uploadFiles("rpm/**/*.rpm",     "centos/",   product, fplatform, "CentOS")
+      uploadFiles("apt-rpm/**/*.rpm", "altlinux/", product, fplatform, "AltLinux")
+      uploadFiles("*.tar.gz",         "linux/",    product, fplatform, "Portable")
+    }
 
     sh "cd Docker-DocumentServer && \
       export PRODUCT_NAME=${productName.toLowerCase()} && \
       make clean && \
       make deploy"
 
-  }
-
-  def deployData = readJSON file: "document-server-package/deploy.json"
-  switch(edition) {
-    case "community":  deployMap.server_ce.addAll(deployData.items); break
-    case "enterprise": deployMap.server_ee.addAll(deployData.items); break
-    case "developer":  deployMap.server_de.addAll(deployData.items); break
   }
 }
 
