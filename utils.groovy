@@ -209,12 +209,12 @@ void buildEditors (String platform) {
 
     sh "cd build_tools && ./make_packages.py"
 
-    String package = (env._X86 != 1) ? "ONLYOFFICE" : "ONLYOFFICE-x86"
-    String subdir = (env._X86 != 1) ? "editors_x64" : "editors_x86"
-    fplatform = (env._X86 != 1) ? "macOS x64" : "macOS x86"
+    String package = (env._X86 != '1') ? "ONLYOFFICE" : "ONLYOFFICE-x86"
+    String subdir = (env._X86 != '1') ? "editors_x64" : "editors_x86"
+    fplatform = (env._X86 != '1') ? "macOS x64" : "macOS x86"
 
     dir ("desktop-apps/macos/build") {
-      uploadFiles("*.dmg",
+      uploadFiles("${package}.dmg",
         "macos/${package}-${version}.dmg", product, fplatform, "Disk Image")
       uploadFiles("update/*.zip,update/*.delta,update/*.xml,update/*.html",
         "macos/${subdir}/${version}/", product, fplatform, "Sparkle")
@@ -360,7 +360,7 @@ void buildAndroid(String branch = 'master', String config = 'release') {
   }
 }
 
-// Deploy
+// Upload
 
 void uploadFiles(String glob, String dest, String product, String platform, String section) {
   String s3uri
