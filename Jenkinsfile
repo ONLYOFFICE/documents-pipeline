@@ -1,4 +1,6 @@
 defaults = [
+  branch:        'experimental',
+  version:       '99.99.99',
   clean:         true,
   linux:         true,
   macos_64:      true,
@@ -22,6 +24,7 @@ defaults = [
 
 if (BRANCH_NAME == 'develop') {
   defaults.putAll([
+    branch:        'unstable',
     macos_64:      false,
     macos_86:      false,
     android:       false,
@@ -33,7 +36,11 @@ if (BRANCH_NAME == 'develop') {
 }
 
 if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
-  defaults.schedule = 'H 23 * * *'
+  defaults.putAll([
+    branch:        'testing',
+    version:       BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
+    schedule:      'H 23 * * *'
+  ])
 }
 
 node('master') {
@@ -44,8 +51,11 @@ node('master') {
 pipeline {
   agent none
   environment {
-    COMPANY_NAME = 'ONLYOFFICE'
+    COMPANY_NAME = "ONLYOFFICE"
+    RELEASE_BRANCH = "${defaults.branch}"
+    PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
+    S3_BUCKET = "repo-doc-onlyoffice-com"
   }
   options {
     buildDiscarder logRotator(daysToKeepStr: '90', artifactDaysToKeepStr: '30')
@@ -159,15 +169,6 @@ pipeline {
     stage('Prepare') {
       steps {
         script {
-          def branchName = env.BRANCH_NAME
-          def productVersion = "99.99.99"
-          def pV = branchName =~ /^(release|hotfix)\\/v(.*)$/
-          if (pV.find()) productVersion = pV.group(2)
-          env.PRODUCT_VERSION = productVersion
-
-          env.S3_BUCKET = 'repo-doc-onlyoffice-com'
-          env.RELEASE_BRANCH = branchName == 'develop' ? 'unstable' : 'testing'
-
           if (params.signing) env.ENABLE_SIGNING=1
 
           deployMap = [
