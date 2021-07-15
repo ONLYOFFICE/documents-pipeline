@@ -383,7 +383,9 @@ void uploadFiles(String glob, String dest, String product, String platform, Stri
   }
   Closure cmdMd5sum = {
     if (platform ==~ /^Windows.*/) {
-      return bat (script: "md5sum ${it} | cut -c -32", returnStdout: true).trim()
+      return powershell (
+        script: "Get-FileHash ${it} -Algorithm MD5 | Select -ExpandProperty Hash",
+        returnStdout: true).trim()
     } else if (platform ==~ /^macOS.*/) {
       return sh (script: "md5 -qs ${it}", returnStdout: true).trim()
     } else {
