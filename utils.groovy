@@ -264,7 +264,8 @@ void buildBuilder(String platform) {
       make clean && \
       make packages"
 
-    fplatform = "Windows x64"
+    if (platform.startsWith("win_64")) fplatform = "Windows x64" else
+    if (platform.startsWith("win_32")) fplatform = "Windows x86"
 
     dir ("document-builder-package") {
       uploadFiles("exe/*.exe", "windows/", product, fplatform, "Installer")
@@ -376,7 +377,7 @@ void buildAndroid(String branch = 'master', String config = 'release') {
 // Upload
 
 void uploadFiles(String glob, String dest, String product, String platform, String section) {
-  String s3uri
+  String s3uri, file
   Closure cmdUpload = { local, remote ->
     String cmd = "aws s3 cp --acl public-read --no-progress ${local} s3://${remote}"
     if (platform ==~ /^Windows.*/) bat cmd else sh cmd
@@ -395,6 +396,7 @@ void uploadFiles(String glob, String dest, String product, String platform, Stri
 
   findFiles(glob: glob).each {
     s3uri = "${s3deploy}/${dest}${dest.endsWith('/') ? it.name : ''}"
+    file = dest.endsWith('/') ? it.name : dest.drop(dest.lastIndexOf('/')+1)
     cmdUpload(it.path, s3uri)
 
     listDeploy.add([
@@ -402,7 +404,7 @@ void uploadFiles(String glob, String dest, String product, String platform, Stri
       platform: platform,
       section: section,
       path: s3uri,
-      file: it.name,
+      file: file,
       size: it.length,
       md5: cmdMd5sum(it.path)
       // sha256: cmdSha256sum(it.path)
