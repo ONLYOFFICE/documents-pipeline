@@ -1,7 +1,8 @@
 defaults = [
   clean:         true,
   linux:         true,
-  macos:         true,
+  macos_64:      true,
+  macos_86:      true,
   windows_64:    true,
   windows_32:    true,
   windows_64_xp: true,
@@ -12,7 +13,6 @@ defaults = [
   builder:       true,
   server_ce:     true,
   server_ee:     true,
-  server_ie:     true,
   server_de:     true,
   beta:          false,
   test:          false,
@@ -20,17 +20,19 @@ defaults = [
   schedule:      'H 17 * * *'
 ]
 
-if (BRANCH_NAME == 'develop') {
+if ('develop' == BRANCH_NAME) {
   defaults.putAll([
-    macos:         false,
+    macos_64:      false,
+    macos_86:      false,
     android:       false,
+    core:          false,
     builder:       false,
     server_ce:     false,
-    server_ie:     false,
     server_de:     false,
     beta:          true
   ])
 }
+
 if (BRANCH_NAME.startsWith('hotfix') || BRANCH_NAME.startsWith('release')) {
   defaults.schedule = 'H 23 * * *'
 }
@@ -42,6 +44,9 @@ node('master') {
 
 pipeline {
   agent none
+  environment {
+    TELEGRAM_TOKEN = credentials('telegram-bot-token')
+  }
   options {
     buildDiscarder logRotator(daysToKeepStr: '90', artifactDaysToKeepStr: '30')
   }
@@ -62,9 +67,14 @@ pipeline {
       defaultValue: defaults.linux
     )
     booleanParam (
-      name:         'macos',
+      name:         'macos_64',
       description:  'Build macOS targets',
-      defaultValue: defaults.macos
+      defaultValue: defaults.macos_64
+    )
+    booleanParam (
+      name:         'macos_86',
+      description:  'Build macOS x86 targets',
+      defaultValue: defaults.macos_86
     )
     booleanParam (
       name:         'win_64',
@@ -165,15 +175,19 @@ pipeline {
 
           if (params.signing) env.ENABLE_SIGNING=1
 
-          tgMessageCore = "Build [${currentBuild.fullDisplayName}]" \
-            + "(${currentBuild.absoluteUrl}) failed"
           deployDesktopList = []
           deployBuilderList = []
           deployServerCeList = []
           deployServerEeList = []
           deployServerDeList = []
           deployAndroidList = []
+          stageStats = [:]
         }
+      }
+      post {
+        fixed   { script { utils.setStageStats('fixed')   } }
+        failure { script { utils.setStageStats('failure') } }
+        success { script { utils.setStageStats('success') } }
       }
     }
     stage('Build') {
@@ -231,12 +245,13 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Linux 64-bit" } }
-            failure { script { tgMessageCore += "\n🔴 Linux 64-bit" } }
+            fixed   { script { utils.setStageStats('fixed')   } }
+            failure { script { utils.setStageStats('failure') } }
+            success { script { utils.setStageStats('success') } }
           }
         }
         stage('macOS build') {
-          agent { label 'macos' }
+          agent { label 'macos_64' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
@@ -246,7 +261,7 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
           when {
-            expression { params.macos }
+            expression { params.macos_64 }
             beforeAgent true
           }
           steps {
@@ -272,8 +287,47 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 macOS" } }
-            failure { script { tgMessageCore += "\n🔴 macOS" } }
+            fixed   { script { utils.setStageStats('fixed')   } }
+            failure { script { utils.setStageStats('failure') } }
+            success { script { utils.setStageStats('success') } }
+          }
+        }
+        stage('macOS x86 build') {
+          agent { label 'macos_86' }
+          environment {
+            FASTLANE_DISABLE_COLORS = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+            _X86 = '1'
+          }
+          when {
+            expression { params.macos_86 }
+            beforeAgent true
+          }
+          steps {
+            script {
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktopeditor)
+                dir ('desktop-apps') { deleteDir() }
+
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "mac_64"
+
+              if (params.desktopeditor) {
+                utils.macosBuild(platform, "freemium")
+                utils.macosBuildDesktop()
+              }
+            }
+          }
+          post {
+            fixed   { script { utils.setStageStats('fixed')   } }
+            failure { script { utils.setStageStats('failure') } }
+            success { script { utils.setStageStats('success') } }
           }
         }
         stage('Windows 64-bit build') {
@@ -331,8 +385,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Windows 64-bit" } }
-            failure { script { tgMessageCore += "\n🔴 Windows 64-bit" } }
+            fixed   { script { utils.setStageStats('fixed')   } }
+            failure { script { utils.setStageStats('failure') } }
+            success { script { utils.setStageStats('success') } }
           }
         }
         stage('Windows 32-bit build') {
@@ -372,8 +427,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Windows 32-bit" } }
-            failure { script { tgMessageCore += "\n🔴 Windows 32-bit" } }
+            fixed   { script { utils.setStageStats('fixed')   } }
+            failure { script { utils.setStageStats('failure') } }
+            success { script { utils.setStageStats('success') } }
           }
         }
         stage('Windows XP 64-bit build') {
@@ -407,8 +463,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Windows XP 64-bit" } }
-            failure { script { tgMessageCore += "\n🔴 Windows XP 64-bit" } }
+            fixed   { script { utils.setStageStats('fixed')   } }
+            failure { script { utils.setStageStats('failure') } }
+            success { script { utils.setStageStats('success') } }
           }
         }
         stage('Windows XP 32-bit build') {
@@ -442,8 +499,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Windows XP 32-bit" } }
-            failure { script { tgMessageCore += "\n🔴 Windows XP 32-bit" } }
+            fixed   { script { utils.setStageStats('fixed')   } }
+            failure { script { utils.setStageStats('failure') } }
+            success { script { utils.setStageStats('success') } }
           }
         }
         stage('Android build') {
@@ -460,8 +518,9 @@ pipeline {
             }
           }
           post {
-            success { script { tgMessageCore += "\n🔵 Android" } }
-            failure { script { tgMessageCore += "\n🔴 Android" } }
+            fixed   { script { utils.setStageStats('fixed')   } }
+            failure { script { utils.setStageStats('failure') } }
+            success { script { utils.setStageStats('success') } }
           }
         }
       }
@@ -486,9 +545,18 @@ pipeline {
           )
       }
     }
+    fixed {
+      node('master') {
+        script {
+          utils.sendTelegramMessage(utils.getJobStats('fixed'), '-342815292')
+        }
+      }
+    }
     failure {
       node('master') {
-        telegramSend(message: tgMessageCore, chatId: -342815292)
+        script {
+          utils.sendTelegramMessage(utils.getJobStats('failure'), '-342815292')
+        }
       }
     }
   }
