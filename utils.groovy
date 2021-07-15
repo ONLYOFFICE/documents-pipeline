@@ -255,7 +255,7 @@ void buildEditors (String platform) {
 
 void buildBuilder(String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
-  String product = "editors"
+  String product = "builder"
   String fplatform
 
   if (platform.startsWith("win")) {
@@ -443,7 +443,7 @@ void generateReports() {
     if (builder)
       publishReport("DocumentBuilder", ["builder.html": deploy.builder])
     if (server_ce || server_ee || server_de) {
-      Map serverReports
+      Map serverReports = [:]
       if (server_ce) serverReports."server_ce.html" = deploy.server_ce
       if (server_ee) serverReports."server_ee.html" = deploy.server_ee
       if (server_de) serverReports."server_de.html" = deploy.server_de
