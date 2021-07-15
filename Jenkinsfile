@@ -4,7 +4,7 @@ defaults = [
   clean:         true,
   linux:         true,
   macos_64:      true,
-  macos_86:      false,
+  macos_86:      true,
   windows_64:    true,
   windows_32:    true,
   windows_64_xp: true,
