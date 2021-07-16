@@ -209,21 +209,21 @@ void buildEditors (String platform) {
 
     sh "cd build_tools && ./make_packages.py"
 
-    String packageName = env._X86 != '1' ? "ONLYOFFICE" : "ONLYOFFICE-x86"
+    String scheme = env._X86 != '1' ? "ONLYOFFICE" : "ONLYOFFICE-x86"
     String appName = "ONLYOFFICE"
     String appVersion = sh (
       script: "mdls -name kMDItemVersion -raw desktop-apps/macos/build/${appName}.app",
       returnStdout: true).trim()
-    String zipName = "${packageName}-${appVersion}"
+    String zipName = "${scheme}-${appVersion}"
     String subdir = env._X86 != '1' ? "editors_x64" : "editors_x86"
     fplatform = env._X86 != '1' ? "macOS x64" : "macOS x86"
 
     dir ("desktop-apps/macos/build") {
-      uploadFiles("${packageName}.dmg", "macos/${packageName}-${version}.dmg",
+      uploadFiles("${appName}.dmg", "macos/${scheme}-${version}.dmg",
         product, fplatform, "Disk Image")
       uploadFiles("update/${zipName}.zip", "macos/${subdir}/${version}/",
         product, fplatform, "Sparkle")
-      uploadFiles("update/*.delta", "macos/${subdir}/${version}/",
+      uploadFiles("update/${appName}*.delta", "macos/${subdir}/${version}/",
         product, fplatform, "Sparkle")
       uploadFiles("update/*.xml", "macos/${subdir}/${version}/",
         product, fplatform, "Sparkle")
