@@ -141,14 +141,12 @@ pipeline {
               } else {
                 dir ('repos/' + repo) {
                   checkoutRepo(repo)
+                  unprotectBranch(repo, branch)
                   pAction = mergeBranch(repo, branch, baseBranches)
                   status.primary = (pAction) ? 'success' : 'failure'
-                  if (pAction) {
-                    unprotectBranch(repo, branch)
-                    if (repo != 'ONLYOFFICE/documents-pipeline') {
-                      sAction = deleteBranch(repo, branch)
-                      status.secondary = (sAction) ? 'delete' : ''
-                    }
+                  if (pAction && repo.contains('documents-pipeline')) {
+                    sAction = deleteBranch(repo, branch)
+                    status.secondary = (sAction) ? 'delete' : ''
                   }
                 }
               }
