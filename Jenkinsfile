@@ -206,13 +206,12 @@ pipeline {
                 if (params.server_ce) utils.buildServer(platform)
               }
 
-              if (params.editors) {
-                utils.build(platform, "freemium")
-                utils.buildEditors(platform)
-              }
-
-              if (params.server_ee || params.server_de) {
+              if (params.editors || params.server_ee || params.server_de) {
                 utils.build(platform, "commercial")
+
+                if (params.editors) {
+                  utils.buildEditors(platform)
+                }
                 if (params.server_ee) {
                   utils.buildServer(platform, "enterprise")
                   utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
@@ -257,7 +256,7 @@ pipeline {
                 utils.build(platform)
 
               if (params.editors) {
-                utils.build(platform, "freemium")
+                utils.build(platform, "commercial")
                 utils.buildEditors(platform)
               }
 
@@ -294,7 +293,7 @@ pipeline {
               String platform = "mac_64"
 
               if (params.editors) {
-                utils.build(platform, "freemium")
+                utils.build(platform, "commercial")
                 utils.buildEditors(platform)
               }
 
@@ -332,13 +331,9 @@ pipeline {
                 if (params.server_ce) utils.buildServer(platform)
               }
 
-              if (params.editors) {
-                utils.build(platform, "freemium")
-                utils.buildEditors(platform)
-              }
-
-              if (params.server_ee || params.server_de) {
+              if (params.editors || params.server_ee || params.server_de) {
                 utils.build(platform, "commercial")
+				if (params.editors)   utils.buildEditors(platform)
                 if (params.server_ee) utils.buildServer(platform, "enterprise")
                 if (params.server_de) utils.buildServer(platform, "developer")
               }
@@ -377,7 +372,7 @@ pipeline {
               }
 
               if (params.editors) {
-                utils.build(platform, "freemium")
+                utils.build(platform, "commercial")
                 utils.buildEditors(platform)
               }
 
@@ -413,7 +408,7 @@ pipeline {
               String platform = "win_64_xp"
 
               if (params.editors) {
-                utils.build(platform, "freemium")
+                utils.build(platform, "commercial")
                 utils.buildEditors(platform)
               }
 
@@ -449,7 +444,7 @@ pipeline {
               String platform = "win_32_xp"
 
               if (params.editors) {
-                utils.build(platform, "freemium")
+                utils.build(platform, "commercial")
                 utils.buildEditors(platform)
               }
 
