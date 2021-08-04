@@ -1,16 +1,16 @@
-def checkoutRepo(Map repo, String branch = 'master') {
-  if (repo.dir == null) repo.dir = repo.name
+def checkoutRepo(String name, String branch = 'master', String dir) {
+  if (dir == null) dir = name.drop(name.lastIndexOf('/')+1)
   checkout([
     $class: 'GitSCM',
     branches: [[name: branch]],
     doGenerateSubmoduleConfigurations: false,
     extensions: [
       [$class: 'SubmoduleOption', recursiveSubmodules: true],
-      [$class: 'RelativeTargetDirectory', relativeTargetDir: repo.dir],
-      [$class: 'ScmName', name: "${repo.owner}/${repo.name}"]
+      [$class: 'RelativeTargetDirectory', relativeTargetDir: dir],
+      [$class: 'ScmName', name: "${name}"]
     ],
     submoduleCfg: [],
-    userRemoteConfigs: [[url: "git@github.com:${repo.owner}/${repo.name}.git"]]
+    userRemoteConfigs: [[url: "git@github.com:${name}.git"]]
   ])
 }
 
@@ -58,9 +58,35 @@ listRepos = [
 
 return this
 
-def checkoutRepos(String branch = 'master') {    
-  for (repo in listRepos) {
-    checkoutRepo(repo, branch)
+def checkoutRepos(String platform, String branch = 'master') {
+  def checkoutReposList = []
+  String reposOutput
+  ArrayList repo
+  checkoutRepo("ONLYOFFICE/build_tools", branch)
+  checkoutRepo("ONLYOFFICE/onlyoffice", branch)
+
+  if (platform.startsWith("win")) {
+    reposOutput = bat(
+      script: "cd build_tools/scripts/develop && call python print_repositories.py",
+      returnStdout: true
+    )
+  } else if (platform in ["mac_64", "linux_64"]) {
+    reposOutput = sh(
+      script: "cd build_tools/scripts/develop && ./print_repositories.py",
+      returnStdout: true
+    )
+  }
+
+  reposOutput.trim().split("\\n").each { line ->
+    repo = line.split(" ")
+    if (repo[1] == null)
+      checkoutReposList.add([name: "ONLYOFFICE/${repo[0]}"])
+    else
+      checkoutReposList.add([name: "ONLYOFFICE/${repo[0]}", dir: "${repo[1]}/${repo[0]}"])
+  }
+
+  checkoutReposList.each { repo ->
+    checkoutRepo(repo.name, branch, repo.dir)
   }
 }
 
