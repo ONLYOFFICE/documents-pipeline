@@ -96,7 +96,7 @@ def checkoutRepos(String platform, String branch = 'master') {
     )
   }
 
-  reposOutput.trim().split("\\n").each { line ->
+  reposOutput.readLines().each { line ->
     ArrayList repo = line.split(" ")
     if (repo[1] == null)
       checkoutReposList.add([name: "ONLYOFFICE/${repo[0]}"])
