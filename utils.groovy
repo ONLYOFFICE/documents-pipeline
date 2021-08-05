@@ -59,34 +59,53 @@ listRepos = [
 return this
 
 def checkoutRepos(String platform, String branch = 'master') {
+  ArrayList modules = []
   def checkoutReposList = []
-  String reposOutput
-  ArrayList repo
+
   checkoutRepo("ONLYOFFICE/build_tools", branch)
   checkoutRepo("ONLYOFFICE/onlyoffice", branch)
 
+  if (params.core && platform in ["win_64", "win_32", "mac_64", "linux_64"])
+    modules.add("core")
+  if (params.desktopeditor)
+    modules.add("desktop")
+  if (params.documentserver || params.documentserver_ie
+    || params.documentserver_de || params.documentserver_ee
+    && platform in ["win_64", "linux_64"])
+    modules.add("server")
+  if (params.documentbuilder && platform in ["win_64", "win_32", "linux_64"])
+    modules.add("builder")
+
   if (platform.startsWith("win")) {
-    reposOutput = bat(
-      script: "cd build_tools/scripts/develop && call python print_repositories.py",
+    String reposOutput = bat(
+      script: "cd build_tools/scripts/develop && \
+        call python print_repositories.py \
+          --module \"${modules}\" \
+          --platform \"${platform}\" \
+          --branding \"onlyoffice\"",
       returnStdout: true
     )
   } else if (platform in ["mac_64", "linux_64"]) {
-    reposOutput = sh(
-      script: "cd build_tools/scripts/develop && ./print_repositories.py",
+    String reposOutput = sh(
+      script: "cd build_tools/scripts/develop && \
+        ./print_repositories.py \
+          --module \"${modules}\" \
+          --platform \"${platform}\" \
+          --branding \"onlyoffice\"",
       returnStdout: true
     )
   }
 
   reposOutput.trim().split("\\n").each { line ->
-    repo = line.split(" ")
+    ArrayList repo = line.split(" ")
     if (repo[1] == null)
       checkoutReposList.add([name: "ONLYOFFICE/${repo[0]}"])
     else
       checkoutReposList.add([name: "ONLYOFFICE/${repo[0]}", dir: "${repo[1]}/${repo[0]}"])
   }
 
-  checkoutReposList.each { repo ->
-    checkoutRepo(repo.name, branch, repo.dir)
+  checkoutReposList.each {
+    checkoutRepo(it.name, branch, it.dir)
   }
 }
 
