@@ -1,5 +1,4 @@
-def checkoutRepo(String name, String branch = 'master', String dir) {
-  if (dir == null) dir = name.drop(name.lastIndexOf('/')+1)
+def checkoutRepo(String name, String branch = 'master', String dir = name.minus('ONLYOFFICE/')) {
   checkout([
     $class: 'GitSCM',
     branches: [[name: branch]],
@@ -80,7 +79,7 @@ def checkoutRepos(String platform, String branch = 'master') {
     String reposOutput = bat(
       script: "cd build_tools/scripts/develop && \
         call python print_repositories.py \
-          --module \"${modules.join(' ')}}\" \
+          --module \"${modules.join(' ')}\" \
           --platform \"${platform}\" \
           --branding \"onlyoffice\"",
       returnStdout: true
@@ -89,7 +88,7 @@ def checkoutRepos(String platform, String branch = 'master') {
     String reposOutput = sh(
       script: "cd build_tools/scripts/develop && \
         ./print_repositories.py \
-          --module \"${modules.join(' ')}}\" \
+          --module \"${modules.join(' ')}\" \
           --platform \"${platform}\" \
           --branding \"onlyoffice\"",
       returnStdout: true
