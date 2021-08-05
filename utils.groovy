@@ -1,4 +1,4 @@
-def checkoutRepo(String name, String branch = 'master', String dir = name.minus('ONLYOFFICE/')) {
+def checkoutRepo(String name, String branch = 'master', String dir = name.minus(~/^.+\//)) {
   checkout([
     $class: 'GitSCM',
     branches: [[name: branch]],
@@ -58,8 +58,9 @@ listRepos = [
 return this
 
 def checkoutRepos(String platform, String branch = 'master') {
-  ArrayList modules = []
   def checkoutReposList = []
+  ArrayList modules = []
+  String reposOutput
 
   checkoutRepo("ONLYOFFICE/build_tools", branch)
   checkoutRepo("ONLYOFFICE/onlyoffice", branch)
@@ -76,7 +77,7 @@ def checkoutRepos(String platform, String branch = 'master') {
     modules.add("builder")
 
   if (platform.startsWith("win")) {
-    String reposOutput = bat(
+    reposOutput = bat(
       script: "cd build_tools/scripts/develop && \
         call python print_repositories.py \
           --module \"${modules.join(' ')}\" \
@@ -85,7 +86,7 @@ def checkoutRepos(String platform, String branch = 'master') {
       returnStdout: true
     )
   } else if (platform in ["mac_64", "linux_64"]) {
-    String reposOutput = sh(
+    reposOutput = sh(
       script: "cd build_tools/scripts/develop && \
         ./print_repositories.py \
           --module \"${modules.join(' ')}\" \
