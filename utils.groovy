@@ -80,7 +80,7 @@ def checkoutRepos(String platform, String branch = 'master') {
     String reposOutput = bat(
       script: "cd build_tools/scripts/develop && \
         call python print_repositories.py \
-          --module \"${modules}\" \
+          --module \"${modules.join(' ')}}\" \
           --platform \"${platform}\" \
           --branding \"onlyoffice\"",
       returnStdout: true
@@ -89,7 +89,7 @@ def checkoutRepos(String platform, String branch = 'master') {
     String reposOutput = sh(
       script: "cd build_tools/scripts/develop && \
         ./print_repositories.py \
-          --module \"${modules}\" \
+          --module \"${modules.join(' ')}}\" \
           --platform \"${platform}\" \
           --branding \"onlyoffice\"",
       returnStdout: true
