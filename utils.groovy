@@ -77,9 +77,9 @@ def checkoutRepos(String platform, String branch = 'master') {
     modules.add("builder")
 
   if (platform.startsWith("win")) {
-    reposOutput = bat(
-      script: "cd build_tools/scripts/develop && \
-        call python print_repositories.py \
+    reposOutput = powershell(
+      script: "cd build_tools\\scripts\\develop; \
+        python print_repositories.py \
           --module \"${modules.join(' ')}\" \
           --platform \"${platform}\" \
           --branding \"onlyoffice\"",
