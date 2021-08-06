@@ -104,8 +104,11 @@ def checkoutRepos(String platform, String branch = 'master') {
       checkoutReposList.add([name: "ONLYOFFICE/${repo[0]}", dir: "${repo[1]}/${repo[0]}"])
   }
 
+  println checkoutReposList
+
   checkoutReposList.each {
-    checkoutRepo(it.name, branch, it.dir)
+    if (it.dir == null) checkoutRepo(it.name, branch)
+    else checkoutRepo(it.name, branch, it.dir)
   }
 }
 
