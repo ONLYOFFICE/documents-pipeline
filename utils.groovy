@@ -204,6 +204,7 @@ void buildEditors (String platform) {
 
   } else if (platform == "mac_64") {
 
+    sh "cd ~/Library/Developer/Xcode/Archives && rm -rfv *"
     sh "cd build_tools && ./make_packages.py"
 
     String scheme = env._X86 != '1' ? "ONLYOFFICE" : "ONLYOFFICE-x86"
