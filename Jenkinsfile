@@ -13,7 +13,6 @@ defaults = [
   builder:       true,
   server_ce:     true,
   server_ee:     true,
-  server_ie:     false,
   server_de:     true,
   beta:          false,
   test:          false,
@@ -29,7 +28,6 @@ if ('develop' == BRANCH_NAME) {
     core:          false,
     builder:       false,
     server_ce:     false,
-    server_ie:     false,
     server_de:     false,
     beta:          true
   ])
@@ -207,9 +205,9 @@ pipeline {
               else if (params.clean && params.desktopeditor)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "linux_64"
+
+              utils.checkoutRepos(platform, env.BRANCH_NAME)
 
               if (params.core
                   || params.documentbuilder
@@ -256,6 +254,7 @@ pipeline {
           agent { label 'macos_64' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
             APPLE_ID = credentials('macos-apple-id')
             TEAM_ID = credentials('macos-team-id')
             FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
@@ -272,9 +271,9 @@ pipeline {
               else if (params.clean && params.desktopeditor)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "mac_64"
+
+              utils.checkoutRepos(platform, env.BRANCH_NAME)
 
               if (params.core) {
                 utils.macosBuild(platform)
@@ -315,9 +314,9 @@ pipeline {
               else if (params.clean && params.desktopeditor)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "mac_64"
+
+              utils.checkoutRepos(platform, env.BRANCH_NAME)
 
               if (params.desktopeditor) {
                 utils.macosBuild(platform, "freemium")
@@ -349,9 +348,9 @@ pipeline {
               else if (params.clean && params.desktopeditor)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "win_64"
+
+              utils.checkoutRepos(platform, env.BRANCH_NAME)
 
               if (params.core
                   || params.documentbuilder
@@ -409,9 +408,9 @@ pipeline {
               else if (params.clean && params.desktopeditor)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "win_32"
+
+              utils.checkoutRepos(platform, env.BRANCH_NAME)
 
               if (params.core || params.documentbuilder) {
                 utils.windowsBuild(platform)
@@ -454,9 +453,10 @@ pipeline {
               else if (params.clean && params.desktopeditor)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "win_64_xp"
+
+              utils.checkoutRepos(platform, env.BRANCH_NAME)
+
               if (params.desktopeditor) {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
@@ -490,9 +490,10 @@ pipeline {
               else if (params.clean && params.desktopeditor)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "win_32_xp"
+
+              utils.checkoutRepos(platform, env.BRANCH_NAME)
+
               if (params.desktopeditor) {
                 utils.windowsBuild(platform, "freemium")
                 utils.windowsBuildDesktop(platform)
@@ -506,7 +507,7 @@ pipeline {
           }
         }
         stage('Android build') {
-          agent { label 'linux_64' }
+          agent { label 'android' }
           when {
             expression { params.android && params.core }
             beforeAgent true

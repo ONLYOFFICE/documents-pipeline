@@ -1,15 +1,28 @@
-def checkoutRepo(Map repo, String branch = 'master') {
+def checkoutRepo(String name, String branch = 'master', String dir = name.minus(~/^.+\//)) {
+  String resolvedBranch
+  if (branch != 'master') {
+    resolvedBranch = resolveScm(
+      source: [
+        $class: 'GitSCMSource',
+        remote: "git@github.com:${name}.git",
+        traits: [gitBranchDiscovery()]
+      ],
+      targets: [branch, 'master']
+    ).branches[0]
+  } else {
+    resolvedBranch = 'master'
+  }
   checkout([
     $class: 'GitSCM',
-    branches: [[name: branch]],
+    branches: [[name: 'refs/heads/' + resolvedBranch]],
     doGenerateSubmoduleConfigurations: false,
     extensions: [
       [$class: 'SubmoduleOption', recursiveSubmodules: true],
-      [$class: 'RelativeTargetDirectory', relativeTargetDir: repo.dir],
-      [$class: 'ScmName', name: "${repo.owner}/${repo.name}"]
+      [$class: 'RelativeTargetDirectory', relativeTargetDir: dir],
+      [$class: 'ScmName', name: "${name}"]
     ],
     submoduleCfg: [],
-    userRemoteConfigs: [[url: "git@github.com:${repo.owner}/${repo.name}.git"]]
+    userRemoteConfigs: [[url: "git@github.com:${name}.git"]]
   ])
 }
 
@@ -23,7 +36,7 @@ listRepos = [
   [name: 'document-builder-package'],
   [name: 'document-server-integration'],
   [name: 'document-server-package'],
-  // [name: 'document-templates'],
+  [name: 'document-templates'],
   [name: 'documents-pipeline'],
   [name: 'onlyoffice'],
   [name: 'plugin-autocomplete',  dir: 'sdkjs-plugins/plugin-autocomplete'],
@@ -53,14 +66,62 @@ listRepos = [
   [name: 'DocumentBuilder']
 ].each {
   if (it.owner == null) it.owner = 'ONLYOFFICE'
-  if (it.dir == null)   it.dir = it.name
 }
 
 return this
 
-def checkoutRepos(String branch = 'master') {    
-  for (repo in listRepos) {
-    checkoutRepo(repo, branch)
+def checkoutRepos(String platform, String branch = 'master') {
+  def checkoutReposList = []
+  ArrayList modules = []
+  String reposOutput
+
+  checkoutRepo("ONLYOFFICE/build_tools", branch)
+  checkoutRepo("ONLYOFFICE/onlyoffice", branch)
+
+  if (params.core && platform in ["win_64", "win_32", "mac_64", "linux_64"])
+    modules.add("core")
+  if (params.desktopeditor)
+    modules.add("desktop")
+  if (params.documentserver || params.documentserver_ie
+    || params.documentserver_de || params.documentserver_ee
+    && platform in ["win_64", "linux_64"])
+    modules.add("server")
+  if (params.documentbuilder && platform in ["win_64", "win_32", "linux_64"])
+    modules.add("builder")
+
+  if (platform.startsWith("win")) {
+    reposOutput = powershell(
+      script: "cd build_tools\\scripts\\develop; \
+        python print_repositories.py \
+          --module \"${modules.join(' ')}\" \
+          --platform \"${platform}\" \
+          --branding \"onlyoffice\"",
+      returnStdout: true
+    )
+  } else if (platform in ["mac_64", "linux_64"]) {
+    reposOutput = sh(
+      script: "cd build_tools/scripts/develop && \
+        ./print_repositories.py \
+          --module \"${modules.join(' ')}\" \
+          --platform \"${platform}\" \
+          --branding \"onlyoffice\"",
+      returnStdout: true
+    )
+  }
+
+  reposOutput.readLines().each { line ->
+    ArrayList repo = line.split(" ")
+    if (repo[1] == null)
+      checkoutReposList.add([name: "ONLYOFFICE/${repo[0]}"])
+    else
+      checkoutReposList.add([name: "ONLYOFFICE/${repo[0]}", dir: "${repo[1]}/${repo[0]}"])
+  }
+
+  println checkoutReposList
+
+  checkoutReposList.each {
+    if (it.dir == null) checkoutRepo(it.name, branch)
+    else checkoutRepo(it.name, branch, it.dir)
   }
 }
 
@@ -72,8 +133,6 @@ def tagRepos(String tag) {
       git tag ${tag} && \
       git push origin --tags"
   }
-
-  return this
 }
 
 def getConfParams(String platform, String license) {
@@ -129,13 +188,13 @@ def getConfParams(String platform, String license) {
 
 def linuxBuild(String platform = 'native', String license = 'opensource') {
   sh "cd build_tools && \
-    ./configure.py ${getConfParams(platform, license)} &&\
+    ./configure.py ${getConfParams(platform, license)} && \
     ./make.py"
 }
 
 def linuxBuildDesktop(String platform = 'native') {
-  sh "cd desktop-apps/win-linux/package/linux &&\
-    make clean &&\
+  sh "cd desktop-apps/win-linux/package/linux && \
+    make clean && \
     make deploy"
 
   def deployData = readJSON file: "desktop-apps/win-linux/package/linux/deploy.json"
@@ -147,8 +206,8 @@ def linuxBuildDesktop(String platform = 'native') {
 }
 
 def linuxBuildBuilder(String platform = 'native') {
-  sh "cd document-builder-package &&\
-    make clean &&\
+  sh "cd document-builder-package && \
+    make clean && \
     make deploy"
 
   def deployData = readJSON file: "document-builder-package/deploy.json"
@@ -189,10 +248,9 @@ def linuxBuildServer(String platform = 'native', String productName='documentser
 }
 
 def linuxTest() {
-  checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing',
-    dir: 'doc-builder-testing'], 'master')
+  checkoutRepo('ONLYOFFICE/doc-builder-testing', 'master')
   sh "docker rmi doc-builder-testing || true"
-  sh "cd doc-builder-testing &&\
+  sh "cd doc-builder-testing && \
     docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
     docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
 }
@@ -255,14 +313,14 @@ def macosBuildDesktop(String platform = 'native') {
 }
 
 def windowsBuild(String platform = 'native', String license = 'opensource') {
-  bat "cd build_tools &&\
-    call python configure.py ${getConfParams(platform, license)} &&\
+  bat "cd build_tools && \
+    call python configure.py ${getConfParams(platform, license)} && \
     call python make.py"
 }
 
 def windowsBuildDesktop (String platform) {
-  bat "cd desktop-apps &&\
-    make clean-package &&\
+  bat "cd desktop-apps && \
+    make clean-package && \
     make deploy"
 
   def deployData = readJSON file: "desktop-apps/win-linux/package/windows/deploy.json"
@@ -274,8 +332,8 @@ def windowsBuildDesktop (String platform) {
 }
 
 def windowsBuildBuilder(String platform) {
-  bat "cd document-builder-package &&\
-    make clean &&\
+  bat "cd document-builder-package && \
+    make clean && \
     make deploy"
 
   def deployData = readJSON file: "document-builder-package/deploy.json"
