@@ -1,7 +1,20 @@
 def checkoutRepo(String name, String branch = 'master', String dir = name.minus(~/^.+\//)) {
+  String resolvedBranch
+  if (branch != 'master') {
+    resolvedBranch = resolveScm(
+      source: [
+        $class: 'GitSCMSource',
+        remote: "git@github.com:${name}.git",
+        traits: [gitBranchDiscovery()]
+      ],
+      targets: [branch, 'master']
+    ).branches[0]
+  } else {
+    resolvedBranch = 'master'
+  }
   checkout([
     $class: 'GitSCM',
-    branches: [[name: branch]],
+    branches: [[name: 'refs/heads/' + resolvedBranch]],
     doGenerateSubmoduleConfigurations: false,
     extensions: [
       [$class: 'SubmoduleOption', recursiveSubmodules: true],
