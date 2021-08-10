@@ -66,6 +66,7 @@ listRepos = [
   [name: 'DocumentBuilder']
 ].each {
   if (it.owner == null) it.owner = 'ONLYOFFICE'
+  if (it.dir == null)   it.dir = it.name
 }
 
 return this
