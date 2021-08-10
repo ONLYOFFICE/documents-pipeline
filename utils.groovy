@@ -248,7 +248,7 @@ def linuxBuildServer(String platform = 'native', String productName='documentser
 }
 
 def linuxTest() {
-  checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing'], 'master')
+  checkoutRepo('ONLYOFFICE/doc-builder-testing', 'master')
   sh "docker rmi doc-builder-testing || true"
   sh "cd doc-builder-testing && \
     docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
