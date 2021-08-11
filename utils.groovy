@@ -5,7 +5,7 @@ def checkoutRepo(String name, String branch = 'master', String dir = name.minus(
       source: [
         $class: 'GitSCMSource',
         remote: "git@github.com:${name}.git",
-        traits: [gitBranchDiscovery()]
+        traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
       ],
       targets: [branch, 'master']
     ).branches[0]
