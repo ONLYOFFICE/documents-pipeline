@@ -128,11 +128,14 @@ def checkoutRepos(String platform, String branch = 'master') {
 
 def tagRepos(String tag) {
   for (repo in listRepos) {
-    sh "cd ${repo.dir} && \
-      git tag -l | xargs git tag -d && \
-      git fetch --tags && \
-      git tag ${tag} && \
-      git push origin --tags"
+    sh """
+      test -d ${repo.dir} || exit 0
+      cd ${repo.dir}
+      git tag -l | xargs git tag -d
+      git fetch --tags
+      git tag ${tag}
+      git push origin --tags
+    """
   }
 }
 
