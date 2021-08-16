@@ -193,42 +193,42 @@ pipeline {
 }
 
 def listRepos = [
-  'ONLYOFFICE/build_tools'
-  'ONLYOFFICE/core'
-  'ONLYOFFICE/core-fonts'
-  'ONLYOFFICE/desktop-apps'
-  'ONLYOFFICE/desktop-sdk'
-  'ONLYOFFICE/dictionaries'
-  'ONLYOFFICE/document-builder-package'
-  // 'ONLYOFFICE/document-server-integration'
-  'ONLYOFFICE/document-server-package'
-  // 'ONLYOFFICE/document-templates'
-  'ONLYOFFICE/documents-pipeline'
-  'ONLYOFFICE/onlyoffice'
-  // 'ONLYOFFICE/plugin-autocomplete'
-  // 'ONLYOFFICE/plugin-easybib'
-  // 'ONLYOFFICE/plugin-highlightcode'
-  // 'ONLYOFFICE/plugin-macros'
-  // 'ONLYOFFICE/plugin-mendeley'
-  // 'ONLYOFFICE/plugin-ocr'
-  // 'ONLYOFFICE/plugin-photoeditor'
-  // 'ONLYOFFICE/plugin-speech'
-  // 'ONLYOFFICE/plugin-thesaurus'
-  // 'ONLYOFFICE/plugin-translator'
-  // 'ONLYOFFICE/plugin-wordpress'
-  // 'ONLYOFFICE/plugin-youtube'
-  // 'ONLYOFFICE/plugin-zotero'
-  'ONLYOFFICE/sdkjs'
-  'ONLYOFFICE/sdkjs-comparison'
-  'ONLYOFFICE/sdkjs-content-controls'
-  'ONLYOFFICE/sdkjs-disable-features'
-  'ONLYOFFICE/sdkjs-sheet-views'
-  'ONLYOFFICE/server'
-  'ONLYOFFICE/server-license'
-  'ONLYOFFICE/server-lockstorage'
-  'ONLYOFFICE/web-apps'
-  'ONLYOFFICE/web-apps-mobile'
-  'ONLYOFFICE/Docker-DocumentServer'
+  'ONLYOFFICE/build_tools',
+  'ONLYOFFICE/core',
+  'ONLYOFFICE/core-fonts',
+  'ONLYOFFICE/desktop-apps',
+  'ONLYOFFICE/desktop-sdk',
+  'ONLYOFFICE/dictionaries',
+  'ONLYOFFICE/document-builder-package',
+  // 'ONLYOFFICE/document-server-integration',
+  'ONLYOFFICE/document-server-package',
+  // 'ONLYOFFICE/document-templates',
+  'ONLYOFFICE/documents-pipeline',
+  'ONLYOFFICE/onlyoffice',
+  // 'ONLYOFFICE/plugin-autocomplete',
+  // 'ONLYOFFICE/plugin-easybib',
+  // 'ONLYOFFICE/plugin-highlightcode',
+  // 'ONLYOFFICE/plugin-macros',
+  // 'ONLYOFFICE/plugin-mendeley',
+  // 'ONLYOFFICE/plugin-ocr',
+  // 'ONLYOFFICE/plugin-photoeditor',
+  // 'ONLYOFFICE/plugin-speech',
+  // 'ONLYOFFICE/plugin-thesaurus',
+  // 'ONLYOFFICE/plugin-translator',
+  // 'ONLYOFFICE/plugin-wordpress',
+  // 'ONLYOFFICE/plugin-youtube',
+  // 'ONLYOFFICE/plugin-zotero',
+  'ONLYOFFICE/sdkjs',
+  'ONLYOFFICE/sdkjs-comparison',
+  'ONLYOFFICE/sdkjs-content-controls',
+  'ONLYOFFICE/sdkjs-disable-features',
+  'ONLYOFFICE/sdkjs-sheet-views',
+  'ONLYOFFICE/server',
+  'ONLYOFFICE/server-license',
+  'ONLYOFFICE/server-lockstorage',
+  'ONLYOFFICE/web-apps',
+  'ONLYOFFICE/web-apps-mobile',
+  'ONLYOFFICE/Docker-DocumentServer',
   'ONLYOFFICE/DocumentBuilder'
 ]
 
