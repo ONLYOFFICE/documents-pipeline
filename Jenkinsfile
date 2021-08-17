@@ -206,8 +206,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "linux_64"
-
-              utils.checkoutRepos(platform, env.BRANCH_NAME)
+              ArrayList repos = utils.getRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(repos)
 
               if (params.core
                   || params.documentbuilder
@@ -237,7 +237,7 @@ pipeline {
                 if (params.documentserver_ie)
                   utils.linuxBuildServer(platform, "documentserver-ie")
                 if (params.documentserver_ee || params.documentserver_ie)
-                  utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
+                  utils.tagRepos(repos, "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
                 if (params.documentserver_de)
                   utils.linuxBuildServer(platform, "documentserver-de")
               }
@@ -272,8 +272,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "mac_64"
-
-              utils.checkoutRepos(platform, env.BRANCH_NAME)
+              ArrayList repos = utils.getRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(repos)
 
               if (params.core) {
                 utils.macosBuild(platform)
@@ -315,8 +315,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "mac_64"
-
-              utils.checkoutRepos(platform, env.BRANCH_NAME)
+              ArrayList repos = utils.getRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(repos)
 
               if (params.desktopeditor) {
                 utils.macosBuild(platform, "freemium")
@@ -349,8 +349,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_64"
-
-              utils.checkoutRepos(platform, env.BRANCH_NAME)
+              ArrayList repos = utils.getRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(repos)
 
               if (params.core
                   || params.documentbuilder
@@ -409,8 +409,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_32"
-
-              utils.checkoutRepos(platform, env.BRANCH_NAME)
+              ArrayList repos = utils.getRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(repos)
 
               if (params.core || params.documentbuilder) {
                 utils.windowsBuild(platform)
@@ -454,8 +454,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_64_xp"
-
-              utils.checkoutRepos(platform, env.BRANCH_NAME)
+              ArrayList repos = utils.getRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(repos)
 
               if (params.desktopeditor) {
                 utils.windowsBuild(platform, "freemium")
@@ -491,8 +491,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_32_xp"
-
-              utils.checkoutRepos(platform, env.BRANCH_NAME)
+              ArrayList repos = utils.getRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(repos)
 
               if (params.desktopeditor) {
                 utils.windowsBuild(platform, "freemium")

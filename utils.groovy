@@ -1,78 +1,66 @@
-def checkoutRepo(String name, String branch = 'master', String dir = name.minus(~/^.+\//)) {
-  String resolvedBranch
-  if (branch != 'master') {
-    resolvedBranch = resolveScm(
-      source: [
-        $class: 'GitSCMSource',
-        remote: "git@github.com:${name}.git",
-        traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
-      ],
-      targets: [branch, 'master']
-    ).branches[0]
-  } else {
-    resolvedBranch = 'master'
-  }
+def checkoutRepo(String repo, String branch = 'master', String dir = repo.minus(~/^.+\//)) {
+  if (dir == null) dir = repo.minus(~/^.+\//)
   checkout([
     $class: 'GitSCM',
-    branches: [[name: 'refs/heads/' + resolvedBranch]],
+    branches: [[name: 'refs/heads/' + branch]],
     doGenerateSubmoduleConfigurations: false,
     extensions: [
       [$class: 'SubmoduleOption', recursiveSubmodules: true],
       [$class: 'RelativeTargetDirectory', relativeTargetDir: dir],
-      [$class: 'ScmName', name: "${name}"]
+      [$class: 'ScmName', name: "${repo}"]
     ],
     submoduleCfg: [],
-    userRemoteConfigs: [[url: "git@github.com:${name}.git"]]
+    userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
   ])
 }
 
-listRepos = [
-  [name: 'build_tools'],
-  [name: 'core'],
-  [name: 'core-fonts'],
-  [name: 'desktop-apps'],
-  [name: 'desktop-sdk'],
-  [name: 'dictionaries'],
-  [name: 'document-builder-package'],
-  [name: 'document-server-integration'],
-  [name: 'document-server-package'],
-  [name: 'document-templates'],
-  [name: 'documents-pipeline'],
-  [name: 'onlyoffice'],
-  [name: 'plugin-autocomplete',  dir: 'sdkjs-plugins/plugin-autocomplete'],
-  [name: 'plugin-easybib',       dir: 'sdkjs-plugins/plugin-easybib'],
-  [name: 'plugin-highlightcode', dir: 'sdkjs-plugins/plugin-highlightcode'],
-  [name: 'plugin-macros',        dir: 'sdkjs-plugins/plugin-macros'],
-  [name: 'plugin-mendeley',      dir: 'sdkjs-plugins/plugin-mendeley'],
-  [name: 'plugin-ocr',           dir: 'sdkjs-plugins/plugin-ocr'],
-  [name: 'plugin-photoeditor',   dir: 'sdkjs-plugins/plugin-photoeditor'],
-  [name: 'plugin-speech',        dir: 'sdkjs-plugins/plugin-speech'],
-  [name: 'plugin-thesaurus',     dir: 'sdkjs-plugins/plugin-thesaurus'],
-  [name: 'plugin-translator',    dir: 'sdkjs-plugins/plugin-translator'],
-  [name: 'plugin-wordpress',     dir: 'sdkjs-plugins/plugin-wordpress'],
-  [name: 'plugin-youtube',       dir: 'sdkjs-plugins/plugin-youtube'],
-  [name: 'plugin-zotero',        dir: 'sdkjs-plugins/plugin-zotero'],
-  [name: 'sdkjs'],
-  [name: 'sdkjs-comparison'],
-  [name: 'sdkjs-content-controls'],
-  [name: 'sdkjs-disable-features'],
-  [name: 'sdkjs-sheet-views'],
-  [name: 'server'],
-  [name: 'server-license'],
-  [name: 'server-lockstorage'],
-  [name: 'web-apps'],
-  [name: 'web-apps-mobile'],
-  [name: 'Docker-DocumentServer'],
-  [name: 'DocumentBuilder']
-].each {
-  if (it.owner == null) it.owner = 'ONLYOFFICE'
-  if (it.dir == null)   it.dir = it.name
-}
+// listRepos = [
+//   [name: 'build_tools'],
+//   [name: 'core'],
+//   [name: 'core-fonts'],
+//   [name: 'desktop-apps'],
+//   [name: 'desktop-sdk'],
+//   [name: 'dictionaries'],
+//   [name: 'document-builder-package'],
+//   [name: 'document-server-integration'],
+//   [name: 'document-server-package'],
+//   [name: 'document-templates'],
+//   [name: 'documents-pipeline'],
+//   [name: 'onlyoffice'],
+//   [name: 'plugin-autocomplete',  dir: 'sdkjs-plugins/plugin-autocomplete'],
+//   [name: 'plugin-easybib',       dir: 'sdkjs-plugins/plugin-easybib'],
+//   [name: 'plugin-highlightcode', dir: 'sdkjs-plugins/plugin-highlightcode'],
+//   [name: 'plugin-macros',        dir: 'sdkjs-plugins/plugin-macros'],
+//   [name: 'plugin-mendeley',      dir: 'sdkjs-plugins/plugin-mendeley'],
+//   [name: 'plugin-ocr',           dir: 'sdkjs-plugins/plugin-ocr'],
+//   [name: 'plugin-photoeditor',   dir: 'sdkjs-plugins/plugin-photoeditor'],
+//   [name: 'plugin-speech',        dir: 'sdkjs-plugins/plugin-speech'],
+//   [name: 'plugin-thesaurus',     dir: 'sdkjs-plugins/plugin-thesaurus'],
+//   [name: 'plugin-translator',    dir: 'sdkjs-plugins/plugin-translator'],
+//   [name: 'plugin-wordpress',     dir: 'sdkjs-plugins/plugin-wordpress'],
+//   [name: 'plugin-youtube',       dir: 'sdkjs-plugins/plugin-youtube'],
+//   [name: 'plugin-zotero',        dir: 'sdkjs-plugins/plugin-zotero'],
+//   [name: 'sdkjs'],
+//   [name: 'sdkjs-comparison'],
+//   [name: 'sdkjs-content-controls'],
+//   [name: 'sdkjs-disable-features'],
+//   [name: 'sdkjs-sheet-views'],
+//   [name: 'server'],
+//   [name: 'server-license'],
+//   [name: 'server-lockstorage'],
+//   [name: 'web-apps'],
+//   [name: 'web-apps-mobile'],
+//   [name: 'Docker-DocumentServer'],
+//   [name: 'DocumentBuilder']
+// ].each {
+//   if (it.owner == null) it.owner = 'ONLYOFFICE'
+//   if (it.dir == null)   it.dir = it.name
+// }
 
 return this
 
-def checkoutRepos(String platform, String branch = 'master') {
-  def checkoutReposList = []
+def getRepos(String platform, String branch = 'master') {
+  def repos = []
   ArrayList modules = []
   String reposOutput
 
@@ -111,26 +99,44 @@ def checkoutRepos(String platform, String branch = 'master') {
   }
 
   reposOutput.readLines().each { line ->
-    ArrayList repo = line.split(" ")
-    if (repo[1] == null)
-      checkoutReposList.add([name: "ONLYOFFICE/${repo[0]}"])
-    else
-      checkoutReposList.add([name: "ONLYOFFICE/${repo[0]}", dir: "${repo[1]}/${repo[0]}"])
+    ArrayList lineSplit = line.split(" ")
+    Map repo = [:]
+    String resolvedBranch
+
+    if (branch != 'master') {
+      resolvedBranch = resolveScm(
+        source: [
+          $class: 'GitSCMSource',
+          remote: "git@github.com:${lineSplit[0]}.git",
+          traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
+        ],
+        targets: [branch, 'master']
+      ).branches[0]
+    } else {
+      resolvedBranch = 'master'
+    }
+
+    repo.owner = "ONLYOFFICE"
+    repo.name = lineSplit[0]
+    repo.branch = resolvedBranch
+    if (lineSplit[1] != null) repo.dir = "${lineSplit[1]}/${lineSplit[0]}"
+    repos.add(repo)
   }
 
-  println checkoutReposList
+  println repos
+  return repos
+}
 
-  checkoutReposList.each {
-    if (it.dir == null) checkoutRepo(it.name, branch)
-    else checkoutRepo(it.name, branch, it.dir)
+def checkoutRepos(ArrayList repos) {
+  repos.each {
+    checkoutRepo("${it.owner}/${it.name}", it.branch, it.dir)
   }
 }
 
-def tagRepos(String tag) {
-  for (repo in listRepos) {
+def tagRepos(ArrayList repos, String tag) {
+  repos.each {
     sh """
-      test -d ${repo.dir} || exit 0
-      cd ${repo.dir}
+      cd ${it.dir}
       git tag -l | xargs git tag -d
       git fetch --tags
       git tag ${tag}
