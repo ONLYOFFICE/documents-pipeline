@@ -100,26 +100,23 @@ def getRepos(String platform, String branch = 'master') {
 
   reposOutput.readLines().each { line ->
     ArrayList lineSplit = line.split(" ")
-    Map repo = [:]
-    String resolvedBranch
-
+    Map repo = [
+      owner: "ONLYOFFICE",
+      name: lineSplit[0],
+      branch: "master",
+      dir: lineSplit[1]
+    ]
     if (branch != 'master') {
-      resolvedBranch = resolveScm(
+      repo.branch = resolveScm(
         source: [
           $class: 'GitSCMSource',
-          remote: "git@github.com:${lineSplit[0]}.git",
+          remote: "git@github.com:${repo.owner}/${repo.name}.git",
           traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
         ],
         targets: [branch, 'master']
       ).branches[0]
-    } else {
-      resolvedBranch = 'master'
     }
 
-    repo.owner = "ONLYOFFICE"
-    repo.name = lineSplit[0]
-    repo.branch = resolvedBranch
-    if (lineSplit[1] != null) repo.dir = "${lineSplit[1]}/${lineSplit[0]}"
     repos.add(repo)
   }
 
