@@ -156,6 +156,11 @@ pipeline {
       description:  'configure.py extra params',
       defaultValue: ''
     )
+    booleanParam (
+      name:         'notify',
+      description:  'Telegram notification',
+      defaultValue: false
+    )
   }
   triggers {
     cron(defaults.schedule)
