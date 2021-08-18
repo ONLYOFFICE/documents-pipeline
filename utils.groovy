@@ -63,16 +63,14 @@ def getRepos(String platform, String branch = 'master') {
       branch: "master",
       dir: lineSplit[1]
     ]
-    if (branch != 'master') {
-      repo.branch = resolveScm(
+    if (branch != 'master') repo.branch = resolveScm(
         source: [
           $class: 'GitSCMSource',
           remote: "git@github.com:${repo.owner}/${repo.name}.git",
           traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
         ],
         targets: [branch, 'master']
-      ).branches[0]
-    }
+      ).branches[0].name
 
     repos.add(repo)
   }
