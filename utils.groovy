@@ -1,4 +1,4 @@
-def checkoutRepo(String repo, String branch = 'master', String dir = repo.minus(~/^.+\//)) {
+void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus(~/^.+\//)) {
   if (dir == null) dir = repo.minus(~/^.+\//)
   checkout([
     $class: 'GitSCM',
@@ -80,14 +80,14 @@ def getRepos(String platform, String branch = 'master') {
   return repos
 }
 
-def checkoutRepos(ArrayList repos) {
+void checkoutRepos(ArrayList repos) {
   echo repos.collect({"${it.owner}/${it.name} (${it.branch})"}).join("\n")
   repos.each {
     checkoutRepo("${it.owner}/${it.name}", it.branch, it.dir)
   }
 }
 
-def tagRepos(ArrayList repos, String tag) {
+void tagRepos(ArrayList repos, String tag) {
   repos.each {
     sh """
       cd ${it.dir}
