@@ -14,53 +14,10 @@ def checkoutRepo(String repo, String branch = 'master', String dir = repo.minus(
   ])
 }
 
-// listRepos = [
-//   [name: 'build_tools'],
-//   [name: 'core'],
-//   [name: 'core-fonts'],
-//   [name: 'desktop-apps'],
-//   [name: 'desktop-sdk'],
-//   [name: 'dictionaries'],
-//   [name: 'document-builder-package'],
-//   [name: 'document-server-integration'],
-//   [name: 'document-server-package'],
-//   [name: 'document-templates'],
-//   [name: 'documents-pipeline'],
-//   [name: 'onlyoffice'],
-//   [name: 'plugin-autocomplete',  dir: 'sdkjs-plugins/plugin-autocomplete'],
-//   [name: 'plugin-easybib',       dir: 'sdkjs-plugins/plugin-easybib'],
-//   [name: 'plugin-highlightcode', dir: 'sdkjs-plugins/plugin-highlightcode'],
-//   [name: 'plugin-macros',        dir: 'sdkjs-plugins/plugin-macros'],
-//   [name: 'plugin-mendeley',      dir: 'sdkjs-plugins/plugin-mendeley'],
-//   [name: 'plugin-ocr',           dir: 'sdkjs-plugins/plugin-ocr'],
-//   [name: 'plugin-photoeditor',   dir: 'sdkjs-plugins/plugin-photoeditor'],
-//   [name: 'plugin-speech',        dir: 'sdkjs-plugins/plugin-speech'],
-//   [name: 'plugin-thesaurus',     dir: 'sdkjs-plugins/plugin-thesaurus'],
-//   [name: 'plugin-translator',    dir: 'sdkjs-plugins/plugin-translator'],
-//   [name: 'plugin-wordpress',     dir: 'sdkjs-plugins/plugin-wordpress'],
-//   [name: 'plugin-youtube',       dir: 'sdkjs-plugins/plugin-youtube'],
-//   [name: 'plugin-zotero',        dir: 'sdkjs-plugins/plugin-zotero'],
-//   [name: 'sdkjs'],
-//   [name: 'sdkjs-comparison'],
-//   [name: 'sdkjs-content-controls'],
-//   [name: 'sdkjs-disable-features'],
-//   [name: 'sdkjs-sheet-views'],
-//   [name: 'server'],
-//   [name: 'server-license'],
-//   [name: 'server-lockstorage'],
-//   [name: 'web-apps'],
-//   [name: 'web-apps-mobile'],
-//   [name: 'Docker-DocumentServer'],
-//   [name: 'DocumentBuilder']
-// ].each {
-//   if (it.owner == null) it.owner = 'ONLYOFFICE'
-//   if (it.dir == null)   it.dir = it.name
-// }
-
 return this
 
 def getRepos(String platform, String branch = 'master') {
-  def repos = []
+  ArrayList repos = []
   ArrayList modules = []
   String reposOutput
 
@@ -120,11 +77,11 @@ def getRepos(String platform, String branch = 'master') {
     repos.add(repo)
   }
 
-  println repos
   return repos
 }
 
 def checkoutRepos(ArrayList repos) {
+  echo repos.collect({"${it.owner}/${it.name} (${it.branch})"}).join("\n")
   repos.each {
     checkoutRepo("${it.owner}/${it.name}", it.branch, it.dir)
   }
