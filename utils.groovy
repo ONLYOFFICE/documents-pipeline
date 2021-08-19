@@ -61,7 +61,7 @@ def getRepos(String platform, String branch = 'master') {
       owner: "ONLYOFFICE",
       name: lineSplit[0],
       branch: "master",
-      dir: lineSplit[1]
+      dir: (lineSplit[1] == null) ? "${lineSplit[0]}" : "${lineSplit[1]}/${lineSplit[0]}"
     ]
     if (branch != 'master') repo.branch = resolveScm(
         source: [
