@@ -159,7 +159,7 @@ pipeline {
     booleanParam (
       name:         'notify',
       description:  'Telegram notification',
-      defaultValue: false
+      defaultValue: true
     )
   }
   triggers {
