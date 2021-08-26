@@ -2,6 +2,7 @@ name: Jenkins Clean Custom Workspace Job
 on: delete
 jobs:
   jenkins-remote-job:
+    if: ${{ startsWith(github.event.ref, 'hotfix') || startsWith(github.event.ref, 'release') }}
     runs-on: ubuntu-latest
     steps:
     - name: curl
