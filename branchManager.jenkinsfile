@@ -144,7 +144,7 @@ pipeline {
                   unprotectBranch(repo, branch)
                   pAction = mergeBranch(repo, branch, baseBranches)
                   status.primary = (pAction) ? 'success' : 'failure'
-                  if (pAction && repo.contains('documents-pipeline')) {
+                  if (pAction && !repo.contains('documents-pipeline')) {
                     sAction = deleteBranch(repo, branch)
                     status.secondary = (sAction) ? 'delete' : ''
                   }
