@@ -5,14 +5,14 @@ defaults = [
   protect_branch: false
 ]
 
-if (BRANCH_NAME == 'master' || BRANCH_NAME == 'develop') {
+if (BRANCH_NAME in ['master', 'develop']) {
   defaults.action_type.add('start_release')
   if (BRANCH_NAME == 'master')  defaults.release_type = 'hotfix'
   if (BRANCH_NAME == 'develop') defaults.release_type = 'release'
-  defaults.action_help = " (start for ${defaults.release_type} on current branch)"
+  defaults.action_help = " (start for '${defaults.release_type}' on current branch)"
   defaults.version = '0.0.0'
   defaults.protect_branch = true
-} else if (BRANCH_NAME.startsWith('hotfix') || BRANCH_NAME.startsWith('release')) {
+} else if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
   defaults.action_type.addAll(['merge_release', 'finish_release', 'unprotect_release'])
 }
 
@@ -140,14 +140,12 @@ pipeline {
               } else {
                 dir ('repos/' + repo) {
                   checkoutRepo(repo)
+                  unprotectBranch(repo, branch)
                   pAction = mergeBranch(repo, branch, baseBranches)
                   status.primary = (pAction) ? 'success' : 'failure'
-                  if (pAction) {
-                    unprotectBranch(repo, branch)
-                    if (repo != 'ONLYOFFICE/documents-pipeline') {
-                      sAction = deleteBranch(repo, branch)
-                      status.secondary = (sAction) ? 'delete' : ''
-                    }
+                  if (pAction && !repo.contains('documents-pipeline')) {
+                    sAction = deleteBranch(repo, branch)
+                    status.secondary = (sAction) ? 'delete' : ''
                   }
                 }
               }
@@ -166,7 +164,7 @@ pipeline {
             branch: branch,
             baseBranches: baseBranches,
             success: stats.repos.findAll { repo, status ->
-              status.primary == 'skip' || status.primary == 'success'
+              status.primary in ['skip', 'success']
             }.size(),
             total: stats.repos.size()
           ])
