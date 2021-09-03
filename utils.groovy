@@ -234,7 +234,7 @@ void buildEditors (String platform) {
       returnStdout: true).trim()
     String zipName = "${scheme}-${appVersion}"
     String subdir = env._X86 != '1' ? "editors_x64" : "editors_x86"
-    fplatform = env._X86 != '1' ? "macOS x64" : "macOS x86"
+    fplatform = env._X86 != '1' ? "macOS x64" : "macOS x64 V8"
 
     dir ("desktop-apps/macos/build") {
       uploadFiles("${appName}.dmg", "macos/${scheme}-${version}.dmg",
