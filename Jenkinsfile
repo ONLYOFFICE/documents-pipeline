@@ -4,7 +4,7 @@ defaults = [
   clean:         true,
   linux:         true,
   macos_64:      true,
-  macos_86:      true,
+  macos_64_v8:   true,
   windows_64:    true,
   windows_32:    true,
   windows_64_xp: true,
@@ -26,7 +26,7 @@ if (BRANCH_NAME == 'develop') {
   defaults.putAll([
     branch:        'unstable',
     macos_64:      false,
-    macos_86:      false,
+    macos_64_v8:   false,
     android:       false,
     builder:       false,
     server_ce:     false,
@@ -82,9 +82,9 @@ pipeline {
       defaultValue: defaults.macos_64
     )
     booleanParam (
-      name:         'macos_86',
+      name:         'macos_64_v8',
       description:  'Build macOS x86 targets',
-      defaultValue: defaults.macos_86
+      defaultValue: defaults.macos_64_v8
     )
     booleanParam (
       name:         'win_64',
@@ -269,8 +269,8 @@ pipeline {
             }
           }
         }
-        stage('macOS 32-bit build') {
-          agent { label 'macos_86' }
+        stage('macOS 64-bit V8 build') {
+          agent { label 'macos_64_v8' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
@@ -281,7 +281,7 @@ pipeline {
             _X86 = '1'
           }
           when {
-            expression { params.macos_86 }
+            expression { params.macos_64_v8 }
             beforeAgent true
           }
           steps {
