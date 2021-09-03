@@ -186,7 +186,7 @@ pipeline {
     }
     stage('Build') {
       parallel {
-        stage('Linux 64-bit build') {
+        stage('Linux x64') {
           agent { label 'linux_64' }
           when {
             expression { params.linux_64 }
@@ -230,7 +230,7 @@ pipeline {
             }
           }
         }
-        stage('macOS 64-bit build') {
+        stage('macOS x64') {
           agent { label 'macos_64' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
@@ -269,7 +269,7 @@ pipeline {
             }
           }
         }
-        stage('macOS 64-bit V8 build') {
+        stage('macOS x64 V8') {
           agent { label 'macos_64_v8' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
@@ -306,7 +306,7 @@ pipeline {
             }
           }
         }
-        stage('Windows 64-bit build') {
+        stage('Windows x64') {
           agent {
             node {
               label 'win_64'
@@ -347,7 +347,7 @@ pipeline {
             }
           }
         }
-        stage('Windows 32-bit build') {
+        stage('Windows x86') {
           agent {
             node {
               label 'win_32'
@@ -385,7 +385,7 @@ pipeline {
             }
           }
         }
-        stage('Windows XP 64-bit build') {
+        stage('Windows x64 XP') {
           agent {
             node {
               label 'win_64_xp'
@@ -421,7 +421,7 @@ pipeline {
             }
           }
         }
-        stage('Windows XP 32-bit build') {
+        stage('Windows x86 XP') {
           agent {
             node {
               label 'win_32_xp'
@@ -457,7 +457,7 @@ pipeline {
             }
           }
         }
-        stage('Android build') {
+        stage('Android') {
           agent { label 'android' }
           when {
             expression { params.android && params.core }
