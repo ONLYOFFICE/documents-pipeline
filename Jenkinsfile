@@ -309,7 +309,7 @@ pipeline {
           }
         }
         stage('macOS ARM64 build') {
-          agent { label 'mac_arm64' }
+          agent { label 'macos_arm64' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
