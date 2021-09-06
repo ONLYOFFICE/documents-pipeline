@@ -226,7 +226,7 @@ void buildEditors (String platform) {
 
     dir ("desktop-apps/macos/build") {
       uploadFiles("*.dmg", "macos/${scheme}/${version}/", product, fplatform, "Disk Image")
-      uploadFiles("*.zip,update/*.delta,update/*.xml,update/*.html",
+      uploadFiles("${scheme}-*.zip,update/*.delta,update/*.xml,update/*.html",
         "macos/${scheme}/${version}/", product, fplatform, "Sparkle")
     }
 
