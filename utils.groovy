@@ -184,6 +184,7 @@ void buildEditors (String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
   String product = "editors"
   String fplatform
+  String macosDeployPath
 
   if (platform.startsWith("win")) {
 
@@ -216,18 +217,21 @@ void buildEditors (String platform) {
     if (platform == "mac_64" && env.USE_V8 == '1') {
       fplatform = "macOS x86-64 V8 (legacy)"
       scheme = "ONLYOFFICE-v8"
+      macosDeployPath = "v8"
     } else if (platform == "mac_64") {
       fplatform = "macOS x86-64"
       scheme = "ONLYOFFICE-x86_64"
+      macosDeployPath = "x86_64"
     } else if (platform == "mac_arm64") {
       fplatform = "macOS ARM64"
       scheme = "ONLYOFFICE-arm"
+      macosDeployPath = "arm"
     }
 
     dir ("desktop-apps/macos/build") {
-      uploadFiles("*.dmg", "macos/${scheme}/${version}/", product, fplatform, "Disk Image")
+      uploadFiles("*.dmg", "macos/${macosDeployPath}/${version}/", product, fplatform, "Disk Image")
       uploadFiles("${scheme}-*.zip,update/*.delta,update/*.xml,update/*.html",
-        "macos/${scheme}/${version}/", product, fplatform, "Sparkle")
+        "macos/${macosDeployPath}/${version}/", product, fplatform, "Sparkle")
     }
 
   } else if (platform == "linux_64") {
