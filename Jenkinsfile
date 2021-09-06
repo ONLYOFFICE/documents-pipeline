@@ -202,8 +202,10 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "linux_64"
-              ArrayList listRepos = utils.getRepos(platform, env.BRANCH_NAME)
-              utils.checkoutRepos(listRepos)
+              ArrayList constRepos = utils.getConstRepos(env.BRANCH_NAME)
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList allRepos = constRepos.plus(varRepos)
+              utils.checkoutRepos(varRepos)
 
               if (params.core || params.builder || params.server_ce) {
                 utils.build(platform)
@@ -219,7 +221,7 @@ pipeline {
                 }
                 if (params.server_ee) {
                   utils.buildServer(platform, "enterprise")
-                  utils.tagRepos(listRepos, "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
+                  utils.tagRepos(allRepos, "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
                 }
                 if (params.server_de)
                   utils.buildServer(platform, "developer")
@@ -254,8 +256,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "mac_64"
-              ArrayList listRepos = utils.getRepos(platform, env.BRANCH_NAME)
-              utils.checkoutRepos(listRepos)
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
               if (params.core)
                 utils.build(platform)
@@ -294,8 +296,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "mac_64"
-              ArrayList listRepos = utils.getRepos(platform, env.BRANCH_NAME)
-              utils.checkoutRepos(listRepos)
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
               if (params.editors) {
                 utils.build(platform, "commercial")
@@ -327,8 +329,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_64"
-              ArrayList listRepos = utils.getRepos(platform, env.BRANCH_NAME)
-              utils.checkoutRepos(listRepos)
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
               if (params.core || params.builder || params.server_ce) {
                 utils.build(platform)
@@ -368,8 +370,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_32"
-              ArrayList listRepos = utils.getRepos(platform, env.BRANCH_NAME)
-              utils.checkoutRepos(listRepos)
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
               if (params.core || params.builder) {
                 utils.build(platform)
@@ -409,8 +411,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_64_xp"
-              ArrayList listRepos = utils.getRepos(platform, env.BRANCH_NAME)
-              utils.checkoutRepos(listRepos)
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
               if (params.editors) {
                 utils.build(platform, "commercial")
@@ -445,8 +447,8 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_32_xp"
-              ArrayList listRepos = utils.getRepos(platform, env.BRANCH_NAME)
-              utils.checkoutRepos(listRepos)
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
               if (params.editors) {
                 utils.build(platform, "commercial")

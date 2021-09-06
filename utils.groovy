@@ -16,13 +16,22 @@ void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus
 
 return this
 
-def getRepos(String platform, String branch = 'master') {
+def getConstRepos(String branch = 'master') {
+  return [
+    [ owner: "ONLYOFFICE", name: "build_tools" ],
+    [ owner: "ONLYOFFICE", name: "onlyoffice" ]
+  ].each {
+    it.branch = branch
+    it.dir = it.name
+  }
+}
+
+def getVarRepos(String platform, String branch = 'master') {
   ArrayList repos = []
   ArrayList modules = []
   String reposOutput
 
-  checkoutRepo("ONLYOFFICE/build_tools", branch)
-  checkoutRepo("ONLYOFFICE/onlyoffice", branch)
+  checkoutRepos(getConstRepos(branch))
 
   if (params.core && platform in ["win_64", "win_32", "mac_64", "linux_64"])
     modules.add("core")
@@ -80,7 +89,7 @@ def getRepos(String platform, String branch = 'master') {
 void checkoutRepos(ArrayList repos) {
   echo repos.collect({"${it.owner}/${it.name} (${it.branch})"}).join("\n")
   repos.each {
-    checkoutRepo("${it.owner}/${it.name}", it.branch, it.dir)
+    checkoutRepo(it.owner + "/" + it.name, it.branch, it.dir)
   }
 }
 
