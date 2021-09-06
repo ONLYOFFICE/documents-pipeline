@@ -136,7 +136,7 @@ void build(String platform, String license = 'opensource') {
       call python configure.py ${getConfigArgs(platform, license)} && \
       call python make.py"
 
-  } else if (platform in ["mac_64", "linux_64"]) {
+  } else {
 
     sh "cd build_tools && \
       ./configure.py ${getConfigArgs(platform, license)} && \
