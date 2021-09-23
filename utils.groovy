@@ -122,17 +122,12 @@ void tagRepos(ArrayList repos, String tag) {
 // Configure
 
 def getConfigArgs(String platform = 'native', String license = 'opensource') {
-  Boolean isWin = platform.startsWith("win")
-  Boolean isWinXP = isWin && platform.endsWith("_xp")
-  Boolean isMacOS = platform.startsWith("mac")
-  Boolean isMacOS86 = isMacOS && env._X86 == "1"
-
   ArrayList modules = []
   if (checkModule("core",platform,license))    modules.add("core")
   if (checkModule("desktop",platform,license)) modules.add("desktop")
   if (checkModule("builder",platform,license)) modules.add("builder")
   if (checkModule("server",platform,license))  modules.add("server")
-  if (isWin)                                   modules.add("tests")
+  if (platform.startsWith("win"))              modules.add("tests")
 
   ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
@@ -140,12 +135,18 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   args.add("--update false")
   args.add("--clean ${params.clean.toString()}")
   args.add("--qt-dir ${env.QT_PATH}")
-  if (isWinXP) args.add("--qt-dir-xp ${env.QT56_PATH}")
-  if (license == "commercial") args.add("--branding \"onlyoffice\"")
-  if (isMacOS) args.add("--compiler \"clang\"")
-  if (isMacOS86) args.add("--config \"use_v8\"")
-  if (params.beta) args.add("--beta 1")
-  if (!params.extra_args.isEmpty()) args.add(params.extra_args)
+  if (platform.endsWith("_xp"))
+    args.add("--qt-dir-xp ${env.QT56_PATH}")
+  if (license == "commercial")
+    args.add("--branding \"onlyoffice\"")
+  if (platform.startsWith("mac"))
+    args.add("--compiler \"clang\"")
+  if (platform == "mac_64" && env._X86 == "1")
+    args.add("--config \"use_v8\"")
+  if (params.beta)
+    args.add("--beta 1")
+  if (!params.extra_args.isEmpty())
+    args.add(params.extra_args)
 
   return args.join(' ')
 }
