@@ -373,9 +373,8 @@ pipeline {
               ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
               utils.checkoutRepos(varRepos)
 
-              if (params.core || params.builder) {
+              if (params.core) {
                 utils.build(platform)
-                if (params.builder) utils.buildBuilder(platform)
               }
 
               if (params.editors) {
