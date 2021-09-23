@@ -14,12 +14,14 @@ void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus
   ])
 }
 
-def checkModule(String module, String platform, String license = "commercial") {
-  Boolean bCore = params.core && license == "opensource"
-  Boolean bDesktop = params.desktop && license == "commercial"
-  Boolean bBuilder = params.builder && license == "opensource"
-  Boolean bServer = (params.server_ce && license == "opensource") \
-    || ((params.server_de || params.server_ee) && license == "commercial")
+def checkModule(String module, String platform, String license = "all") {
+  Boolean bOpenSource = license == "opensource" || license == "all"
+  Boolean bCommercial = license == "commercial" || license == "all"
+  Boolean bCore = params.core && bOpenSource)
+  Boolean bDesktop = params.desktop && bCommercial)
+  Boolean bBuilder = params.builder && bOpenSource)
+  Boolean bServer = (params.server_ce && bOpenSource) \
+    || ((params.server_de || params.server_ee) && bCommercial)
   def table = [
     win_64:    [ core: bCore, desktop: bDesktop, builder: bBuilder, server: bServer ],
     win_32:    [ core: bCore, desktop: bDesktop, builder: false,    server: false   ],
