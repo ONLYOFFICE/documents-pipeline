@@ -14,6 +14,25 @@ void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus
   ])
 }
 
+def checkModule(String module, String platform, String license = "commercial") {
+  Boolean bCore = params.core && license == "opensource"
+  Boolean bDesktop = params.desktop && license == "commercial"
+  Boolean bBuilder = params.builder && license == "opensource"
+  Boolean bServer = (params.server_ce && license == "opensource") \
+    || ((params.server_de || params.server_ee) && license == "commercial")
+  def table = [
+    win_64:    [ core: bCore, desktop: bDesktop, builder: bBuilder, server: bServer ],
+    win_32:    [ core: bCore, desktop: bDesktop, builder: false,    server: false   ],
+    win_64_xp: [ core: false, desktop: bDesktop, builder: false,    server: false   ],
+    win_32_xp: [ core: false, desktop: bDesktop, builder: false,    server: false   ],
+    mac_64:    [ core: bCore, desktop: bDesktop, builder: false,    server: false   ],
+    mac_64_v8: [ core: false, desktop: bDesktop, builder: false,    server: false   ],
+    mac_arm64: [ core: bCore, desktop: bDesktop, builder: false,    server: false   ],
+    linux_64:  [ core: bCore, desktop: bDesktop, builder: bBuilder, server: bServer ]
+  ]
+  return table."${platform}"."${module}"
+}
+
 return this
 
 def getConstRepos(String branch = 'master') {
@@ -33,15 +52,10 @@ def getVarRepos(String platform, String branch = 'master') {
 
   checkoutRepos(getConstRepos(branch))
 
-  if (params.core && platform in ["win_64", "win_32", "mac_64", "linux_64"])
-    modules.add("core")
-  if (params.editors)
-    modules.add("desktop")
-  if ((params.server_ce || params.server_de || params.server_ee)
-    && platform in ["win_64", "linux_64"])
-    modules.add("server")
-  if (params.builder && platform in ["win_64", "win_32", "linux_64"])
-    modules.add("builder")
+  if (checkModule("core",platform))    modules.add("core")
+  if (checkModule("desktop",platform)) modules.add("desktop")
+  if (checkModule("builder",platform)) modules.add("builder")
+  if (checkModule("server",platform))  modules.add("server")
 
   if (platform.startsWith("win")) {
     reposOutput = powershell(
@@ -108,36 +122,17 @@ void tagRepos(ArrayList repos, String tag) {
 // Configure
 
 def getConfigArgs(String platform = 'native', String license = 'opensource') {
-  Boolean core = false
-  Boolean editors = false
-  Boolean builder = false
-  Boolean server = false
-  Boolean branding = false
-
-  switch(license) {
-    case "opensource":
-      core = params.core
-      builder = params.builder
-      server = params.server_ce
-      break
-    case "commercial":
-      editors = params.editors
-      server = params.server_ee || params.server_de
-      branding = true
-      break
-  }
-
   Boolean isWin = platform.startsWith("win")
   Boolean isWinXP = isWin && platform.endsWith("_xp")
   Boolean isMacOS = platform.startsWith("mac")
   Boolean isMacOS86 = isMacOS && env._X86 == "1"
 
   ArrayList modules = []
-  if (core)                modules.add("core")
-  if (editors)             modules.add("desktop")
-  if (builder && !isMacOS) modules.add("builder")
-  if (server && !isMacOS)  modules.add("server")
-  if (isWin)               modules.add("tests")
+  if (checkModule("core",platform,license))    modules.add("core")
+  if (checkModule("desktop",platform,license)) modules.add("desktop")
+  if (checkModule("builder",platform,license)) modules.add("builder")
+  if (checkModule("server",platform,license))  modules.add("server")
+  if (isWin)                                   modules.add("tests")
 
   ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
@@ -146,7 +141,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   args.add("--clean ${params.clean.toString()}")
   args.add("--qt-dir ${env.QT_PATH}")
   if (isWinXP) args.add("--qt-dir-xp ${env.QT56_PATH}")
-  if (branding) args.add("--branding \"onlyoffice\"")
+  if (license == "commercial") args.add("--branding \"onlyoffice\"")
   if (isMacOS) args.add("--compiler \"clang\"")
   if (isMacOS86) args.add("--config \"use_v8\"")
   if (params.beta) args.add("--beta 1")
