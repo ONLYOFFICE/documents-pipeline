@@ -198,9 +198,9 @@ void build(String platform, String license = 'opensource') {
 
 // Build Packages
 
-void buildEditors (String platform) {
+void buildDesktop (String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
-  String product = "editors"
+  String product = "desktop"
   String fplatform
   String macosDeployPath
 
@@ -446,7 +446,7 @@ void linuxTest() {
 void generateReports() {
   Map deploy = listDeploy.groupBy { it.product }
 
-  Boolean editors = deploy.editors != null
+  Boolean desktop = deploy.desktop != null
   Boolean builder = deploy.builder != null
   Boolean server_ce = deploy.server_ce != null
   Boolean server_ee = deploy.server_ee != null
@@ -459,8 +459,8 @@ void generateReports() {
       test -f style.css || wget -nv https://unpkg.com/style.css -O style.css
     """
 
-    if (editors)
-      publishReport("DesktopEditors", ["editors.html": deploy.editors])
+    if (desktop)
+      publishReport("DesktopEditors", ["desktop.html": deploy.desktop])
     if (builder)
       publishReport("DocumentBuilder", ["builder.html": deploy.builder])
     if (server_ce || server_ee || server_de) {

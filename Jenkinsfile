@@ -12,7 +12,7 @@ defaults = [
   windows_32_xp: true,
   android:       true,
   core:          true,
-  editors:       true,
+  desktop:       true,
   builder:       true,
   server_ce:     true,
   server_ee:     true,
@@ -124,9 +124,9 @@ pipeline {
       defaultValue: defaults.core
     )
     booleanParam (
-      name:         'editors',
+      name:         'desktop',
       description:  'Build and publish DesktopEditors packages',
-      defaultValue: defaults.editors
+      defaultValue: defaults.desktop
     )
     booleanParam (
       name:         'builder',
@@ -205,7 +205,7 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "linux_64"
@@ -220,11 +220,11 @@ pipeline {
                 if (params.server_ce) utils.buildServer(platform)
               }
 
-              if (params.editors || params.server_ee || params.server_de) {
+              if (params.desktop || params.server_ee || params.server_de) {
                 utils.build(platform, "commercial")
 
-                if (params.editors) {
-                  utils.buildEditors(platform)
+                if (params.desktop) {
+                  utils.buildDesktop(platform)
                 }
                 if (params.server_ee) {
                   utils.buildServer(platform, "enterprise")
@@ -259,7 +259,7 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "mac_64"
@@ -269,9 +269,9 @@ pipeline {
               if (params.core)
                 utils.build(platform)
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true
@@ -299,16 +299,16 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "mac_64"
               ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
               utils.checkoutRepos(varRepos)
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true              
@@ -335,16 +335,16 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
               utils.checkoutRepos(env.BRANCH_NAME)
 
               String platform = "mac_arm64"
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true              
@@ -368,7 +368,7 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_64"
@@ -381,9 +381,9 @@ pipeline {
                 if (params.server_ce) utils.buildServer(platform)
               }
 
-              if (params.editors || params.server_ee || params.server_de) {
+              if (params.desktop || params.server_ee || params.server_de) {
                 utils.build(platform, "commercial")
-                if (params.editors)   utils.buildEditors(platform)
+                if (params.desktop)   utils.buildDesktop(platform)
                 if (params.server_ee) utils.buildServer(platform, "enterprise")
                 if (params.server_de) utils.buildServer(platform, "developer")
               }
@@ -409,7 +409,7 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_32"
@@ -420,9 +420,9 @@ pipeline {
                 utils.build(platform)
               }
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true
@@ -449,16 +449,16 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_64_xp"
               ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
               utils.checkoutRepos(varRepos)
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true
@@ -485,16 +485,16 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_32_xp"
               ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
               utils.checkoutRepos(varRepos)
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true
