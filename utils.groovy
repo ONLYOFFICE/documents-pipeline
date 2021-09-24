@@ -99,7 +99,7 @@ def getVarRepos(String platform, String branch = 'master') {
     repos.add(repo)
   }
 
-  return repos
+  return repos.sort()
 }
 
 void checkoutRepos(ArrayList repos) {
