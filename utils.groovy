@@ -14,27 +14,6 @@ void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus
   ])
 }
 
-def checkModule(String module, String platform, String license = "all") {
-  Boolean bOpenSource = license == "opensource" || license == "all"
-  Boolean bCommercial = license == "commercial" || license == "all"
-  Boolean bCore = params.core && bOpenSource
-  Boolean bDesktop = params.desktop && bCommercial
-  Boolean bBuilder = params.builder && bOpenSource
-  Boolean bServer = (params.server_ce && bOpenSource) \
-    || ((params.server_de || params.server_ee) && bCommercial)
-  def table = [
-    win_64:    [ core: bCore, desktop: bDesktop, builder: bBuilder, server: bServer ],
-    win_32:    [ core: bCore, desktop: bDesktop, builder: false,    server: false   ],
-    win_64_xp: [ core: false, desktop: bDesktop, builder: false,    server: false   ],
-    win_32_xp: [ core: false, desktop: bDesktop, builder: false,    server: false   ],
-    mac_64:    [ core: bCore, desktop: bDesktop, builder: false,    server: false   ],
-    mac_64_v8: [ core: false, desktop: bDesktop, builder: false,    server: false   ],
-    mac_arm64: [ core: bCore, desktop: bDesktop, builder: false,    server: false   ],
-    linux_64:  [ core: bCore, desktop: bDesktop, builder: bBuilder, server: bServer ]
-  ]
-  return table."${platform}"."${module}"
-}
-
 return this
 
 def getConstRepos(String branch = 'master') {
@@ -48,17 +27,10 @@ def getConstRepos(String branch = 'master') {
 }
 
 def getVarRepos(String platform, String branch = 'master') {
-  ArrayList repos = []
-  ArrayList modules = []
-  String reposOutput
-
   checkoutRepos(getConstRepos(branch))
 
-  if (checkModule("core",platform))    modules.add("core")
-  if (checkModule("desktop",platform)) modules.add("desktop")
-  if (checkModule("builder",platform)) modules.add("builder")
-  if (checkModule("server",platform))  modules.add("server")
-
+  String reposOutput
+  ArrayList modules = getModules(platform, license)
   if (platform.startsWith("win")) {
     reposOutput = powershell(
       script: "cd build_tools\\scripts\\develop; \
@@ -79,6 +51,7 @@ def getVarRepos(String platform, String branch = 'master') {
     )
   }
 
+  ArrayList repos = []
   reposOutput.readLines().each { line ->
     ArrayList lineSplit = line.split(" ")
     Map repo = [
@@ -123,13 +96,30 @@ void tagRepos(ArrayList repos, String tag) {
 
 // Configure
 
-def getConfigArgs(String platform = 'native', String license = 'opensource') {
+def getModules(String platform, String license = "any") {
+  Boolean isOpenSource = license == "opensource" || license == "any"
+  Boolean isCommercial = license == "commercial" || license == "any"
+  Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64"]
+  Boolean pBuilder = platform in ["win_64", "linux_64"]
+  Boolean pServer = platform in ["win_64", "linux_64"]
+
   ArrayList modules = []
-  if (checkModule("core",platform,license))    modules.add("core")
-  if (checkModule("desktop",platform,license)) modules.add("desktop")
-  if (checkModule("builder",platform,license)) modules.add("builder")
-  if (checkModule("server",platform,license))  modules.add("server")
-  if (platform.startsWith("win"))              modules.add("tests")
+  if (params.core && isOpenSource && pCore)
+    modules.add("core")
+  if (params.desktop && isCommercial)
+    modules.add("desktop")
+  if (params.builder && isCommercial && pBuilder)
+    modules.add("builder")
+  if ((((params.server_de || params.server_ee) && isCommercial) \
+    || (params.server_ce && isOpenSource)) && pServer)
+    modules.add("server")
+
+  return modules
+}
+
+def getConfigArgs(String platform = 'native', String license = 'opensource') {
+  ArrayList modules = getModules(platform, license)
+  if (platform.startsWith("win")) modules.add("tests")
 
   ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
