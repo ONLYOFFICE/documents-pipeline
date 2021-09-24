@@ -18,8 +18,8 @@ def checkModule(String module, String platform, String license = "all") {
   Boolean bOpenSource = license == "opensource" || license == "all"
   Boolean bCommercial = license == "commercial" || license == "all"
   Boolean bCore = params.core && bOpenSource)
-  Boolean bDesktop = params.desktop && bCommercial)
-  Boolean bBuilder = params.builder && bOpenSource)
+  Boolean bDesktop = params.desktop && bCommercial
+  Boolean bBuilder = params.builder && bOpenSource
   Boolean bServer = (params.server_ce && bOpenSource) \
     || ((params.server_de || params.server_ee) && bCommercial)
   def table = [
