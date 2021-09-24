@@ -369,26 +369,21 @@ void buildAndroid(String branch = 'master', String config = 'release') {
 
   if (params.wipe) sh "docker image rm -f onlyoffice/android-core-builder"
 
-  sh """#!/bin/bash -xe
-    [[ ! -d android/workspace ]] && mkdir -p android/workspace
-    cd android
+  dir("android") {
+    sh "mkdir -p workspace && rm -rf workspace/build_tools/out *.zip"
 
-    rm -rf workspace/build_tools/out *.zip
-  """
+    String runOptions = [
+      "-e BUILD_BRANCH=${branch}",
+      "-e BUILD_CONFIG=${config}",
+      "-v ${pwd()}/workspace:/home/user"
+    ].join(' ')
+    docker.image('onlyoffice/android-core-builder:latest').withRun(runOptions) { c ->
+      sh "docker logs -f ${c.id}"
+    }
 
-  def dockerRunOptions = []
-  dockerRunOptions.add("-e BUILD_BRANCH=${branch}")
-  dockerRunOptions.add("-e BUILD_CONFIG=${config}")
-  dockerRunOptions.add("-v ${env.WORKSPACE}/android/workspace:/home/user")
+    sh "cd workspace/build_tools/out && \
+      zip -r ../../../android-libs-${version}.zip ./android* ./js"
 
-  docker.image('onlyoffice/android-core-builder:latest').withRun(dockerRunOptions.join(' ')) { c ->
-    sh "docker logs -f ${c.id}"
-  }
-
-  sh "cd android/workspace/build_tools/out && \
-    zip -r ../../../android-libs-${version}.zip ./android* ./js"
-
-  dir ("android") {
     uploadFiles("*.zip", "android/", "android", "Android", "Libs")
   }
 }
