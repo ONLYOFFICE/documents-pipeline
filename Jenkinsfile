@@ -5,6 +5,7 @@ defaults = [
   linux:         true,
   macos_64:      true,
   macos_64_v8:   true,
+  macos_arm64:   true,
   windows_64:    true,
   windows_32:    true,
   windows_64_xp: true,
@@ -27,6 +28,7 @@ if (BRANCH_NAME == 'develop') {
     branch:        'unstable',
     macos_64:      false,
     macos_64_v8:   false,
+    macos_arm64:   false,
     android:       false,
     builder:       false,
     server_ce:     false,
@@ -78,13 +80,18 @@ pipeline {
     )
     booleanParam (
       name:         'macos_64',
-      description:  'Build macOS targets',
+      description:  'Build macOS x86-64 targets',
       defaultValue: defaults.macos_64
     )
     booleanParam (
       name:         'macos_64_v8',
-      description:  'Build macOS x86 targets',
+      description:  'Build macOS x86-64 V8 targets',
       defaultValue: defaults.macos_64_v8
+    )
+    booleanParam (
+      name:         'macos_arm64',
+      description:  'Build macOS ARM64 targets',
+      defaultValue: defaults.macos_arm64
     )
     booleanParam (
       name:         'win_64',
@@ -280,7 +287,7 @@ pipeline {
             TEAM_ID = credentials('macos-team-id')
             FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
             CODESIGNING_IDENTITY = 'Developer ID Application'
-            _X86 = '1'
+            USE_V8 = '1'
           }
           when {
             expression { params.macos_64_v8 }
@@ -298,6 +305,42 @@ pipeline {
               String platform = "mac_64"
               ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
               utils.checkoutRepos(varRepos)
+
+              if (params.editors) {
+                utils.build(platform, "commercial")
+                utils.buildEditors(platform)
+              }
+
+              stageStats."${STAGE_NAME}" = true              
+            }
+          }
+        }
+        stage('macOS ARM64') {
+          agent { label 'macos_arm64' }
+          environment {
+            FASTLANE_DISABLE_COLORS = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+          }
+          when {
+            expression { params.macos_arm64 }
+            beforeAgent true
+          }
+          steps {
+            script {
+              stageStats."${STAGE_NAME}" = false
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.editors)
+                dir ('desktop-apps') { deleteDir() }
+
+              utils.checkoutRepos(env.BRANCH_NAME)
+
+              String platform = "mac_arm64"
 
               if (params.editors) {
                 utils.build(platform, "commercial")
