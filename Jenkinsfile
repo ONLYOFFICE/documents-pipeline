@@ -61,6 +61,7 @@ pipeline {
   }
   options {
     buildDiscarder logRotator(daysToKeepStr: '90', artifactDaysToKeepStr: '30')
+    overrideIndexTriggers false
   }
   parameters {
     booleanParam (
