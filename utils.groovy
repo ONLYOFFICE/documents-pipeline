@@ -108,7 +108,7 @@ def getModules(String platform, String license = "any") {
     modules.add("core")
   if (params.desktop && isCommercial)
     modules.add("desktop")
-  if (params.builder && isCommercial && pBuilder)
+  if (params.builder && isOpenSource && pBuilder)
     modules.add("builder")
   if ((((params.server_de || params.server_ee) && isCommercial) \
     || (params.server_ce && isOpenSource)) && pServer)
