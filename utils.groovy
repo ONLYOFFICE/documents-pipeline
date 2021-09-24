@@ -143,7 +143,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
     args.add("--branding \"onlyoffice\"")
   if (platform.startsWith("mac"))
     args.add("--compiler \"clang\"")
-  if (platform == "mac_64" && env._X86 == "1")
+  if (platform == "mac_64" && env.USE_V8 == "1")
     args.add("--config \"use_v8\"")
   if (params.beta)
     args.add("--beta 1")
@@ -164,7 +164,7 @@ void build(String platform, String license = 'opensource') {
       call python configure.py ${getConfigArgs(platform, license)} && \
       call python make.py"
 
-  } else if (platform in ["mac_64", "linux_64"]) {
+  } else {
 
     sh "cd build_tools && \
       ./configure.py ${getConfigArgs(platform, license)} && \
@@ -212,6 +212,7 @@ void buildEditors (String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
   String product = "editors"
   String fplatform
+  String macosDeployPath
 
   if (platform.startsWith("win")) {
 
@@ -229,33 +230,36 @@ void buildEditors (String platform) {
         "windows/editors/${version}/", product, fplatform, "WinSparkle")
     }
 
-  } else if (platform == "mac_64") {
+  } else if (platform.startsWith("mac")) {
 
-    sh "cd ~/Library/Developer/Xcode/Archives && rm -rfv *"
+    sh "rm -rfv \
+      ~/Library/Developer/Xcode/Archives/* \
+      ~/Library/Caches/Sparkle_generate_appcast/*"
     sh "cd build_tools && ./make_packages.py"
 
-    String scheme = env._X86 != '1' ? "ONLYOFFICE" : "ONLYOFFICE-x86"
     String appName = "ONLYOFFICE"
     String appVersion = sh (
       script: "mdls -name kMDItemVersion -raw desktop-apps/macos/build/${appName}.app",
       returnStdout: true).trim()
-    String zipName = "${scheme}-${appVersion}"
-    String subdir = env._X86 != '1' ? "editors_x64" : "editors_x86"
-    fplatform = env._X86 != '1' ? "macOS x64" : "macOS x64 V8"
+    String scheme
+    if (platform == "mac_64" && env.USE_V8 == '1') {
+      fplatform = "macOS x86-64 V8 (legacy)"
+      scheme = "ONLYOFFICE-v8"
+      macosDeployPath = "v8"
+    } else if (platform == "mac_64") {
+      fplatform = "macOS x86-64"
+      scheme = "ONLYOFFICE-x86_64"
+      macosDeployPath = "x86_64"
+    } else if (platform == "mac_arm64") {
+      fplatform = "macOS ARM64"
+      scheme = "ONLYOFFICE-arm"
+      macosDeployPath = "arm"
+    }
 
     dir ("desktop-apps/macos/build") {
-      uploadFiles("${appName}.dmg", "macos/${scheme}-${version}.dmg",
-        product, fplatform, "Disk Image")
-      uploadFiles("update/${zipName}.zip", "macos/${subdir}/${version}/",
-        product, fplatform, "Sparkle")
-      uploadFiles("update/${appName}*.delta", "macos/${subdir}/${version}/",
-        product, fplatform, "Sparkle")
-      uploadFiles("update/*.xml", "macos/${subdir}/${version}/",
-        product, fplatform, "Sparkle")
-      uploadFiles("update/${zipName}.html", "macos/${subdir}/${version}/ReleaseNotes.html",
-        product, fplatform, "Sparkle")
-      uploadFiles("update/${zipName}.ru.html", "macos/${subdir}/${version}/ReleaseNotesRU.html",
-        product, fplatform, "Sparkle")
+      uploadFiles("*.dmg", "macos/${macosDeployPath}/${version}/", product, fplatform, "Disk Image")
+      uploadFiles("${scheme}-*.zip,update/*.delta,update/*.xml,update/*.html",
+        "macos/${macosDeployPath}/${version}/", product, fplatform, "Sparkle")
     }
 
   } else if (platform == "linux_64") {
