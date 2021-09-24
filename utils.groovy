@@ -30,7 +30,7 @@ def getVarRepos(String platform, String branch = 'master') {
   checkoutRepos(getConstRepos(branch))
 
   String reposOutput
-  ArrayList modules = getModules(platform, license)
+  ArrayList modules = getModules(platform)
   if (platform.startsWith("win")) {
     reposOutput = powershell(
       script: "cd build_tools\\scripts\\develop; \
