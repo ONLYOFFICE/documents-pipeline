@@ -40,7 +40,7 @@ def getVarRepos(String platform, String branch = 'master') {
           --branding \"onlyoffice\"",
       returnStdout: true
     )
-  } else if (platform in ["mac_64", "linux_64"]) {
+  } else {
     reposOutput = sh(
       script: "cd build_tools/scripts/develop && \
         ./print_repositories.py \
