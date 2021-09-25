@@ -339,9 +339,9 @@ pipeline {
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "mac_arm64"
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
               if (params.desktop) {
                 utils.build(platform, "commercial")
