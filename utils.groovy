@@ -52,7 +52,7 @@ def getVarRepos(String platform, String branch = 'master') {
   }
 
   ArrayList repos = []
-  reposOutput.readLines().each { line ->
+  reposOutput.readLines().sort().each { line ->
     ArrayList lineSplit = line.split(" ")
     Map repo = [
       owner: "ONLYOFFICE",
@@ -72,7 +72,7 @@ def getVarRepos(String platform, String branch = 'master') {
     repos.add(repo)
   }
 
-  return repos.sort()
+  return repos
 }
 
 void checkoutRepos(ArrayList repos) {
