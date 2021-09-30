@@ -194,10 +194,10 @@ def getRepos() {
   return [
     'ONLYOFFICE/build_tools',
     'ONLYOFFICE/core',
-    'ONLYOFFICE/core-fonts',
+    // 'ONLYOFFICE/core-fonts',
     'ONLYOFFICE/desktop-apps',
     'ONLYOFFICE/desktop-sdk',
-    'ONLYOFFICE/dictionaries',
+    // 'ONLYOFFICE/dictionaries',
     'ONLYOFFICE/document-builder-package',
     // 'ONLYOFFICE/document-server-integration',
     'ONLYOFFICE/document-server-package',
