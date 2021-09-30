@@ -30,7 +30,6 @@ if (BRANCH_NAME == 'develop') {
     macos_64_v8:   false,
     macos_arm64:   false,
     android:       false,
-    builder:       false,
     server_ce:     false,
     server_de:     false,
     beta:          true
