@@ -52,7 +52,7 @@ def getVarRepos(String platform, String branch = 'master') {
   }
 
   ArrayList repos = []
-  reposOutput.readLines().each { line ->
+  reposOutput.readLines().sort().each { line ->
     ArrayList lineSplit = line.split(" ")
     Map repo = [
       owner: "ONLYOFFICE",
@@ -72,7 +72,7 @@ def getVarRepos(String platform, String branch = 'master') {
     repos.add(repo)
   }
 
-  return repos.sort()
+  return repos
 }
 
 void checkoutRepos(ArrayList repos) {
@@ -265,7 +265,7 @@ void buildDesktop (String platform) {
       uploadFiles("rpm/**/*.rpm",     "centos/",   product, fplatform, "CentOS")
       uploadFiles("apt-rpm/**/*.rpm", "altlinux/", product, fplatform, "AltLinux")
       uploadFiles("urpmi/**/*.rpm",   "rosa/",     product, fplatform, "Rosa")
-      uploadFiles("tar/*.tar.gz",     "linux/",    product, fplatform, "Portable")
+      uploadFiles("tar/**/*.tar.gz",     "linux/",    product, fplatform, "Portable")
       // uploadFiles("deb-astra/*.deb", "astralinux/", product, fplatform, "AstraLinux Signed")
     }
 
