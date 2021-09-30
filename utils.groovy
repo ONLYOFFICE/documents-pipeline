@@ -247,7 +247,7 @@ void buildEditors (String platform) {
       uploadFiles("rpm/**/*.rpm",     "centos/",   product, fplatform, "CentOS")
       uploadFiles("apt-rpm/**/*.rpm", "altlinux/", product, fplatform, "AltLinux")
       uploadFiles("urpmi/**/*.rpm",   "rosa/",     product, fplatform, "Rosa")
-      uploadFiles("tar/*.tar.gz",     "linux/",    product, fplatform, "Portable")
+      uploadFiles("tar/**/*.tar.gz",     "linux/",    product, fplatform, "Portable")
       // uploadFiles("deb-astra/*.deb", "astralinux/", product, fplatform, "AstraLinux Signed")
     }
 
