@@ -201,9 +201,7 @@ void build(String platform, String license = 'opensource') {
 void buildDesktop (String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
   String product = "desktop"
-  String package
-  String fplatform
-  String macosDeployPath
+  String buildPackage, fplatform, macosDeployPath, scheme
 
   if (platform.startsWith("win")) {
 
@@ -224,17 +222,17 @@ void buildDesktop (String platform) {
   } else if (platform.startsWith("mac")) {
 
     if (platform == "mac_64" && env.USE_V8 == '1') {
-      package = "diskimage-v8-x86_64"
+      buildPackage = "diskimage-v8-x86_64"
       fplatform = "macOS x86-64 V8 (legacy)"
       scheme = "ONLYOFFICE-v8"
       macosDeployPath = "v8"
     } else if (platform == "mac_64") {
-      package = "diskimage-x86_64"
+      buildPackage = "diskimage-x86_64"
       fplatform = "macOS x86-64"
       scheme = "ONLYOFFICE-x86_64"
       macosDeployPath = "x86_64"
     } else if (platform == "mac_arm64") {
-      package = "diskimage-arm64"
+      buildPackage = "diskimage-arm64"
       fplatform = "macOS ARM64"
       scheme = "ONLYOFFICE-arm"
       macosDeployPath = "arm"
@@ -244,13 +242,12 @@ void buildDesktop (String platform) {
       ~/Library/Developer/Xcode/Archives/* \
       ~/Library/Caches/Sparkle_generate_appcast/*"
     sh "cd build_tools && \
-      ./make_packages.py --product desktop --package ${package}"
+      ./make_packages.py --product desktop --package ${buildPackage}"
 
     String appName = "ONLYOFFICE"
     String appVersion = sh (
       script: "mdls -name kMDItemVersion -raw desktop-apps/macos/build/${appName}.app",
       returnStdout: true).trim()
-    String scheme
 
     dir ("desktop-apps/macos/build") {
       uploadFiles("*.dmg", "macos/${macosDeployPath}/${version}/", product, fplatform, "Disk Image")
