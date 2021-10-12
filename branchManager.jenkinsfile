@@ -173,6 +173,7 @@ pipeline {
                   if (pAction && !repo.contains('documents-pipeline')) {
                     sAction = unprotectBranch(repo, baseBranches[0])
                     sAction = deleteBranch(repo, baseBranches[0])
+                  }
                 }
               }
 
