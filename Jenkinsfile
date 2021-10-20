@@ -545,14 +545,14 @@ pipeline {
     fixed {
       node('master') {
         script {
-          utils.sendTelegramMessage(utils.getJobStats('fixed'), '-342815292')
+          utils.sendTelegramMessage(utils.getJobStats('fixed'), '-1001773122025')
         }
       }
     }
     failure {
       node('master') {
         script {
-          utils.sendTelegramMessage(utils.getJobStats('failed'), '-342815292')
+          utils.sendTelegramMessage(utils.getJobStats('failed'), '-1001773122025')
         }
       }
     }
