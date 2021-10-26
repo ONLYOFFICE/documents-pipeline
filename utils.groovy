@@ -244,9 +244,8 @@ void buildDesktop (String platform) {
     sh "cd build_tools && \
       ./make_packages.py --product desktop --package ${buildPackage}"
 
-    String appName = "ONLYOFFICE"
     String appVersion = sh (
-      script: "mdls -name kMDItemVersion -raw desktop-apps/macos/build/${appName}.app",
+      script: "mdls -name kMDItemVersion -raw desktop-apps/macos/build/ONLYOFFICE.app",
       returnStdout: true).trim()
 
     dir ("desktop-apps/macos/build") {
