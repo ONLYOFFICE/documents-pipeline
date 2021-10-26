@@ -1,113 +1,125 @@
-// Repos
-
-listRepos = [
-  [name: 'build_tools'],
-  [name: 'core'],
-  [name: 'core-fonts'],
-  [name: 'desktop-apps'],
-  [name: 'desktop-sdk'],
-  [name: 'dictionaries'],
-  [name: 'document-builder-package'],
-  [name: 'document-server-integration'],
-  [name: 'document-server-package'],
-  [name: 'document-templates'],
-  [name: 'documents-pipeline'],
-  [name: 'onlyoffice'],
-  [name: 'plugin-autocomplete',  dir: 'sdkjs-plugins/plugin-autocomplete'],
-  [name: 'plugin-easybib',       dir: 'sdkjs-plugins/plugin-easybib'],
-  [name: 'plugin-highlightcode', dir: 'sdkjs-plugins/plugin-highlightcode'],
-  [name: 'plugin-macros',        dir: 'sdkjs-plugins/plugin-macros'],
-  [name: 'plugin-mendeley',      dir: 'sdkjs-plugins/plugin-mendeley'],
-  [name: 'plugin-ocr',           dir: 'sdkjs-plugins/plugin-ocr'],
-  [name: 'plugin-photoeditor',   dir: 'sdkjs-plugins/plugin-photoeditor'],
-  [name: 'plugin-speech',        dir: 'sdkjs-plugins/plugin-speech'],
-  [name: 'plugin-thesaurus',     dir: 'sdkjs-plugins/plugin-thesaurus'],
-  [name: 'plugin-translator',    dir: 'sdkjs-plugins/plugin-translator'],
-  [name: 'plugin-wordpress',     dir: 'sdkjs-plugins/plugin-wordpress'],
-  [name: 'plugin-youtube',       dir: 'sdkjs-plugins/plugin-youtube'],
-  [name: 'plugin-zotero',        dir: 'sdkjs-plugins/plugin-zotero'],
-  [name: 'sdkjs'],
-  [name: 'sdkjs-comparison'],
-  [name: 'sdkjs-content-controls'],
-  [name: 'sdkjs-disable-features'],
-  [name: 'sdkjs-sheet-views'],
-  [name: 'server'],
-  [name: 'server-license'],
-  [name: 'server-lockstorage'],
-  [name: 'web-apps'],
-  [name: 'web-apps-mobile'],
-  [name: 'Docker-DocumentServer'],
-  [name: 'DocumentBuilder']
-].each {
-  if (it.owner == null) it.owner = 'ONLYOFFICE'
+void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus(~/^.+\//)) {
+  if (dir == null) dir = repo.minus(~/^.+\//)
+  checkout([
+    $class: 'GitSCM',
+    branches: [[name: 'refs/heads/' + branch]],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [
+      [$class: 'SubmoduleOption', recursiveSubmodules: true],
+      [$class: 'RelativeTargetDirectory', relativeTargetDir: dir],
+      [$class: 'ScmName', name: "${repo}"]
+    ],
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
+  ])
 }
 
 return this
 
-void checkoutRepo(Map repo, String branch = 'master') {
-  if (repo.dir == null) repo.dir = repo.name
-  checkout([
-    $class: 'GitSCM',
-    branches: [[name: branch]],
-    doGenerateSubmoduleConfigurations: false,
-    extensions: [
-      [$class: 'SubmoduleOption', recursiveSubmodules: true],
-      [$class: 'RelativeTargetDirectory', relativeTargetDir: repo.dir],
-      [$class: 'ScmName', name: "${repo.owner}/${repo.name}"]
-    ],
-    submoduleCfg: [],
-    userRemoteConfigs: [[url: "git@github.com:${repo.owner}/${repo.name}.git"]]
-  ])
-}
-
-void checkoutRepos(String branch = 'master') {
-  for (repo in listRepos) {
-    checkoutRepo(repo, branch)
+def getConstRepos(String branch = 'master') {
+  return [
+    [ owner: "ONLYOFFICE", name: "build_tools" ],
+    [ owner: "ONLYOFFICE", name: "onlyoffice" ]
+  ].each {
+    it.branch = branch
+    it.dir = it.name
   }
 }
 
-void tagRepos(String tag) {
-  for (repo in listRepos) {
-    sh "cd ${repo.dir} && \
-      git tag -l | xargs git tag -d && \
-      git fetch --tags && \
-      git tag ${tag} && \
-      git push origin --tags"
+def getVarRepos(String platform, String branch = 'master') {
+  checkoutRepos(getConstRepos(branch))
+
+  String reposOutput
+  ArrayList modules = getModules(platform)
+  if (platform.startsWith("win")) {
+    reposOutput = powershell(
+      script: "cd build_tools\\scripts\\develop; \
+        python print_repositories.py \
+          --module \"${modules.join(' ')}\" \
+          --platform \"${platform}\" \
+          --branding \"onlyoffice\"",
+      returnStdout: true
+    )
+  } else {
+    reposOutput = sh(
+      script: "cd build_tools/scripts/develop && \
+        ./print_repositories.py \
+          --module \"${modules.join(' ')}\" \
+          --platform \"${platform}\" \
+          --branding \"onlyoffice\"",
+      returnStdout: true
+    )
+  }
+
+  ArrayList repos = []
+  reposOutput.readLines().sort().each { line ->
+    ArrayList lineSplit = line.split(" ")
+    Map repo = [
+      owner: "ONLYOFFICE",
+      name: lineSplit[0],
+      branch: "master",
+      dir: (lineSplit[1] == null) ? "${lineSplit[0]}" : "${lineSplit[1]}/${lineSplit[0]}"
+    ]
+    if (branch != 'master') repo.branch = resolveScm(
+        source: [
+          $class: 'GitSCMSource',
+          remote: "git@github.com:${repo.owner}/${repo.name}.git",
+          traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
+        ],
+        targets: [branch, 'master']
+      ).branches[0].name
+
+    repos.add(repo)
+  }
+
+  return repos
+}
+
+void checkoutRepos(ArrayList repos) {
+  echo repos.collect({"${it.owner}/${it.name} (${it.branch})"}).join("\n")
+  repos.each {
+    checkoutRepo(it.owner + "/" + it.name, it.branch, it.dir)
+  }
+}
+
+void tagRepos(ArrayList repos, String tag) {
+  repos.each {
+    sh """
+      cd ${it.dir}
+      git tag -l | xargs git tag -d
+      git fetch --tags
+      git tag ${tag}
+      git push origin --tags
+    """
   }
 }
 
 // Configure
 
-def getConfigArgs(String platform = 'native', String license = 'opensource') {
-  Boolean core = false
-  Boolean editors = false
-  Boolean builder = false
-  Boolean server = false
-  Boolean branding = false
-
-  switch(license) {
-    case "opensource":
-      core = params.core
-      builder = params.builder
-      server = params.server_ce
-      break
-    case "commercial":
-	  editors = params.editors
-      server = params.server_ee || params.server_de
-      branding = true
-      break
-  }
-
-  Boolean isWin = platform.startsWith("win")
-  Boolean isWinXP = isWin && platform.endsWith("_xp")
-  Boolean isMacOS = platform.startsWith("mac")
+def getModules(String platform, String license = "any") {
+  Boolean isOpenSource = license == "opensource" || license == "any"
+  Boolean isCommercial = license == "commercial" || license == "any"
+  Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64"]
+  Boolean pBuilder = platform in ["win_64", "linux_64"]
+  Boolean pServer = platform in ["win_64", "linux_64"]
 
   ArrayList modules = []
-  if (core)                modules.add("core")
-  if (editors)             modules.add("desktop")
-  if (builder && !isMacOS) modules.add("builder")
-  if (server && !isMacOS)  modules.add("server")
-  if (isWin)               modules.add("tests")
+  if (params.core && isOpenSource && pCore)
+    modules.add("core")
+  if (params.desktop && isCommercial)
+    modules.add("desktop")
+  if (params.builder && isOpenSource && pBuilder)
+    modules.add("builder")
+  if ((((params.server_de || params.server_ee) && isCommercial) \
+    || (params.server_ce && isOpenSource)) && pServer)
+    modules.add("server")
+
+  return modules
+}
+
+def getConfigArgs(String platform = 'native', String license = 'opensource') {
+  ArrayList modules = getModules(platform, license)
+  if (platform.startsWith("win")) modules.add("tests")
 
   ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
@@ -115,12 +127,18 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   args.add("--update false")
   args.add("--clean ${params.clean.toString()}")
   args.add("--qt-dir ${env.QT_PATH}")
-  if (isWinXP) args.add("--qt-dir-xp ${env.QT56_PATH}")
-  if (branding) args.add("--branding \"onlyoffice\"")
-  if (isMacOS) args.add("--compiler \"clang\"")
-  if (env.USE_V8 == "1") args.add("--config \"use_v8\"")
-  if (params.beta) args.add("--beta 1")
-  if (!params.extra_args.isEmpty()) args.add(params.extra_args)
+  if (platform.endsWith("_xp"))
+    args.add("--qt-dir-xp ${env.QT56_PATH}")
+  if (license == "commercial")
+    args.add("--branding \"onlyoffice\"")
+  if (platform.startsWith("mac"))
+    args.add("--compiler \"clang\"")
+  if (platform == "mac_64" && env.USE_V8 == "1")
+    args.add("--config \"use_v8\"")
+  if (params.beta)
+    args.add("--beta 1")
+  if (!params.extra_args.isEmpty())
+    args.add(params.extra_args)
 
   return args.join(' ')
 }
@@ -180,9 +198,9 @@ void build(String platform, String license = 'opensource') {
 
 // Build Packages
 
-void buildEditors (String platform) {
+void buildDesktop (String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
-  String product = "editors"
+  String product = "desktop"
   String buildPackage, fplatform, macosDeployPath, scheme
 
   if (platform.startsWith("win")) {
@@ -353,26 +371,21 @@ void buildAndroid(String branch = 'master', String config = 'release') {
 
   if (params.wipe) sh "docker image rm -f onlyoffice/android-core-builder"
 
-  sh """#!/bin/bash -xe
-    [[ ! -d android/workspace ]] && mkdir -p android/workspace
-    cd android
+  dir("android") {
+    sh "mkdir -p workspace && rm -rf workspace/build_tools/out *.zip"
 
-    rm -rf workspace/build_tools/out *.zip
-  """
+    String runOptions = [
+      "-e BUILD_BRANCH=${branch}",
+      "-e BUILD_CONFIG=${config}",
+      "-v ${pwd()}/workspace:/home/user"
+    ].join(' ')
+    docker.image('onlyoffice/android-core-builder:latest').withRun(runOptions) { c ->
+      sh "docker logs -f ${c.id}"
+    }
 
-  def dockerRunOptions = []
-  dockerRunOptions.add("-e BUILD_BRANCH=${branch}")
-  dockerRunOptions.add("-e BUILD_CONFIG=${config}")
-  dockerRunOptions.add("-v ${env.WORKSPACE}/android/workspace:/home/user")
+    sh "cd workspace/build_tools/out && \
+      zip -r ../../../android-libs-${version}.zip ./android* ./js"
 
-  docker.image('onlyoffice/android-core-builder:latest').withRun(dockerRunOptions.join(' ')) { c ->
-    sh "docker logs -f ${c.id}"
-  }
-
-  sh "cd android/workspace/build_tools/out && \
-    zip -r ../../../android-libs-${version}.zip ./android* ./js"
-
-  dir ("android") {
     uploadFiles("*.zip", "android/", "android", "Android", "Libs")
   }
 }
@@ -430,7 +443,7 @@ void linuxTest() {
 void generateReports() {
   Map deploy = listDeploy.groupBy { it.product }
 
-  Boolean editors = deploy.editors != null
+  Boolean desktop = deploy.desktop != null
   Boolean builder = deploy.builder != null
   Boolean server_ce = deploy.server_ce != null
   Boolean server_ee = deploy.server_ee != null
@@ -443,8 +456,8 @@ void generateReports() {
       test -f style.css || wget -nv https://unpkg.com/style.css -O style.css
     """
 
-    if (editors)
-      publishReport("DesktopEditors", ["editors.html": deploy.editors])
+    if (desktop)
+      publishReport("DesktopEditors", ["desktop.html": deploy.desktop])
     if (builder)
       publishReport("DocumentBuilder", ["builder.html": deploy.builder])
     if (server_ce || server_ee || server_de) {
@@ -518,10 +531,13 @@ def getJobStats(String jobStatus) {
 }
 
 void sendTelegramMessage(String text, String chatId, Boolean markdown = true) {
-  sh label: "Send Telegram Message", script: "curl -X POST -s -S \
-    -d chat_id=${chatId} \
-    ${markdown ? '-d parse_mode=markdown' : ''} \
-    -d disable_web_page_preview=true \
-    --data-urlencode text='${text}' \
-    https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
+  if (params.notify) sh(
+    label: "Send Telegram Message",
+    script: "curl -X POST -s -S \
+      -d chat_id=${chatId} \
+      ${markdown ? '-d parse_mode=markdown' : ''} \
+      -d disable_web_page_preview=true \
+      --data-urlencode text='${text}' \
+      https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
+    )
 }
