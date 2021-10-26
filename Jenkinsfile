@@ -12,7 +12,7 @@ defaults = [
   windows_32_xp: true,
   android:       true,
   core:          true,
-  editors:       true,
+  desktop:       true,
   builder:       true,
   server_ce:     true,
   server_ee:     true,
@@ -30,7 +30,6 @@ if (BRANCH_NAME == 'develop') {
     macos_64_v8:   false,
     macos_arm64:   false,
     android:       false,
-    builder:       false,
     server_ce:     false,
     server_de:     false,
     beta:          true
@@ -61,6 +60,7 @@ pipeline {
   }
   options {
     buildDiscarder logRotator(daysToKeepStr: '90', artifactDaysToKeepStr: '30')
+    overrideIndexTriggers false
   }
   parameters {
     booleanParam (
@@ -124,9 +124,9 @@ pipeline {
       defaultValue: defaults.core
     )
     booleanParam (
-      name:         'editors',
+      name:         'desktop',
       description:  'Build and publish DesktopEditors packages',
-      defaultValue: defaults.editors
+      defaultValue: defaults.desktop
     )
     booleanParam (
       name:         'builder',
@@ -168,6 +168,11 @@ pipeline {
       description:  'configure.py extra args',
       defaultValue: ''
     )
+    booleanParam (
+      name:         'notify',
+      description:  'Telegram notification',
+      defaultValue: true
+    )
   }
   triggers {
     cron(defaults.schedule)
@@ -188,7 +193,7 @@ pipeline {
     }
     stage('Build') {
       parallel {
-        stage('Linux 64-bit build') {
+        stage('Linux x64') {
           agent { label 'linux_64' }
           when {
             expression { params.linux_64 }
@@ -200,12 +205,14 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "linux_64"
+              ArrayList constRepos = utils.getConstRepos(env.BRANCH_NAME)
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList allRepos = constRepos.plus(varRepos)
+              utils.checkoutRepos(varRepos)
 
               if (params.core || params.builder || params.server_ce) {
                 utils.build(platform)
@@ -213,15 +220,15 @@ pipeline {
                 if (params.server_ce) utils.buildServer(platform)
               }
 
-              if (params.editors || params.server_ee || params.server_de) {
+              if (params.desktop || params.server_ee || params.server_de) {
                 utils.build(platform, "commercial")
 
-                if (params.editors) {
-                  utils.buildEditors(platform)
+                if (params.desktop) {
+                  utils.buildDesktop(platform)
                 }
                 if (params.server_ee) {
                   utils.buildServer(platform, "enterprise")
-                  utils.tagRepos("v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
+                  utils.tagRepos(allRepos, "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
                 }
                 if (params.server_de)
                   utils.buildServer(platform, "developer")
@@ -232,7 +239,7 @@ pipeline {
             }
           }
         }
-        stage('macOS 64-bit build') {
+        stage('macOS x64') {
           agent { label 'macos_64' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
@@ -252,26 +259,26 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "mac_64"
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
               if (params.core)
                 utils.build(platform)
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true
             }
           }
         }
-        stage('macOS 64-bit V8 build') {
+        stage('macOS x64 V8') {
           agent { label 'macos_64_v8' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
@@ -292,23 +299,23 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "mac_64"
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true              
             }
           }
         }
-        stage('macOS ARM64 build') {
+        stage('macOS ARM64') {
           agent { label 'macos_arm64' }
           environment {
             FASTLANE_DISABLE_COLORS = '1'
@@ -328,23 +335,23 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "mac_arm64"
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true              
             }
           }
         }
-        stage('Windows 64-bit build') {
+        stage('Windows x64') {
           agent {
             node {
               label 'win_64'
@@ -361,12 +368,12 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "win_64"
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
               if (params.core || params.builder || params.server_ce) {
                 utils.build(platform)
@@ -374,9 +381,9 @@ pipeline {
                 if (params.server_ce) utils.buildServer(platform)
               }
 
-              if (params.editors || params.server_ee || params.server_de) {
+              if (params.desktop || params.server_ee || params.server_de) {
                 utils.build(platform, "commercial")
-				if (params.editors)   utils.buildEditors(platform)
+                if (params.desktop)   utils.buildDesktop(platform)
                 if (params.server_ee) utils.buildServer(platform, "enterprise")
                 if (params.server_de) utils.buildServer(platform, "developer")
               }
@@ -385,7 +392,7 @@ pipeline {
             }
           }
         }
-        stage('Windows 32-bit build') {
+        stage('Windows x86') {
           agent {
             node {
               label 'win_32'
@@ -402,28 +409,27 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "win_32"
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
-              if (params.core || params.builder) {
+              if (params.core) {
                 utils.build(platform)
-                if (params.builder) utils.buildBuilder(platform)
               }
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true
             }
           }
         }
-        stage('Windows XP 64-bit build') {
+        stage('Windows x64 XP') {
           agent {
             node {
               label 'win_64_xp'
@@ -443,23 +449,23 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "win_64_xp"
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true
             }
           }
         }
-        stage('Windows XP 32-bit build') {
+        stage('Windows x86 XP') {
           agent {
             node {
               label 'win_32_xp'
@@ -479,23 +485,23 @@ pipeline {
 
               if (params.wipe)
                 deleteDir()
-              else if (params.clean && params.editors)
+              else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              utils.checkoutRepos(env.BRANCH_NAME)
-
               String platform = "win_32_xp"
+              ArrayList varRepos = utils.getVarRepos(platform, env.BRANCH_NAME)
+              utils.checkoutRepos(varRepos)
 
-              if (params.editors) {
+              if (params.desktop) {
                 utils.build(platform, "commercial")
-                utils.buildEditors(platform)
+                utils.buildDesktop(platform)
               }
 
               stageStats."${STAGE_NAME}" = true
             }
           }
         }
-        stage('Android build') {
+        stage('Android') {
           agent { label 'android' }
           when {
             expression { params.android && params.core }
