@@ -387,6 +387,52 @@ pipeline {
             }
           }
         }
+
+        stage('Windows x64 (VS19)') {
+          agent {
+            node {
+              label 'win_64_vs19'
+              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64"
+            }
+          }
+          when {
+            expression { params.win_64 }
+            beforeAgent true
+          }
+          environment {
+            VS_VERSION = '2019'
+          }
+          steps {
+            script {
+              stageStats."${STAGE_NAME}" = false
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "win_64"
+              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              checkoutRepos(varRepos)
+
+              if (params.core || params.builder || params.server_ce) {
+                build(platform)
+                if (params.builder)   buildBuilder(platform)
+                if (params.server_ce) buildServer(platform)
+              }
+
+              if (params.desktop || params.server_ee || params.server_de) {
+                build(platform, "commercial")
+                if (params.desktop)   buildDesktop(platform)
+                if (params.server_ee) buildServer(platform, "enterprise")
+                if (params.server_de) buildServer(platform, "developer")
+              }
+
+              stageStats."${STAGE_NAME}" = true
+            }
+          }
+        }
+
         stage('Windows x86') {
           agent {
             node {
@@ -684,8 +730,8 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
     args.add("--qt-dir-xp ${env.QT56_PATH}")
   if (license == "commercial")
     args.add("--branding \"onlyoffice\"")
-  if (platform.startsWith("mac"))
-    args.add("--compiler \"clang\"")
+  if (env.VS_VERSION == "2019")
+    args.add("--vs-version 2019")
   if (platform == "mac_64" && env.USE_V8 == "1")
     args.add("--config \"use_v8\"")
   if (params.beta)
@@ -754,7 +800,7 @@ void build(String platform, String license = 'opensource') {
 void buildDesktop (String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
   String product = "desktop"
-  String buildPackage, fplatform, macosDeployPath, scheme
+  String buildPackage, fplatform, winDeployPath, macosDeployPath, scheme
 
   if (platform.startsWith("win")) {
 
@@ -762,14 +808,16 @@ void buildDesktop (String platform) {
       make clean-package && \
       make packages"
 
-    if (platform.startsWith("win_64")) fplatform = "Windows x64" else
-    if (platform.startsWith("win_32")) fplatform = "Windows x86"
+    if (platform.startsWith("win_64") && (env.VS_VERSION == '2019')) fplatform = "Windows x64 (VS19)"
+    else if (platform.startsWith("win_64")) fplatform = "Windows x64"
+    else if (platform.startsWith("win_32")) fplatform = "Windows x86"
 
     dir ("desktop-apps/win-linux/package/windows") {
-      uploadFiles("*.exe", "windows/", product, fplatform, "Installer")
-      uploadFiles("*.zip", "windows/", product, fplatform, "Portable")
+      if (env.VS_VERSION != "2019") winDeployPath = "" else winDeployPath = "vs19/"
+      uploadFiles("*.exe", "windows/${winDeployPath}", product, fplatform, "Installer")
+      uploadFiles("*.zip", "windows/${winDeployPath}", product, fplatform, "Portable")
       uploadFiles("update/*.exe,update/*.xml,update/*.html",
-        "windows/editors/${version}/", product, fplatform, "WinSparkle")
+        "windows/${winDeployPath}editors/${version}/", product, fplatform, "WinSparkle")
     }
 
   } else if (platform.startsWith("mac")) {
@@ -830,7 +878,7 @@ void buildDesktop (String platform) {
 void buildBuilder(String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
   String product = "builder"
-  String fplatform
+  String fplatform, winDeployPath
 
   if (platform.startsWith("win")) {
 
@@ -838,12 +886,15 @@ void buildBuilder(String platform) {
       make clean && \
       make packages"
 
-    if (platform.startsWith("win_64")) fplatform = "Windows x64" else
-    if (platform.startsWith("win_32")) fplatform = "Windows x86"
+    if (platform.startsWith("win_64") && (env.VS_VERSION == '2019')) fplatform = "Windows x64 (VS19)" else
+    if (platform.startsWith("win_64")) fplatform = "Windows x64"
+    else if (platform.startsWith("win_32")) fplatform = "Windows x86"
 
     dir ("document-builder-package") {
-      uploadFiles("exe/*.exe", "windows/", product, fplatform, "Installer")
-      uploadFiles("zip/*.zip", "windows/", product, fplatform, "Portable")
+      if (env.VS_VERSION != "2019") winDeployPath = ""
+      else winDeployPath = "vs19/"
+      uploadFiles("exe/*.exe", "windows/${winDeployPath}", product, fplatform, "Installer")
+      uploadFiles("zip/*.zip", "windows/${winDeployPath}", product, fplatform, "Portable")
     }
 
   } else if (platform == "linux_64") {
@@ -865,7 +916,7 @@ void buildBuilder(String platform) {
 
 void buildServer(String platform, String edition='community') {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
-  String product, productName
+  String product, productName, winDeployPath
 
   switch(edition) {
     case "community":
@@ -889,10 +940,11 @@ void buildServer(String platform, String edition='community') {
       make clean && \
       make packages"
 
-    fplatform = "Windows x64"
+    if (env.VS_VERSION == '2019') fplatform = "Windows x64 (VS19)" else fplatform = "Windows x64"
 
     dir ("document-server-package") {
-      uploadFiles("exe/*.exe", "windows/", product, fplatform, "Installer")
+      if (env.VS_VERSION != "2019") winDeployPath = "" else winDeployPath = "vs19/"
+      uploadFiles("exe/*.exe", "windows/${winDeployPath}", product, fplatform, "Installer")
     }
 
   } else if (platform == "linux_64") {
