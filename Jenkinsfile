@@ -94,6 +94,11 @@ pipeline {
       defaultValue: defaults.windows_64
     )
     booleanParam (
+      name:         'win_64_vs19',
+      description:  'Build Windows x64 targets (Visual Studio 2019)',
+      defaultValue: defaults.windows_64
+    )
+    booleanParam (
       name:         'win_32',
       description:  'Build Windows x86 targets',
       defaultValue: defaults.windows_32
@@ -396,7 +401,7 @@ pipeline {
             }
           }
           when {
-            expression { params.win_64 }
+            expression { params.win_64_vs19 }
             beforeAgent true
           }
           environment {
