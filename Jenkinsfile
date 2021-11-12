@@ -405,7 +405,7 @@ pipeline {
             beforeAgent true
           }
           environment {
-            VS_VERSION = '2019'
+            USE_VS19 = '1'
           }
           steps {
             script {
@@ -735,7 +735,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
     args.add("--qt-dir-xp ${env.QT56_PATH}")
   if (license == "commercial")
     args.add("--branding \"onlyoffice\"")
-  if (env.VS_VERSION == "2019")
+  if (env.USE_VS19 == "1")
     args.add("--vs-version 2019")
   if (platform == "mac_64" && env.USE_V8 == "1")
     args.add("--config \"use_v8\"")
@@ -813,12 +813,12 @@ void buildDesktop (String platform) {
       make clean-package && \
       make packages"
 
-    if (platform.startsWith("win_64") && (env.VS_VERSION == '2019')) fplatform = "Windows x64 (VS19)"
+    if (platform.startsWith("win_64") && (env.USE_VS19 == '1')) fplatform = "Windows x64 (VS19)"
     else if (platform.startsWith("win_64")) fplatform = "Windows x64"
     else if (platform.startsWith("win_32")) fplatform = "Windows x86"
 
     dir ("desktop-apps/win-linux/package/windows") {
-      if (env.VS_VERSION != "2019") winDeployPath = "" else winDeployPath = "vs19/"
+      if (env.USE_VS19 != "1") winDeployPath = "" else winDeployPath = "vs19/"
       uploadFiles("*.exe", "windows/${winDeployPath}", product, fplatform, "Installer")
       uploadFiles("*.zip", "windows/${winDeployPath}", product, fplatform, "Portable")
       uploadFiles("update/*.exe,update/*.xml,update/*.html",
@@ -891,12 +891,12 @@ void buildBuilder(String platform) {
       make clean && \
       make packages"
 
-    if (platform.startsWith("win_64") && (env.VS_VERSION == '2019')) fplatform = "Windows x64 (VS19)" else
+    if (platform.startsWith("win_64") && (env.USE_VS19 == '1')) fplatform = "Windows x64 (VS19)" else
     if (platform.startsWith("win_64")) fplatform = "Windows x64"
     else if (platform.startsWith("win_32")) fplatform = "Windows x86"
 
     dir ("document-builder-package") {
-      if (env.VS_VERSION != "2019") winDeployPath = ""
+      if (env.USE_VS19 != "1") winDeployPath = ""
       else winDeployPath = "vs19/"
       uploadFiles("exe/*.exe", "windows/${winDeployPath}", product, fplatform, "Installer")
       uploadFiles("zip/*.zip", "windows/${winDeployPath}", product, fplatform, "Portable")
@@ -945,10 +945,10 @@ void buildServer(String platform, String edition='community') {
       make clean && \
       make packages"
 
-    if (env.VS_VERSION == '2019') fplatform = "Windows x64 (VS19)" else fplatform = "Windows x64"
+    if (env.USE_VS19 == '1') fplatform = "Windows x64 (VS19)" else fplatform = "Windows x64"
 
     dir ("document-server-package") {
-      if (env.VS_VERSION != "2019") winDeployPath = "" else winDeployPath = "vs19/"
+      if (env.USE_VS19 != "1") winDeployPath = "" else winDeployPath = "vs19/"
       uploadFiles("exe/*.exe", "windows/${winDeployPath}", product, fplatform, "Installer")
     }
 
