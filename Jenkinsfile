@@ -1108,7 +1108,7 @@ def getHtml(ArrayList data) {
     + "\n  <link rel=\"stylesheet\" href=\"style.css\">" \
     + "\n  <style type=\"text/css\">body { margin: 24px; }</style>" \
     + "\n<head>\n<body>"
-  data.groupBy { it.platform }.each { platform, sections ->
+  data.groupBy { it.platform }.sort().each { platform, sections ->
     text += "\n  <h3>${platform}</h3>\n  <ul>"
     sections.groupBy { it.section }.each { section, files ->
       text += "\n    <li><b>${section}</b></li>\n    <ul>"
