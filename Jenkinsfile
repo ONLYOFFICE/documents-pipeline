@@ -816,14 +816,18 @@ void buildDesktop (String platform) {
     if (platform.startsWith("win_64") && (env.USE_VS19 == '1')) fplatform = "Windows x64 (VS19)"
     else if (platform.startsWith("win_64")) fplatform = "Windows x64"
     else if (platform.startsWith("win_32")) fplatform = "Windows x86"
+    if (env.USE_VS19 != "1") {
+      winDeployPath = "windows/${version}/desktop/"
+    } else {
+      winDeployPath = "windows/${version}/desktop-vs19/"
+    }
 
     dir ("desktop-apps/win-linux/package/windows") {
-      if (env.USE_VS19 != "1") winDeployPath = "" else winDeployPath = "vs19/"
-      uploadFiles("*.exe", "windows/${winDeployPath}", product, fplatform, "Installer")
-      uploadFiles("*.msi", "windows/${winDeployPath}", product, fplatform, "Installer")
-      uploadFiles("*.zip", "windows/${winDeployPath}", product, fplatform, "Portable")
+      uploadFiles("**/*.exe", winDeployPath, product, fplatform, "Installer")
+      uploadFiles("*.msi", winDeployPath, product, fplatform, "Installer")
+      uploadFiles("*.zip", winDeployPath, product, fplatform, "Portable")
       uploadFiles("update/*.exe,update/*.xml,update/*.html",
-        "windows/${winDeployPath}editors/${version}/", product, fplatform, "WinSparkle")
+        winDeployPath, product, fplatform, "WinSparkle")
     }
 
   } else if (platform.startsWith("mac")) {
@@ -832,17 +836,17 @@ void buildDesktop (String platform) {
       buildPackage = "diskimage-v8-x86_64"
       fplatform = "macOS x86-64 V8 (legacy)"
       scheme = "ONLYOFFICE-v8"
-      macosDeployPath = "v8"
+      macosDeployPath = "macos/${version}/v8/"
     } else if (platform == "mac_64") {
       buildPackage = "diskimage-x86_64"
       fplatform = "macOS x86-64"
       scheme = "ONLYOFFICE-x86_64"
-      macosDeployPath = "x86_64"
+      macosDeployPath = "macos/${version}/x86_64/"
     } else if (platform == "mac_arm64") {
       buildPackage = "diskimage-arm64"
       fplatform = "macOS ARM64"
       scheme = "ONLYOFFICE-arm"
-      macosDeployPath = "arm"
+      macosDeployPath = "macos/${version}/arm/"
     }
 
     sh "rm -rfv \
@@ -856,9 +860,9 @@ void buildDesktop (String platform) {
       returnStdout: true).trim()
 
     dir ("desktop-apps/macos/build") {
-      uploadFiles("*.dmg", "macos/${macosDeployPath}/${version}/", product, fplatform, "Disk Image")
+      uploadFiles("*.dmg", macosDeployPath, product, fplatform, "Disk Image")
       uploadFiles("${scheme}-*.zip,update/*.delta,update/*.xml,update/*.html",
-        "macos/${macosDeployPath}/${version}/", product, fplatform, "Sparkle")
+        macosDeployPath, product, fplatform, "Sparkle")
     }
 
   } else if (platform == "linux_64") {
@@ -874,7 +878,7 @@ void buildDesktop (String platform) {
       uploadFiles("rpm/**/*.rpm",     "centos/",   product, fplatform, "CentOS")
       uploadFiles("apt-rpm/**/*.rpm", "altlinux/", product, fplatform, "AltLinux")
       uploadFiles("urpmi/**/*.rpm",   "rosa/",     product, fplatform, "Rosa")
-      uploadFiles("tar/**/*.tar.gz",     "linux/",    product, fplatform, "Portable")
+      uploadFiles("tar/**/*.tar.gz",  "linux/",    product, fplatform, "Portable")
       // uploadFiles("deb-astra/*.deb", "astralinux/", product, fplatform, "AstraLinux Signed")
     }
 
@@ -895,12 +899,15 @@ void buildBuilder(String platform) {
     if (platform.startsWith("win_64") && (env.USE_VS19 == '1')) fplatform = "Windows x64 (VS19)" else
     if (platform.startsWith("win_64")) fplatform = "Windows x64"
     else if (platform.startsWith("win_32")) fplatform = "Windows x86"
+    if (env.USE_VS19 != "1") {
+      winDeployPath = "windows/${version}/builder/"
+    } else {
+      winDeployPath = "windows/${version}/builder-vs19/"
+    }
 
     dir ("document-builder-package") {
-      if (env.USE_VS19 != "1") winDeployPath = ""
-      else winDeployPath = "vs19/"
-      uploadFiles("exe/*.exe", "windows/${winDeployPath}", product, fplatform, "Installer")
-      uploadFiles("zip/*.zip", "windows/${winDeployPath}", product, fplatform, "Portable")
+      uploadFiles("exe/*.exe", winDeployPath, product, fplatform, "Installer")
+      uploadFiles("zip/*.zip", winDeployPath, product, fplatform, "Portable")
     }
 
   } else if (platform == "linux_64") {
@@ -946,11 +953,16 @@ void buildServer(String platform, String edition='community') {
       make clean && \
       make packages"
 
-    if (env.USE_VS19 == '1') fplatform = "Windows x64 (VS19)" else fplatform = "Windows x64"
+    if (env.USE_VS19 != "1") {
+      fplatform = "Windows x64"
+      winDeployPath = "windows/${version}/server/"
+    } else {
+      fplatform = "Windows x64 (VS19)"
+      winDeployPath = "windows/${version}/server-vs19/"
+    }
 
     dir ("document-server-package") {
-      if (env.USE_VS19 != "1") winDeployPath = "" else winDeployPath = "vs19/"
-      uploadFiles("exe/*.exe", "windows/${winDeployPath}", product, fplatform, "Installer")
+      uploadFiles("exe/*.exe", winDeployPath, product, fplatform, "Installer")
     }
 
   } else if (platform == "linux_64") {
