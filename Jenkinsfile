@@ -820,6 +820,7 @@ void buildDesktop (String platform) {
     dir ("desktop-apps/win-linux/package/windows") {
       if (env.USE_VS19 != "1") winDeployPath = "" else winDeployPath = "vs19/"
       uploadFiles("*.exe", "windows/${winDeployPath}", product, fplatform, "Installer")
+      uploadFiles("*.msi", "windows/${winDeployPath}", product, fplatform, "Installer")
       uploadFiles("*.zip", "windows/${winDeployPath}", product, fplatform, "Portable")
       uploadFiles("update/*.exe,update/*.xml,update/*.html",
         "windows/${winDeployPath}editors/${version}/", product, fplatform, "WinSparkle")
