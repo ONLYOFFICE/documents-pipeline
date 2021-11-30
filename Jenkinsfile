@@ -823,8 +823,8 @@ void buildDesktop (String platform) {
     }
 
     dir ("desktop-apps/win-linux/package/windows") {
-      uploadFiles("**/*.exe", winDeployPath, product, fplatform, "Installer")
-      uploadFiles("*.msi", winDeployPath, product, fplatform, "Installer")
+      uploadFiles("*.exe", winDeployPath, product, fplatform, "Installer")
+      uploadFiles("**/*.msi", winDeployPath, product, fplatform, "Installer")
       uploadFiles("*.zip", winDeployPath, product, fplatform, "Portable")
       uploadFiles("update/*.exe,update/*.xml,update/*.html",
         winDeployPath, product, fplatform, "WinSparkle")
