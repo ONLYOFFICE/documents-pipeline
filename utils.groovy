@@ -45,10 +45,18 @@ listRepos = [
 return this
 
 void checkoutRepo(Map repo, String branch = 'master') {
+  if (branch != 'master') repo.branch = resolveScm(
+      source: [
+        $class: 'GitSCMSource',
+        remote: "git@github.com:${repo.owner}/${repo.name}.git",
+        traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
+      ],
+      targets: [branch, 'master']
+    ).branches[0].name
   if (repo.dir == null) repo.dir = repo.name
   checkout([
     $class: 'GitSCM',
-    branches: [[name: branch]],
+    branches: [[name: 'refs/heads/' + repo.branch]],
     doGenerateSubmoduleConfigurations: false,
     extensions: [
       [$class: 'SubmoduleOption', recursiveSubmodules: true],
