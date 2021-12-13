@@ -19,7 +19,7 @@ defaults = [
   server_de:     true,
   beta:          false,
   test:          false,
-  sign:          true,
+  sign:          false,
   schedule:      'H 17 * * *'
 ]
 
