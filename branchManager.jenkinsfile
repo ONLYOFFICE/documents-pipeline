@@ -270,7 +270,7 @@ def checkoutRepo(String repo, String branch = 'master') {
     script: """
       if [ "\$(GIT_DIR=.git git rev-parse --is-inside-work-tree)" = 'true' ]; then
         git fetch --all --prune
-        git checkout -f ${branch}
+        git switch -f ${branch}
         git reset --hard origin/${branch}
         git clean -df
       else
@@ -294,7 +294,7 @@ def createBranch(String repo, String branch, String baseBranch) {
   return sh (
     label: "${repo}: start ${branch}",
     script: """
-      git checkout ${baseBranch}
+      git switch ${baseBranch}
       git reset --hard origin/${baseBranch}
       git checkout -B ${branch}
       git push origin ${branch}
@@ -309,13 +309,13 @@ def mergeBranch(String repo, String branch, ArrayList baseBranches) {
   return sh (
     label: "${repo}: merge ${branch} into ${baseBranches.join(' ')}",
     script: """#!/bin/bash -xe
-      git checkout ${branch}
+      git switch ${branch}
       git reset --hard origin/${branch}
       base_branches=(${baseBranches.join(' ')})
       merged=0
       rev_branch=\$(git rev-parse @)
       for base in "\${base_branches[@]}"; do
-        git checkout \$base
+        git switch \$base
         git reset --hard origin/\$base
         rev_base=\$(git rev-parse @)
         if [[ \$rev_branch == \$rev_base ]]; then
