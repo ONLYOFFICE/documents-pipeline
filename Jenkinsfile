@@ -607,18 +607,23 @@ pipeline {
 
 void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus(~/^.+\//)) {
   if (dir == null) dir = repo.minus(~/^.+\//)
-  checkout([
-    $class: 'GitSCM',
-    branches: [[name: 'refs/heads/' + branch]],
-    doGenerateSubmoduleConfigurations: false,
-    extensions: [
-      [$class: 'SubmoduleOption', recursiveSubmodules: true],
-      [$class: 'RelativeTargetDirectory', relativeTargetDir: dir],
-      [$class: 'ScmName', name: "${repo}"]
-    ],
-    submoduleCfg: [],
-    userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
-  ])
+  def retryCount = 0
+  retry(3) {
+    if (retryCount > 0) sleep(30)
+    checkout([
+      $class: 'GitSCM',
+      branches: [[name: 'refs/heads/' + branch]],
+      doGenerateSubmoduleConfigurations: false,
+      extensions: [
+        [$class: 'SubmoduleOption', recursiveSubmodules: true],
+        [$class: 'RelativeTargetDirectory', relativeTargetDir: dir],
+        [$class: 'ScmName', name: "${repo}"]
+      ],
+      submoduleCfg: [],
+      userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
+    ])
+    retryCount++
+  }
 }
 
 def getConstRepos(String branch = 'master') {
