@@ -13,7 +13,9 @@ if (BRANCH_NAME in ['master', 'develop']) {
   defaults.version = '0.0.0'
   defaults.protect_branch = true
 } else if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
-  defaults.action_type.addAll(['merge_release', 'finish_release', 'unprotect_release'])
+  defaults.action_type.addAll(['merge_release', 'finish_release', 'rename_release', 'unprotect_release'])
+    if (BRANCH_NAME ==~ /^(hotfix)\/.+/) defaults.release_type = 'hotfix'
+    if (BRANCH_NAME ==~ /^(release)\/.+/) defaults.release_type = 'release'
 }
 
 pipeline {
@@ -70,9 +72,8 @@ pipeline {
           stats = [repos: [:]]
           String branch = BRANCH_NAME
           ArrayList baseBranches = []
-          def utils = load 'utils.groovy'
-          utils.listRepos.each {
-            stats.repos.put(it.owner + '/' + it.name, [:])
+          getRepos().each {
+            stats.repos.put(it, [:])
           }
           Boolean pAction
           Boolean sAction
@@ -152,6 +153,36 @@ pipeline {
               }
             }
 
+          } else if (params.action_type == 'rename_release') {
+            branch = defaults.release_type + '/v' + params.vesion
+            baseBranches = [BRANCH_NAME]
+
+            stats.repos.each { repo, status ->
+              if (checkRemoteBranch(repo, branch)) {
+                echo "${repo}: Branch already ${branch} exists."
+                status.primary = 'skip'
+              } else {
+                dir ('repos/' + repo) {
+                  checkoutRepo(repo)
+                  if (!checkRemoteBranch(repo, 'develop')
+                    && !createBranch(repo, 'develop', 'master'))
+                    error("Can't create develop branch.")
+
+                  pAction = createBranch(repo, branch, baseBranches[0])          
+                  status.primary = (pAction) ? 'success' : 'failure'
+                  if (pAction && !repo.contains('documents-pipeline')) {
+                    sAction = unprotectBranch(repo, baseBranches[0])
+                    sAction = deleteBranch(repo, baseBranches[0])
+                  }
+                }
+              }
+
+              if (params.protect_branch) {
+                sAction = protectBranch(repo, branch)
+                status.secondary = (sAction) ? 'lock' : ''
+              }
+            }
+            
           } else if (params.action_type == 'unprotect_release') {
 
             stats.repos.each { repo, status ->
@@ -191,13 +222,55 @@ pipeline {
   }
 }
 
+def getRepos() {
+  return [
+    'ONLYOFFICE/build_tools',
+    'ONLYOFFICE/core',
+    // 'ONLYOFFICE/core-fonts',
+    'ONLYOFFICE/desktop-apps',
+    'ONLYOFFICE/desktop-sdk',
+    // 'ONLYOFFICE/dictionaries',
+    'ONLYOFFICE/document-builder-package',
+    // 'ONLYOFFICE/document-server-integration',
+    'ONLYOFFICE/document-server-package',
+    // 'ONLYOFFICE/document-templates',
+    'ONLYOFFICE/documents-pipeline',
+    'ONLYOFFICE/onlyoffice',
+    // 'ONLYOFFICE/plugin-autocomplete',
+    // 'ONLYOFFICE/plugin-easybib',
+    // 'ONLYOFFICE/plugin-highlightcode',
+    // 'ONLYOFFICE/plugin-macros',
+    // 'ONLYOFFICE/plugin-mendeley',
+    // 'ONLYOFFICE/plugin-ocr',
+    // 'ONLYOFFICE/plugin-photoeditor',
+    // 'ONLYOFFICE/plugin-speech',
+    // 'ONLYOFFICE/plugin-thesaurus',
+    // 'ONLYOFFICE/plugin-translator',
+    // 'ONLYOFFICE/plugin-wordpress',
+    // 'ONLYOFFICE/plugin-youtube',
+    // 'ONLYOFFICE/plugin-zotero',
+    'ONLYOFFICE/sdkjs',
+    'ONLYOFFICE/sdkjs-comparison',
+    'ONLYOFFICE/sdkjs-content-controls',
+    'ONLYOFFICE/sdkjs-disable-features',
+    'ONLYOFFICE/sdkjs-sheet-views',
+    'ONLYOFFICE/server',
+    'ONLYOFFICE/server-license',
+    'ONLYOFFICE/server-lockstorage',
+    'ONLYOFFICE/web-apps',
+    'ONLYOFFICE/web-apps-mobile',
+    'ONLYOFFICE/Docker-DocumentServer',
+    'ONLYOFFICE/DocumentBuilder'
+  ]
+}
+
 def checkoutRepo(String repo, String branch = 'master') {
   sh (
     label: "${repo}: checkout",
     script: """
       if [ "\$(GIT_DIR=.git git rev-parse --is-inside-work-tree)" = 'true' ]; then
         git fetch --all --prune
-        git checkout -f ${branch}
+        git switch -f ${branch}
         git reset --hard origin/${branch}
         git clean -df
       else
@@ -221,7 +294,7 @@ def createBranch(String repo, String branch, String baseBranch) {
   return sh (
     label: "${repo}: start ${branch}",
     script: """
-      git checkout ${baseBranch}
+      git switch ${baseBranch}
       git reset --hard origin/${baseBranch}
       git checkout -B ${branch}
       git push origin ${branch}
@@ -236,13 +309,14 @@ def mergeBranch(String repo, String branch, ArrayList baseBranches) {
   return sh (
     label: "${repo}: merge ${branch} into ${baseBranches.join(' ')}",
     script: """#!/bin/bash -xe
-      git checkout ${branch}
+      git switch ${branch}
       git reset --hard origin/${branch}
       base_branches=(${baseBranches.join(' ')})
       merged=0
       rev_branch=\$(git rev-parse @)
       for base in "\${base_branches[@]}"; do
-        git checkout \$base
+        git switch \$base || \
+          (((++merged)) && continue)
         git reset --hard origin/\$base
         rev_base=\$(git rev-parse @)
         if [[ \$rev_branch == \$rev_base ]]; then
