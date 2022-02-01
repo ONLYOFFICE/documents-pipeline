@@ -243,7 +243,7 @@ pipeline {
         stage('macOS x64') {
           agent { label 'macos_64' }
           environment {
-            FASTLANE_DISABLE_COLORS = '1'
+            FASTLANE_HIDE_TIMESTAMP = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
             APPLE_ID = credentials('macos-apple-id')
             TEAM_ID = credentials('macos-team-id')
@@ -282,7 +282,7 @@ pipeline {
         stage('macOS x64 V8') {
           agent { label 'macos_64_v8' }
           environment {
-            FASTLANE_DISABLE_COLORS = '1'
+            FASTLANE_HIDE_TIMESTAMP = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
             APPLE_ID = credentials('macos-apple-id')
             TEAM_ID = credentials('macos-team-id')
@@ -319,7 +319,7 @@ pipeline {
         stage('macOS ARM64') {
           agent { label 'macos_arm64' }
           environment {
-            FASTLANE_DISABLE_COLORS = '1'
+            FASTLANE_HIDE_TIMESTAMP = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
             APPLE_ID = credentials('macos-apple-id')
             TEAM_ID = credentials('macos-team-id')
