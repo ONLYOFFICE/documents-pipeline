@@ -821,9 +821,9 @@ void buildDesktop (String platform) {
     } else if (platform == 'win_32') {
       targets += ['innosetup-x86', 'winsparkle-update', 'advinst-x86', 'portable-x86']
     } else if (platform == 'win_64_xp') {
-      targets += ['innosetup-x64-xp', 'portable-x64-xp']      
+      targets += ['innosetup-x64-xp', 'winsparkle-update', 'portable-x64-xp']      
     } else if (platform == 'win_32_xp') {
-      targets += ['innosetup-x86-xp', 'portable-x86-xp']
+      targets += ['innosetup-x86-xp', 'winsparkle-update', 'portable-x86-xp']
     }
     if (params.signing) targets += ['sign']
 
