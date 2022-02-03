@@ -827,11 +827,11 @@ void buildDesktop (String platform) {
     }
     if (params.signing) targets += ['sign']
 
-    bat "cd build_tools && python make_package.py" + \
+    bat "cd build_tools && call python make_package.py" + \
       " --product desktop" + \
       " --version ${env.PRODUCT_VERSION}" + \
       " --build ${env.BUILD_NUMBER}" + \
-      " --targets clean ${targets.join(' ')}"
+      " --targets ${targets.join(' ')}"
 
     if (platform.startsWith("win_64") && (env.USE_VS19 == '1')) fplatform = "Windows x64 (VS19)"
     else if (platform.startsWith("win_64")) fplatform = "Windows x64"
