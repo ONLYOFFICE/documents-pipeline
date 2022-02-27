@@ -55,7 +55,7 @@ pipeline {
     S3_BUCKET = "repo-doc-onlyoffice-com"
   }
   options {
-    buildDiscarder logRotator(daysToKeepStr: '60', artifactDaysToKeepStr: '30')
+    buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
     overrideIndexTriggers false
   }
   parameters {
