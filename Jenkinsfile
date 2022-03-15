@@ -256,6 +256,9 @@ pipeline {
             expression { params.linux_64_ubuntu20 }
             beforeAgent true
           }
+          environment {
+            USE_NODE14 = '1'
+          }
           steps {
             script {
               stageStats."${STAGE_NAME}" = false
@@ -823,7 +826,7 @@ def getModules(String platform, String license = "any") {
   if (params.builder && isOpenSource && pBuilder)
     modules.add("builder")
   if ((((params.server_de || params.server_ee) && isCommercial) \
-    || (params.server_ce && isOpenSource)) && pServer)
+    || (params.server_ce && isOpenSource)) && pServer && env.USE_NODE14 != '1')
     modules.add("server")
 
   return modules
