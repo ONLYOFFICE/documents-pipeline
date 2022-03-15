@@ -570,9 +570,9 @@ pipeline {
 
               String platform = "android"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
-              ArrayList allRepos = constRepos.plus(varRepos)
-              checkoutRepos(varRepos)
+              // ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              // ArrayList allRepos = constRepos.plus(varRepos)
+              checkoutRepos(constRepos)
 
               build(platform)
               buildAndroid(env.BRANCH_NAME)
@@ -752,7 +752,10 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
   args.add("--platform \"${platform}\"")
-  args.add("--update false")
+  if (platform == "android")
+    args.add("--update true")
+  else
+    args.add("--update false")
   args.add("--clean ${params.clean.toString()}")
   args.add("--qt-dir ${env.QT_PATH}")
   if (platform.endsWith("_xp"))
