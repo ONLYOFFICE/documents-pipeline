@@ -878,7 +878,7 @@ void build(String platform, String license = 'opensource') {
 
   }
 
-  if (license == "opensource") {
+  if (license == "opensource" && platform in ["win_64", "win_32", "mac_64", "linux_64"]) {
     String os, arch, version
     String branch = env.BRANCH_NAME
 
