@@ -52,11 +52,11 @@ pipeline {
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
     CODESIGN_CERT_PWD = credentials('codesign-cert-pwd')
-    S3_BUCKET = "repo-doc-onlyoffice-com"
   }
   options {
-    buildDiscarder logRotator(daysToKeepStr: '90', artifactDaysToKeepStr: '30')
+    buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
     overrideIndexTriggers false
+    ansiColor('xterm')
   }
   parameters {
     booleanParam (
@@ -892,7 +892,7 @@ void build(String platform, String license = 'opensource') {
     if (platform.endsWith("_64")) arch = "x64"
 
     Closure coreDeployPath = {
-      return "${env.S3_BUCKET}/${os}/core/${branch}/${it}/${arch}"
+      return "${s3bucket}/${os}/core/${branch}/${it}/${arch}"
     }
 
     String cmdUpload = """
