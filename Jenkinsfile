@@ -566,9 +566,14 @@ pipeline {
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe) deleteDir()
+              sh "rm -rf build_tools/out && rm -rfv *.zip"
 
               String platform = "android"
-              sh "rm -rf build_tools/out && rm -rfv *.zip"
+              ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList allRepos = constRepos.plus(varRepos)
+              checkoutRepos(varRepos)
+
               build(platform)
               buildAndroid(env.BRANCH_NAME)
 
