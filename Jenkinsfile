@@ -75,6 +75,16 @@ pipeline {
       defaultValue: defaults.linux
     )
     booleanParam (
+      name:         'linux_64_ubuntu20',
+      description:  'Build Linux x64 (Ubuntu 20) targets',
+      defaultValue: defaults.linux
+    )
+    booleanParam (
+      name:         'linux_aarch64',
+      description:  'Build Linux ARM64 targets',
+      defaultValue: defaults.linux
+    )
+    booleanParam (
       name:         'macos_64',
       description:  'Build macOS x86-64 targets',
       defaultValue: defaults.macos_64
@@ -240,6 +250,98 @@ pipeline {
             }
           }
         }
+        stage('Linux x64 (Ubuntu 20)') {
+          agent { label 'linux_64_ubuntu20' }
+          when {
+            expression { params.linux_64_ubuntu20 }
+            beforeAgent true
+          }
+          steps {
+            script {
+              stageStats."${STAGE_NAME}" = false
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "linux_64"
+              ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList allRepos = constRepos.plus(varRepos)
+              checkoutRepos(varRepos)
+
+              if (params.core || params.builder || params.server_ce) {
+                build(platform)
+                // if (params.builder)   buildBuilder(platform)
+                // if (params.server_ce) buildServer(platform)
+              }
+
+              if (params.desktop || params.server_ee || params.server_de) {
+                build(platform, "commercial")
+
+                // if (params.desktop) {
+                //   buildDesktop(platform)
+                // }
+                // if (params.server_ee) {
+                //   buildServer(platform, "enterprise")
+                // }
+                // if (params.server_de)
+                //   buildServer(platform, "developer")
+              }
+              // if (params.test) linuxTest()
+
+              stageStats."${STAGE_NAME}" = true
+            }
+          }
+        }
+        stage('Linux ARM64') {
+          agent { label 'linux_64_ubuntu20' }
+          when {
+            expression { params.linux_aarch64 }
+            beforeAgent true
+          }
+          steps {
+            script {
+              stageStats."${STAGE_NAME}" = false
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "linux_arm64"
+              ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList allRepos = constRepos.plus(varRepos)
+              checkoutRepos(varRepos)
+
+              if (params.core || params.builder || params.server_ce) {
+                build(platform)
+                // if (params.builder)   buildBuilder(platform)
+                // if (params.server_ce) buildServer(platform)
+              }
+
+              // if (params.desktop || params.server_ee || params.server_de) {
+              //   build(platform, "commercial")
+
+              //   if (params.desktop) {
+              //     buildDesktop(platform)
+              //   }
+              //   if (params.server_ee) {
+              //     buildServer(platform, "enterprise")
+              //   }
+              //   if (params.server_de)
+              //     buildServer(platform, "developer")
+              // }
+              // if (params.test) linuxTest()
+
+              stageStats."${STAGE_NAME}" = true
+            }
+          }
+        }
+
+
         stage('macOS x64') {
           agent { label 'macos_64' }
           environment {
@@ -709,7 +811,7 @@ void tagRepos(ArrayList repos, String tag) {
 def getModules(String platform, String license = "any") {
   Boolean isOpenSource = license == "opensource" || license == "any"
   Boolean isCommercial = license == "commercial" || license == "any"
-  Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64"]
+  Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
   Boolean pBuilder = platform in ["win_64", "linux_64"]
   Boolean pServer = platform in ["win_64", "linux_64"]
 
