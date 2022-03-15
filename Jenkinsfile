@@ -17,6 +17,7 @@ defaults = [
   server_ce:     true,
   server_ee:     true,
   server_de:     true,
+  mobile:        true,
   beta:          false,
   test:          false,
   sign:          true,
@@ -32,6 +33,7 @@ if (BRANCH_NAME == 'develop') {
     android:       false,
     server_ce:     false,
     server_de:     false,
+    mobile:        false,
     beta:          true
   ])
 }
@@ -148,6 +150,11 @@ pipeline {
       name:         'server_de',
       description:  'Build and publish DocumentServer-DE packages',
       defaultValue: defaults.server_de
+    )
+    booleanParam (
+      name:         'mobile',
+      description:  'Build and publish Android libraries',
+      defaultValue: defaults.mobile
     )
     booleanParam (
       name:         'beta',
@@ -549,9 +556,9 @@ pipeline {
           }
         }
         stage('Android') {
-          agent { label 'android' }
+          agent { label 'android_ubuntu20' }
           when {
-            expression { params.android && params.core }
+            expression { params.android && params.mobile }
             beforeAgent true
           }
           steps {
@@ -560,6 +567,9 @@ pipeline {
 
               if (params.wipe) deleteDir()
 
+              String platform = "android"
+              sh "rm -rf build_tools/out && rm -rfv *.zip"
+              build(platform)
               buildAndroid(env.BRANCH_NAME)
 
               stageStats."${STAGE_NAME}" = true
@@ -712,6 +722,7 @@ def getModules(String platform, String license = "any") {
   Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64"]
   Boolean pBuilder = platform in ["win_64", "linux_64"]
   Boolean pServer = platform in ["win_64", "linux_64"]
+  Boolean pMobile = platform == "android"
 
   ArrayList modules = []
   if (params.core && isOpenSource && pCore)
@@ -723,6 +734,8 @@ def getModules(String platform, String license = "any") {
   if ((((params.server_de || params.server_ee) && isCommercial) \
     || (params.server_ce && isOpenSource)) && pServer)
     modules.add("server")
+  if (params.mobile && isOpenSource && pMobile)
+    modules.add("mobile")
 
   return modules
 }
@@ -745,6 +758,8 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
     args.add("--vs-version 2019")
   if (platform == "mac_64" && env.USE_V8 == "1")
     args.add("--config \"use_v8\"")
+  if (platform == "android")
+    args.add("--config release")
   if (params.beta)
     args.add("--beta 1")
   if (!params.extra_args.isEmpty())
@@ -773,7 +788,7 @@ void build(String platform, String license = 'opensource') {
 
   }
 
-  if (license == "opensource") {
+  if (license == "opensource" && platform != "android") {
     String os, arch, version
     String branch = env.BRANCH_NAME
 
@@ -996,6 +1011,14 @@ void buildServer(String platform, String edition='community') {
 }
 
 void buildAndroid(String branch = 'master', String config = 'release') {
+  String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
+
+  sh "cd build_tools/out && \
+    zip -r ../../android-libs-${version}.zip ./android* ./js"
+  uploadFiles("*.zip", "android/", "android", "Android", "Libs")
+}
+
+void buildAndroidDocker(String branch = 'master', String config = 'release') {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
 
   if (params.wipe) sh "docker image rm -f onlyoffice/android-core-builder"
