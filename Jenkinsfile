@@ -753,10 +753,12 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
   args.add("--platform \"${platform}\"")
-  if (platform == "android")
+  if (platform == "android") {
     args.add("--update true")
-  else
+    args.add("--branch ${env.BRANCH_NAME}")
+  } else {
     args.add("--update false")
+  }
   args.add("--clean ${params.clean.toString()}")
   args.add("--qt-dir ${env.QT_PATH}")
   if (platform.endsWith("_xp"))
