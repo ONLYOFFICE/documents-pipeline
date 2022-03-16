@@ -52,6 +52,7 @@ pipeline {
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
     CODESIGN_CERT_PWD = credentials('codesign-cert-pwd')
+    S3_BUCKET = "repo-doc-onlyoffice-com"
   }
   options {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
