@@ -213,6 +213,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -262,6 +263,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -307,6 +309,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -362,6 +365,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -402,6 +406,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -438,6 +443,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -471,6 +477,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -516,6 +523,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -558,6 +566,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -598,6 +607,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -634,6 +644,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -662,6 +673,7 @@ pipeline {
           }
           steps {
             script {
+              echo env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe) deleteDir()
