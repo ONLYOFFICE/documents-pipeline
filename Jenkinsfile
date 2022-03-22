@@ -800,7 +800,7 @@ void build(String platform, String license = 'opensource') {
   }
 
   if (license == "opensource" && platform != "android") {
-    String os, arch, version
+    String os, arch, version, coreFile
     String branch = env.BRANCH_NAME
 
     if (platform.startsWith("win"))   os = "windows" else
@@ -815,13 +815,19 @@ void build(String platform, String license = 'opensource') {
     if (platform.endsWith("_32")) arch = "x86" else
     if (platform.endsWith("_64")) arch = "x64"
 
+    if (env.USE_VS19 != "1") {
+      coreFile = "core.7z"
+    } else {
+      coreFile = "core-vs19.7z"
+    }
+
     Closure coreDeployPath = {
       return "${s3bucket}/${os}/core/${branch}/${it}/${arch}"
     }
 
     String cmdUpload = """
       aws s3 cp --acl public-read --no-progress \
-        build_tools/out/${platform}/onlyoffice/core/core.7z \
+        build_tools/out/${platform}/onlyoffice/core/${coreFile} \
         s3://${coreDeployPath(version)}/
       aws s3 sync --delete --acl public-read --no-progress \
         s3://${coreDeployPath(version)}/ \
