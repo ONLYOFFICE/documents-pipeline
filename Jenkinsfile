@@ -330,8 +330,8 @@ pipeline {
                 // if (params.server_ce) buildServer(platform)
               }
 
-              // if (params.desktop || params.server_ee || params.server_de) {
-              //   build(platform, "commercial")
+              if (params.desktop || params.server_ee || params.server_de) {
+                build(platform, "commercial")
 
               //   if (params.desktop) {
               //     buildDesktop(platform)
@@ -341,7 +341,7 @@ pipeline {
               //   }
               //   if (params.server_de)
               //     buildServer(platform, "developer")
-              // }
+              }
               // if (params.test) linuxTest()
 
               stageStats."${STAGE_NAME}" = true
@@ -826,11 +826,11 @@ void tagRepos(ArrayList repos, String tag) {
 // Configure
 
 def getModules(String platform, String license = "any") {
-  Boolean isOpenSource = license == "opensource" || license == "any"
-  Boolean isCommercial = license == "commercial" || license == "any"
+  Boolean isOpenSource = license in ["opensource", "any"]
+  Boolean isCommercial = license in ["commercial", "any"]
   Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
   Boolean pBuilder = platform in ["win_64", "linux_64"]
-  Boolean pServer = platform in ["win_64", "linux_64"]
+  Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
 
   ArrayList modules = []
   if (params.core && isOpenSource && pCore)
@@ -840,7 +840,7 @@ def getModules(String platform, String license = "any") {
   if (params.builder && isOpenSource && pBuilder)
     modules.add("builder")
   if ((((params.server_de || params.server_ee) && isCommercial) \
-    || (params.server_ce && isOpenSource)) && pServer && env.USE_NODE14 != '1')
+    || (params.server_ce && isOpenSource)) && pServer)
     modules.add("server")
 
   return modules
