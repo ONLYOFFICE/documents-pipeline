@@ -918,8 +918,8 @@ void build(String platform, String license = 'opensource') {
 
     String cmdUpload = """
       aws s3 cp --acl public-read --no-progress \
-        build_tools/out/${platform}/onlyoffice/core/${coreFile} \
-        s3://${coreDeployPath(version)}/
+        build_tools/out/${platform}/onlyoffice/core/core.7z \
+        s3://${coreDeployPath(version)}/${coreFile}
       aws s3 sync --delete --acl public-read --no-progress \
         s3://${coreDeployPath(version)}/ \
         s3://${coreDeployPath('latest')}/
