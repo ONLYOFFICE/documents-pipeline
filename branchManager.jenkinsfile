@@ -316,10 +316,7 @@ def mergeBranch(String repo, String branch, ArrayList baseBranches) {
       merged=0
       rev_branch=\$(git rev-parse @)
       for base in "\${base_branches[@]}"; do
-        if ! git switch \$base; then
-          ((++merged))
-          continue
-        fi
+        git switch \$base || (((++merged)) && continue)
         git reset --hard origin/\$base
         rev_base=\$(git rev-parse @)
         if [[ \$rev_branch == \$rev_base ]]; then
