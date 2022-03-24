@@ -1017,12 +1017,14 @@ void buildDesktop (String platform) {
     fplatform = "Linux x64"
 
     dir ("desktop-apps/win-linux/package/linux") {
-      uploadFiles("deb/*.deb",        "ubuntu/",   product, fplatform, "Ubuntu")
-      uploadFiles("rpm/**/*.rpm",     "centos/",   product, fplatform, "CentOS")
-      uploadFiles("apt-rpm/**/*.rpm", "altlinux/", product, fplatform, "AltLinux")
-      uploadFiles("urpmi/**/*.rpm",   "rosa/",     product, fplatform, "Rosa")
-      uploadFiles("tar/**/*.tar.gz",  "linux/",    product, fplatform, "Portable")
-      // uploadFiles("deb-astra/*.deb", "astralinux/", product, fplatform, "AstraLinux Signed")
+      uploadFiles2(product, fplatform, [
+        [section: "Ubuntu",   glob: "deb/*.deb",        dest: "ubuntu/"  ],
+        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "centos/"  ],
+        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "altlinux/"],
+        [section: "Rosa",     glob: "urpmi/**/*.rpm",   dest: "rosa/"    ],
+        [section: "Portable", glob: "tar/**/*.tar.gz",  dest: "linux/"   ]
+        // [section: "AstraLinux Signed", glob: "deb-astra/*.deb",  dest: "astralinux/"]
+      ])
     }
 
   }
@@ -1068,9 +1070,11 @@ void buildBuilder(String platform) {
     fplatform = "Linux x64"
 
     dir ("document-builder-package") {
-      uploadFiles("deb/*.deb",    "ubuntu/", product, fplatform, "Ubuntu")
-      uploadFiles("rpm/**/*.rpm", "centos/", product, fplatform, "CentOS")
-      uploadFiles("tar/*.tar.gz", "linux/",  product, fplatform, "Portable")
+      uploadFiles2(product, fplatform, [
+        [section: "Ubuntu",   glob: "deb/*.deb",    dest: "ubuntu/"],
+        [section: "CentOS",   glob: "rpm/**/*.rpm", dest: "centos/"],
+        [section: "Portable", glob: "tar/*.tar.gz", dest: "linux/" ]
+      ])
     }
 
   }
@@ -1124,10 +1128,12 @@ void buildServer(String platform, String edition='community') {
     fplatform = "Linux x64"
 
     dir ("document-server-package") {
-      uploadFiles("deb/*.deb",        "ubuntu/",   product, fplatform, "Ubuntu")
-      uploadFiles("rpm/**/*.rpm",     "centos/",   product, fplatform, "CentOS")
-      uploadFiles("apt-rpm/**/*.rpm", "altlinux/", product, fplatform, "AltLinux")
-      uploadFiles("*.tar.gz",         "linux/",    product, fplatform, "Portable")
+      uploadFiles2(product, fplatform, [
+        [section: "Ubuntu",   glob: "deb/*.deb",        dest: "ubuntu/"  ],
+        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "centos/"  ],
+        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "altlinux/"],
+        [section: "Portable", glob: "*.tar.gz",         dest: "linux/"   ]
+      ])
     }
 
     sh "cd Docker-DocumentServer && \
@@ -1197,6 +1203,44 @@ void uploadFiles(String glob, String dest, String product, String platform, Stri
       md5: cmdMd5sum(it.path)
       // sha256: cmdSha256sum(it.path)
     ])
+  }
+}
+
+void uploadFiles2(String product, String platform, ArrayList items) {
+  String s3uri, file
+  Closure cmdUpload = { local, remote ->
+    String cmd = "aws s3 cp --acl public-read --no-progress ${local} s3://${remote}"
+    if (platform ==~ /^Windows.*/) bat cmd else sh cmd
+  }
+  Closure cmdMd5sum = {
+    if (platform ==~ /^Windows.*/) {
+      return powershell (
+        script: "Get-FileHash ${it} -Algorithm MD5 | Select -ExpandProperty Hash",
+        returnStdout: true).trim()
+    } else if (platform ==~ /^macOS.*/) {
+      return sh (script: "md5 -qs ${it}", returnStdout: true).trim()
+    } else {
+      return sh (script: "md5sum ${it} | cut -c -32", returnStdout: true).trim()
+    }
+  }
+
+  items.each { item ->
+    findFiles(glob: item.glob).each {
+      s3uri = "${s3deploy}/${dest}${dest.endsWith('/') ? it.name : ''}"
+      file = item.dest.endsWith('/') ? it.name : item.dest.drop(dest.lastIndexOf('/')+1)
+      cmdUpload(it.path, s3uri)
+
+      listDeploy.add([
+        product: product,
+        platform: platform,
+        section: item.section,
+        path: s3uri,
+        file: file,
+        size: it.length,
+        md5: cmdMd5sum(it.path)
+        // sha256: cmdSha256sum(it.path)
+      ])
+    }
   }
 }
 
