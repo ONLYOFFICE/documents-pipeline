@@ -835,7 +835,7 @@ def getModules(String platform, String license = "any") {
   ArrayList modules = []
   if (params.core && isOpenSource && pCore)
     modules.add("core")
-  if (params.desktop && isCommercial)
+  if (params.desktop && isCommercial && platform != "linux_arm64")
     modules.add("desktop")
   if (params.builder && isOpenSource && pBuilder)
     modules.add("builder")
