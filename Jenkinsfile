@@ -219,7 +219,7 @@ pipeline {
 
               String platform = "linux_64"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               ArrayList allRepos = constRepos.plus(varRepos)
               checkoutRepos(varRepos)
 
@@ -272,7 +272,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "mac_64"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               checkoutRepos(varRepos)
 
               if (params.core)
@@ -312,7 +312,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "mac_64"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               checkoutRepos(varRepos)
 
               if (params.desktop) {
@@ -348,7 +348,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "mac_arm64"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               checkoutRepos(varRepos)
 
               if (params.desktop) {
@@ -381,7 +381,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_64"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               checkoutRepos(varRepos)
 
               if (params.core || params.builder || params.server_ce) {
@@ -426,7 +426,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_64"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               checkoutRepos(varRepos)
 
               if (params.core || params.builder || params.server_ce) {
@@ -468,7 +468,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_32"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               checkoutRepos(varRepos)
 
               if (params.core) {
@@ -508,7 +508,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_64_xp"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               checkoutRepos(varRepos)
 
               if (params.desktop) {
@@ -544,7 +544,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "win_32_xp"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               checkoutRepos(varRepos)
 
               if (params.desktop) {
@@ -644,35 +644,33 @@ void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus
 
 def getConstRepos(String branch = 'master') {
   return [
-    [ owner: "ONLYOFFICE", name: "build_tools" ],
-    [ owner: "ONLYOFFICE", name: "onlyoffice" ]
+    [owner: "ONLYOFFICE", name: "build_tools"],
+    [owner: "ONLYOFFICE", name: "onlyoffice" ]
   ].each {
     it.branch = branch
     it.dir = it.name
   }
 }
 
-def getVarRepos(String platform, String branch = 'master') {
+def getVarRepos(String branch = 'master', String platform, String branding) {
+  String reposOutput, scriptArgs
+
   checkoutRepos(getConstRepos(branch))
 
-  String reposOutput
-  ArrayList modules = getModules(platform)
+  scriptArgs = "--module \"${getModules(platform).join(' ')}\""
+  if (platform != null) scriptArgs += " --platform \"${platform}\""
+  if (branding != null) scriptArgs += " --branding \"${branding}\""
+
   if (platform.startsWith("win")) {
     reposOutput = powershell(
       script: "cd build_tools\\scripts\\develop; \
-        python print_repositories.py \
-          --module \"${modules.join(' ')}\" \
-          --platform \"${platform}\" \
-          --branding \"onlyoffice\"",
+        python print_repositories.py ${scriptArgs}",
       returnStdout: true
     )
   } else {
     reposOutput = sh(
       script: "cd build_tools/scripts/develop && \
-        ./print_repositories.py \
-          --module \"${modules.join(' ')}\" \
-          --platform \"${platform}\" \
-          --branding \"onlyoffice\"",
+        ./print_repositories.py ${scriptArgs}",
       returnStdout: true
     )
   }
