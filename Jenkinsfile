@@ -570,13 +570,13 @@ pipeline {
               sh "rm -rfv *.zip"
 
               String platform = "android"
-              ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform)
-              ArrayList allRepos = constRepos.plus(varRepos)
-              checkoutRepos(constRepos)
+              checkoutRepos(varRepos)
 
-              build(platform)
-              buildAndroid(env.BRANCH_NAME)
+              if (params.mobile) {
+                build(platform)
+                buildAndroid(env.BRANCH_NAME)
+              }
 
               stageStats."${STAGE_NAME}" = true
             }
