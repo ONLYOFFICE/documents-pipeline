@@ -1023,7 +1023,7 @@ void buildAndroid(String branch = 'master', String config = 'release') {
 
   sh "cd build_tools/out && \
     zip -r ../../android-libs-${version}.zip ./android* ./js"
-  uploadFiles("*.zip", "android/", "android", "Android", "Libs")
+  uploadFiles("*.zip", "android/", "mobile", "Android", "Libs")
 }
 
 void buildAndroidDocker(String branch = 'master', String config = 'release') {
@@ -1108,7 +1108,7 @@ void generateReports() {
   Boolean server_ce = deploy.server_ce != null
   Boolean server_ee = deploy.server_ee != null
   Boolean server_de = deploy.server_de != null
-  Boolean android = deploy.android != null
+  Boolean mobile = deploy.mobile != null
 
   dir ("html") {
     sh """
@@ -1127,8 +1127,8 @@ void generateReports() {
       if (server_de) serverReports."server_de.html" = deploy.server_de
       publishReport("DocumentServer", serverReports)
     }
-    if (android)
-      publishReport("Android", ["android.html": deploy.android])
+    if (mobile)
+      publishReport("Mobile", ["mobile.html": deploy.mobile])
   }
 }
 
