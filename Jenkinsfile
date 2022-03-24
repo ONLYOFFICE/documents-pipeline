@@ -567,12 +567,12 @@ pipeline {
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe) deleteDir()
-              sh "rm -rf build_tools/out && rm -rfv *.zip"
+              sh "rm -rfv *.zip"
 
               String platform = "android"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              // ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
-              // ArrayList allRepos = constRepos.plus(varRepos)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform)
+              ArrayList allRepos = constRepos.plus(varRepos)
               checkoutRepos(constRepos)
 
               build(platform)
@@ -751,12 +751,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
   args.add("--platform \"${platform}\"")
-  if (platform == "android") {
-    args.add("--update true")
-    args.add("--branch ${env.BRANCH_NAME}")
-  } else {
-    args.add("--update false")
-  }
+  args.add("--update false")
   args.add("--clean ${params.clean.toString()}")
   args.add("--qt-dir ${env.QT_PATH}")
   if (platform.endsWith("_xp"))
