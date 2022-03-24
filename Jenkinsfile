@@ -721,8 +721,8 @@ void tagRepos(ArrayList repos, String tag) {
 // Configure
 
 def getModules(String platform, String license = "any") {
-  Boolean isOpenSource = license == "opensource" || license == "any"
-  Boolean isCommercial = license == "commercial" || license == "any"
+  Boolean isOpenSource = license in ["opensource", "any"]
+  Boolean isCommercial = license in ["commercial", "any"]
   Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64"]
   Boolean pBuilder = platform in ["win_64", "linux_64"]
   Boolean pServer = platform in ["win_64", "linux_64"]
@@ -761,7 +761,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   if (env.USE_VS19 == "1")
     args.add("--vs-version 2019")
   if (platform == "mac_64" && env.USE_V8 == "1")
-    args.add("--config \"use_v8\"")
+    args.add("--config use_v8")
   if (platform == "android")
     args.add("--config release")
   if (params.beta)
@@ -792,7 +792,7 @@ void build(String platform, String license = 'opensource') {
 
   }
 
-  if (license == "opensource" && platform != "android") {
+  if (license == "opensource" && platform in ["win_64", "win_32", "mac_64", "linux_64"]) {
     String os, arch, version, coreFile
     String branch = env.BRANCH_NAME
 
@@ -808,11 +808,9 @@ void build(String platform, String license = 'opensource') {
     if (platform.endsWith("_32")) arch = "x86" else
     if (platform.endsWith("_64")) arch = "x64"
 
-    if (env.USE_VS19 != "1") {
-      coreFile = "core.7z"
-    } else {
-      coreFile = "core-vs19.7z"
-    }
+    coreFile = "core.7z"
+    if (env.USE_VS19 == "1")     coreFile = "core-vs19.7z"
+    if (env.USE_UBUNTU20 == "1") coreFile = "core-ubuntu20.7z"
 
     Closure coreDeployPath = {
       return "${s3bucket}/${os}/core/${branch}/${it}/${arch}"
@@ -820,8 +818,8 @@ void build(String platform, String license = 'opensource') {
 
     String cmdUpload = """
       aws s3 cp --acl public-read --no-progress \
-        build_tools/out/${platform}/onlyoffice/core/${coreFile} \
-        s3://${coreDeployPath(version)}/
+        build_tools/out/${platform}/onlyoffice/core/core.7z \
+        s3://${coreDeployPath(version)}/${coreFile}
       aws s3 sync --delete --acl public-read --no-progress \
         s3://${coreDeployPath(version)}/ \
         s3://${coreDeployPath('latest')}/
