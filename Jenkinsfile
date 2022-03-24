@@ -570,7 +570,7 @@ pipeline {
               sh "rm -rfv *.zip"
 
               String platform = "android"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, null)
               checkoutRepos(varRepos)
 
               if (params.mobile) {
