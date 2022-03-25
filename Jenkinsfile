@@ -969,6 +969,7 @@ void buildDesktop (String platform) {
       uploadFiles("*.exe", winDeployPath, product, fplatform, "Installer")
       uploadFiles("*.msi", winDeployPath, product, fplatform, "Installer")
       uploadFiles("*.zip", winDeployPath, product, fplatform, "Portable")
+      uploadFiles("*.exe", winDeployPath, product, fplatform, "Portable")
       uploadFiles("update/*.exe,update/*.xml,update/*.html",
         winDeployPath, product, fplatform, "WinSparkle")
     }
