@@ -829,7 +829,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
     args.add("--qt-dir-xp ${env.QT56_PATH}")
   if (license == "commercial")
     args.add("--branding \"onlyoffice\"")
-  if (!platform.endsWith("_xp"))
+  if (platform in ["win_64", "win_32"])
     args.add("--vs-version 2019")
   if (platform == "mac_64" && env.USE_V8 == "1")
     args.add("--config use_v8")
