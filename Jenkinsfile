@@ -1,46 +1,49 @@
 defaults = [
-  branch:        'experimental',
-  version:       '99.99.99',
-  clean:         true,
-  linux:         true,
-  macos_64:      true,
-  macos_64_v8:   true,
-  macos_arm64:   true,
-  windows_64:    true,
-  windows_32:    true,
-  windows_64_xp: true,
-  windows_32_xp: true,
-  android:       true,
-  core:          true,
-  desktop:       true,
-  builder:       true,
-  server_ce:     true,
-  server_ee:     true,
-  server_de:     true,
-  beta:          false,
-  test:          false,
-  sign:          true,
-  schedule:      'H 17 * * *'
+  branch:            'experimental',
+  version:           '99.99.99',
+  clean:           true,
+  windows_x64:     true,
+  windows_x86:     true,
+  windows_x64_xp:  true,
+  windows_x86_xp:  true,
+  macos_x86_64:    true,
+  macos_x86_64_v8: true,
+  macos_arm64:     true,
+  linux_x86_64:    true,
+  linux_aarch64:   true,
+  android:         true,
+  core:            true,
+  desktop:         true,
+  builder:         true,
+  server_ce:       true,
+  server_ee:       true,
+  server_de:       true,
+  mobile:          true,
+  beta:            false,
+  test:            false,
+  sign:            true,
+  schedule:        'H 17 * * *'
 ]
 
 if (BRANCH_NAME == 'develop') {
   defaults.putAll([
-    branch:        'unstable',
-    macos_64:      false,
-    macos_64_v8:   false,
-    macos_arm64:   false,
-    android:       false,
-    server_ce:     false,
-    server_de:     false,
-    beta:          true
+    branch:          'unstable',
+    macos_x86_64:    false,
+    macos_x86_64_v8: false,
+    macos_arm64:     false,
+    android:         false,
+    server_ce:       false,
+    server_de:       false,
+    mobile:          false,
+    beta:            true
   ])
 }
 
 if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
   defaults.putAll([
-    branch:        'testing',
-    version:       BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
-    schedule:      'H 23 * * *'
+    branch:          'testing',
+    version:         BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
+    schedule:        'H 23 * * *'
   ])
 }
 
@@ -70,66 +73,61 @@ pipeline {
       description:  'Rebuild binaries from the \'core\' repo',
       defaultValue: defaults.clean
     )
+    // Windows
     booleanParam (
-      name:         'linux_64',
-      description:  'Build Linux x64 targets',
-      defaultValue: defaults.linux
+      name:         'windows_x64',
+      description:  'Build Windows x64 targets (Visual Studio 2019)',
+      defaultValue: defaults.windows_x64
     )
     booleanParam (
-      name:         'linux_64_ubuntu20',
-      description:  'Build Linux x64 (Ubuntu 20) targets',
-      defaultValue: defaults.linux
+      name:         'windows_x86',
+      description:  'Build Windows x86 targets (Visual Studio 2019)',
+      defaultValue: defaults.windows_x86
     )
     booleanParam (
-      name:         'linux_aarch64',
-      description:  'Build Linux ARM64 targets',
-      defaultValue: defaults.linux
+      name:         'windows_x64_xp',
+      description:  'Build Windows XP x64 targets (Visual Studio 2015)',
+      defaultValue: defaults.windows_x64_xp
     )
     booleanParam (
-      name:         'macos_64',
+      name:         'windows_x86_xp',
+      description:  'Build Windows XP x86 targets (Visual Studio 2015)',
+      defaultValue: defaults.windows_x86_xp
+    )
+    // macOS
+    booleanParam (
+      name:         'macos_x86_64',
       description:  'Build macOS x86-64 targets',
-      defaultValue: defaults.macos_64
+      defaultValue: defaults.macos_x86_64
     )
     booleanParam (
-      name:         'macos_64_v8',
-      description:  'Build macOS x86-64 V8 targets',
-      defaultValue: defaults.macos_64_v8
+      name:         'macos_x86_64_v8',
+      description:  'Build macOS V8 x86-64 targets',
+      defaultValue: defaults.macos_x86_64_v8
     )
     booleanParam (
       name:         'macos_arm64',
       description:  'Build macOS ARM64 targets',
       defaultValue: defaults.macos_arm64
     )
+    // Linux
     booleanParam (
-      name:         'win_64',
-      description:  'Build Windows x64 targets',
-      defaultValue: defaults.windows_64
+      name:         'linux_x86_64',
+      description:  'Build Linux x86-64 targets',
+      defaultValue: defaults.linux_x86_64
     )
     booleanParam (
-      name:         'win_64_vs19',
-      description:  'Build Windows x64 targets (Visual Studio 2019)',
-      defaultValue: defaults.windows_64
+      name:         'linux_aarch64',
+      description:  'Build Linux aarch64 targets',
+      defaultValue: defaults.linux_aarch64
     )
-    booleanParam (
-      name:         'win_32',
-      description:  'Build Windows x86 targets',
-      defaultValue: defaults.windows_32
-    )
-    booleanParam (
-      name:         'win_64_xp',
-      description:  'Build Windows XP x64 targets',
-      defaultValue: defaults.windows_64_xp
-    )
-    booleanParam (
-      name:         'win_32_xp',
-      description:  'Build Windows XP x86 targets',
-      defaultValue: defaults.windows_32_xp
-    )
+    // Android
     booleanParam (
       name:         'android',
       description:  'Build Android targets',
       defaultValue: defaults.android
     )
+    // Modules
     booleanParam (
       name:         'core',
       description:  'Build and publish "core" binaries',
@@ -161,18 +159,24 @@ pipeline {
       defaultValue: defaults.server_de
     )
     booleanParam (
+      name:         'mobile',
+      description:  'Build and publish Mobile libraries',
+      defaultValue: defaults.mobile
+    )
+    // Other
+    booleanParam (
       name:         'beta',
       description:  'Beta (enabled anyway on develop)',
       defaultValue: defaults.beta
     )
     booleanParam (
       name:         'test',
-      description:  'Run test(Only on Linux)',
+      description:  'Run test (Only on Linux)',
       defaultValue: defaults.test
     )
     booleanParam (
       name:         'signing',
-      description:  'Sign installer(Only on Windows)',
+      description:  'Sign installer (Only on Windows)',
       defaultValue: defaults.sign
     )
     string (
