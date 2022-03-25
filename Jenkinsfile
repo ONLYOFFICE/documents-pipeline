@@ -650,6 +650,8 @@ pipeline {
 
               stageStats."${STAGE_NAME}" = true
             }
+          }
+        }
       }
     }
   }
