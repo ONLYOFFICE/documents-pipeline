@@ -829,13 +829,14 @@ def getModules(String platform, String license = "any") {
   Boolean isOpenSource = license in ["opensource", "any"]
   Boolean isCommercial = license in ["commercial", "any"]
   Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
-  Boolean pBuilder = platform in ["win_64", "linux_64"]
+  Boolean pDesktop = platform != "linux_arm64"
+  Boolean pBuilder = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
 
   ArrayList modules = []
   if (params.core && isOpenSource && pCore)
     modules.add("core")
-  if (params.desktop && isCommercial && platform != "linux_arm64")
+  if (params.desktop && isCommercial && pDesktop)
     modules.add("desktop")
   if (params.builder && isOpenSource && pBuilder)
     modules.add("builder")
