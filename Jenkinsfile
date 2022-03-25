@@ -712,35 +712,33 @@ void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus
 
 def getConstRepos(String branch = 'master') {
   return [
-    [ owner: "ONLYOFFICE", name: "build_tools" ],
-    [ owner: "ONLYOFFICE", name: "onlyoffice" ]
+    [owner: "ONLYOFFICE", name: "build_tools"],
+    [owner: "ONLYOFFICE", name: "onlyoffice" ]
   ].each {
     it.branch = branch
     it.dir = it.name
   }
 }
 
-def getVarRepos(String platform, String branch = 'master') {
+def getVarRepos(String branch = 'master', String platform, String branding) {
+  String reposOutput, scriptArgs
+
   checkoutRepos(getConstRepos(branch))
 
-  String reposOutput
-  ArrayList modules = getModules(platform)
+  scriptArgs = "--module \"${getModules(platform).join(' ')}\""
+  if (platform != null) scriptArgs += " --platform \"${platform}\""
+  if (branding != null) scriptArgs += " --branding \"${branding}\""
+
   if (platform.startsWith("win")) {
     reposOutput = powershell(
       script: "cd build_tools\\scripts\\develop; \
-        python print_repositories.py \
-          --module \"${modules.join(' ')}\" \
-          --platform \"${platform}\" \
-          --branding \"onlyoffice\"",
+        python print_repositories.py ${scriptArgs}",
       returnStdout: true
     )
   } else {
     reposOutput = sh(
       script: "cd build_tools/scripts/develop && \
-        ./print_repositories.py \
-          --module \"${modules.join(' ')}\" \
-          --platform \"${platform}\" \
-          --branding \"onlyoffice\"",
+        ./print_repositories.py ${scriptArgs}",
       returnStdout: true
     )
   }
@@ -797,6 +795,7 @@ def getModules(String platform, String license = "any") {
   Boolean pDesktop = platform != "linux_arm64"
   Boolean pBuilder = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
+  Boolean pMobile = platform == "android"
 
   ArrayList modules = []
   if (params.core && isOpenSource && pCore)
@@ -808,6 +807,8 @@ def getModules(String platform, String license = "any") {
   if ((((params.server_de || params.server_ee) && isCommercial) \
     || (params.server_ce && isOpenSource)) && pServer)
     modules.add("server")
+  if (params.mobile && isOpenSource && pMobile)
+    modules.add("mobile")
 
   return modules
 }
@@ -826,10 +827,12 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
     args.add("--qt-dir-xp ${env.QT56_PATH}")
   if (license == "commercial")
     args.add("--branding \"onlyoffice\"")
-  if (env.USE_VS19 == "1")
+  if (!platform.endsWith("_xp"))
     args.add("--vs-version 2019")
   if (platform == "mac_64" && env.USE_V8 == "1")
-    args.add("--config \"use_v8\"")
+    args.add("--config use_v8")
+  if (platform == "android")
+    args.add("--config release")
   if (params.beta)
     args.add("--beta 1")
   if (!params.extra_args.isEmpty())
@@ -875,7 +878,6 @@ void build(String platform, String license = 'opensource') {
     if (platform.endsWith("_64")) arch = "x64"
 
     coreFile = "core.7z"
-    if (env.USE_VS19 == "1")     coreFile = "core-vs19.7z"
     if (env.USE_UBUNTU20 == "1") coreFile = "core-ubuntu20.7z"
 
     Closure coreDeployPath = {
@@ -922,14 +924,9 @@ void buildDesktop (String platform) {
       " --build ${env.BUILD_NUMBER}" + \
       " --targets ${targets.join(' ')}"
 
-    if (platform.startsWith("win_64") && (env.USE_VS19 == '1')) fplatform = "Windows x64 (VS19)"
-    else if (platform.startsWith("win_64")) fplatform = "Windows x64"
+    if (platform.startsWith("win_64"))      fplatform = "Windows x64"
     else if (platform.startsWith("win_32")) fplatform = "Windows x86"
-    if (env.USE_VS19 != "1") {
-      winDeployPath = "windows/${version}/desktop/"
-    } else {
-      winDeployPath = "windows/${version}/desktop-vs19/"
-    }
+    winDeployPath = "windows/${version}/desktop/"
 
     dir ("desktop-apps/win-linux/package/windows") {
       uploadFiles("*.exe", winDeployPath, product, fplatform, "Installer")
@@ -1013,14 +1010,9 @@ void buildBuilder(String platform) {
       " --build ${env.BUILD_NUMBER}" + \
       " --targets ${targets.join(' ')}"
 
-    if (platform.startsWith("win_64") && (env.USE_VS19 == '1')) fplatform = "Windows x64 (VS19)" else
-    if (platform.startsWith("win_64")) fplatform = "Windows x64"
+    if (platform.startsWith("win_64"))      fplatform = "Windows x64"
     else if (platform.startsWith("win_32")) fplatform = "Windows x86"
-    if (env.USE_VS19 != "1") {
-      winDeployPath = "windows/${version}/builder/"
-    } else {
-      winDeployPath = "windows/${version}/builder-vs19/"
-    }
+    winDeployPath = "windows/${version}/builder/"
 
     dir ("document-builder-package") {
       uploadFiles("exe/*.exe", winDeployPath, product, fplatform, "Installer")
@@ -1072,13 +1064,8 @@ void buildServer(String platform, String edition='community') {
       make clean && \
       make packages"
 
-    if (env.USE_VS19 != "1") {
-      fplatform = "Windows x64"
-      winDeployPath = "windows/${version}/server/"
-    } else {
-      fplatform = "Windows x64 (VS19)"
-      winDeployPath = "windows/${version}/server-vs19/"
-    }
+    fplatform = "Windows x64"
+    winDeployPath = "windows/${version}/server/"
 
     dir ("document-server-package") {
       uploadFiles("exe/*.exe", winDeployPath, product, fplatform, "Installer")
@@ -1113,25 +1100,9 @@ void buildServer(String platform, String edition='community') {
 void buildAndroid(String branch = 'master', String config = 'release') {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
 
-  if (params.wipe) sh "docker image rm -f onlyoffice/android-core-builder"
-
-  dir("android") {
-    sh "mkdir -p workspace && rm -rf workspace/build_tools/out *.zip"
-
-    String runOptions = [
-      "-e BUILD_BRANCH=${branch}",
-      "-e BUILD_CONFIG=${config}",
-      "-v ${pwd()}/workspace:/home/user"
-    ].join(' ')
-    docker.image('onlyoffice/android-core-builder:latest').withRun(runOptions) { c ->
-      sh "docker logs -f ${c.id}"
-    }
-
-    sh "cd workspace/build_tools/out && \
-      zip -r ../../../android-libs-${version}.zip ./android* ./js"
-
-    uploadFiles("*.zip", "android/", "android", "Android", "Libs")
-  }
+  sh "cd build_tools/out && \
+    zip -r ../../android-libs-${version}.zip ./android* ./js"
+  uploadFiles("*.zip", "android/", "mobile", "Android", "Libs")
 }
 
 // Upload
@@ -1230,7 +1201,7 @@ void generateReports() {
   Boolean server_ce = deploy.server_ce != null
   Boolean server_ee = deploy.server_ee != null
   Boolean server_de = deploy.server_de != null
-  Boolean android = deploy.android != null
+  Boolean mobile = deploy.mobile != null
 
   dir ("html") {
     sh """
@@ -1249,8 +1220,8 @@ void generateReports() {
       if (server_de) serverReports."server_de.html" = deploy.server_de
       publishReport("DocumentServer", serverReports)
     }
-    if (android)
-      publishReport("Android", ["android.html": deploy.android])
+    if (mobile)
+      publishReport("Mobile", ["mobile.html": deploy.mobile])
   }
 }
 
