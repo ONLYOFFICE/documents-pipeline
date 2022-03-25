@@ -58,8 +58,8 @@ pipeline {
     S3_BUCKET = "repo-doc-onlyoffice-com"
   }
   options {
+    skipDefaultCheckout true
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
-    overrideIndexTriggers false
     ansiColor('xterm')
   }
   parameters {
@@ -202,6 +202,7 @@ pipeline {
           s3region = "eu-west-1"
           s3bucket = "repo-doc-onlyoffice-com"
           s3deploy = "${s3bucket}/${env.COMPANY_NAME.toLowerCase()}/${env.RELEASE_BRANCH}"
+          branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
           listDeploy = []
           stageStats = [:]
         }
@@ -209,15 +210,287 @@ pipeline {
     }
     stage('Build') {
       parallel {
-        stage('Linux x64') {
-          agent { label 'linux_64' }
+        // Windows
+        stage('Windows x64') {
+          agent {
+            node {
+              label 'windows_x64'
+              customWorkspace "C:\\oo\\${branchDir}_x64"
+            }
+          }
           when {
-            expression { params.linux_64 }
+            expression { params.windows_x64 }
             beforeAgent true
           }
           steps {
             script {
-              echo env.NODE_NAME
+              echo "NODE_NAME=" + env.NODE_NAME
+              stageStats."${STAGE_NAME}" = false
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "win_64"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              checkoutRepos(varRepos)
+
+              if (params.core || params.builder || params.server_ce) {
+                build(platform)
+                if (params.builder)   buildBuilder(platform)
+                if (params.server_ce) buildServer(platform)
+              }
+
+              if (params.desktop || params.server_ee || params.server_de) {
+                build(platform, "commercial")
+                if (params.desktop)   buildDesktop(platform)
+                if (params.server_ee) buildServer(platform, "enterprise")
+                if (params.server_de) buildServer(platform, "developer")
+              }
+
+              stageStats."${STAGE_NAME}" = true
+            }
+          }
+        }
+        stage('Windows x86') {
+          agent {
+            node {
+              label 'windows_x86'
+              customWorkspace "C:\\oo\\${branchDir}_x86"
+            }
+          }
+          when {
+            expression { params.windows_x86 }
+            beforeAgent true
+          }
+          steps {
+            script {
+              echo "NODE_NAME=" + env.NODE_NAME
+              stageStats."${STAGE_NAME}" = false
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "win_32"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              checkoutRepos(varRepos)
+
+              if (params.core) {
+                build(platform)
+              }
+
+              if (params.desktop) {
+                build(platform, "commercial")
+                buildDesktop(platform)
+              }
+
+              stageStats."${STAGE_NAME}" = true
+            }
+          }
+        }
+        stage('Windows x64 XP') {
+          agent {
+            node {
+              label 'win_64_xp'
+              customWorkspace "C:\\oo\\${branchDir}_x64_xp"
+            }
+          }
+          when {
+            expression { params.windows_x64_xp }
+            beforeAgent true
+          }
+          environment {
+            _WIN_XP = '1'
+          }
+          steps {
+            script {
+              echo "NODE_NAME=" + env.NODE_NAME
+              stageStats."${STAGE_NAME}" = false
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "win_64_xp"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              checkoutRepos(varRepos)
+
+              if (params.desktop) {
+                build(platform, "commercial")
+                buildDesktop(platform)
+              }
+
+              stageStats."${STAGE_NAME}" = true
+            }
+          }
+        }
+        stage('Windows x86 XP') {
+          agent {
+            node {
+              label 'win_32_xp'
+              customWorkspace "C:\\oo\\${branchDir}_x86_xp"
+            }
+          }
+          when {
+            expression { params.windows_x86_xp }
+            beforeAgent true
+          }
+          environment {
+            _WIN_XP = '1'
+          }
+          steps {
+            script {
+              echo "NODE_NAME=" + env.NODE_NAME
+              stageStats."${STAGE_NAME}" = false
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "win_32_xp"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              checkoutRepos(varRepos)
+
+              if (params.desktop) {
+                build(platform, "commercial")
+                buildDesktop(platform)
+              }
+
+              stageStats."${STAGE_NAME}" = true
+            }
+          }
+        }
+        // macOS
+        stage('macOS x64') {
+          agent { label 'macos_64' }
+          environment {
+            FASTLANE_HIDE_TIMESTAMP = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+          }
+          when {
+            expression { params.macos_x86_64 }
+            beforeAgent true
+          }
+          steps {
+            script {
+              echo "NODE_NAME=" + env.NODE_NAME
+              stageStats."${STAGE_NAME}" = false
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "mac_64"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              checkoutRepos(varRepos)
+
+              if (params.core)
+                build(platform)
+
+              if (params.desktop) {
+                build(platform, "commercial")
+                buildDesktop(platform)
+              }
+
+              stageStats."${STAGE_NAME}" = true
+            }
+          }
+        }
+        stage('macOS x64 V8') {
+          agent { label 'macos_64_v8' }
+          environment {
+            FASTLANE_HIDE_TIMESTAMP = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+            USE_V8 = '1'
+          }
+          when {
+            expression { params.macos_x86_64_v8 }
+            beforeAgent true
+          }
+          steps {
+            script {
+              echo "NODE_NAME=" + env.NODE_NAME
+              stageStats."${STAGE_NAME}" = false
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "mac_64"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              checkoutRepos(varRepos)
+
+              if (params.desktop) {
+                build(platform, "commercial")
+                buildDesktop(platform)
+              }
+
+              stageStats."${STAGE_NAME}" = true              
+            }
+          }
+        }
+        stage('macOS ARM64') {
+          agent { label 'macos_arm64' }
+          environment {
+            FASTLANE_HIDE_TIMESTAMP = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+          }
+          when {
+            expression { params.macos_arm64 }
+            beforeAgent true
+          }
+          steps {
+            script {
+              echo "NODE_NAME=" + env.NODE_NAME
+              stageStats."${STAGE_NAME}" = false
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "mac_arm64"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              checkoutRepos(varRepos)
+
+              if (params.desktop) {
+                build(platform, "commercial")
+                buildDesktop(platform)
+              }
+
+              stageStats."${STAGE_NAME}" = true              
+            }
+          }
+        }
+        // Linux
+        stage('Linux x64') {
+          agent { label 'linux_64' }
+          when {
+            expression { params.linux_x86_64 }
+            beforeAgent true
+          }
+          steps {
+            script {
+              echo "NODE_NAME=" + env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -227,7 +500,7 @@ pipeline {
 
               String platform = "linux_64"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               ArrayList allRepos = constRepos.plus(varRepos)
               checkoutRepos(varRepos)
 
@@ -259,16 +532,15 @@ pipeline {
         stage('Linux x64 (Ubuntu 20)') {
           agent { label 'linux_64_ubuntu20' }
           when {
-            expression { params.linux_64_ubuntu20 }
+            expression { params.linux_x86_64 }
             beforeAgent true
           }
           environment {
-            USE_NODE14 = '1'
             USE_UBUNTU20 = '1'
           }
           steps {
             script {
-              echo env.NODE_NAME
+              echo "NODE_NAME=" + env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -314,7 +586,7 @@ pipeline {
           }
           steps {
             script {
-              echo env.NODE_NAME
+              echo "NODE_NAME=" + env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe)
@@ -324,7 +596,7 @@ pipeline {
 
               String platform = "linux_arm64"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               ArrayList allRepos = constRepos.plus(varRepos)
               checkoutRepos(varRepos)
 
@@ -352,343 +624,32 @@ pipeline {
             }
           }
         }
-
-
-        stage('macOS x64') {
-          agent { label 'macos_64' }
-          environment {
-            FASTLANE_HIDE_TIMESTAMP = '1'
-            FASTLANE_SKIP_UPDATE_CHECK = '1'
-            APPLE_ID = credentials('macos-apple-id')
-            TEAM_ID = credentials('macos-team-id')
-            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
-            CODESIGNING_IDENTITY = 'Developer ID Application'
-          }
-          when {
-            expression { params.macos_64 }
-            beforeAgent true
-          }
-          steps {
-            script {
-              echo env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "mac_64"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
-              checkoutRepos(varRepos)
-
-              if (params.core)
-                build(platform)
-
-              if (params.desktop) {
-                build(platform, "commercial")
-                buildDesktop(platform)
-              }
-
-              stageStats."${STAGE_NAME}" = true
-            }
-          }
-        }
-        stage('macOS x64 V8') {
-          agent { label 'macos_64_v8' }
-          environment {
-            FASTLANE_HIDE_TIMESTAMP = '1'
-            FASTLANE_SKIP_UPDATE_CHECK = '1'
-            APPLE_ID = credentials('macos-apple-id')
-            TEAM_ID = credentials('macos-team-id')
-            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
-            CODESIGNING_IDENTITY = 'Developer ID Application'
-            USE_V8 = '1'
-          }
-          when {
-            expression { params.macos_64_v8 }
-            beforeAgent true
-          }
-          steps {
-            script {
-              echo env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "mac_64"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
-              checkoutRepos(varRepos)
-
-              if (params.desktop) {
-                build(platform, "commercial")
-                buildDesktop(platform)
-              }
-
-              stageStats."${STAGE_NAME}" = true              
-            }
-          }
-        }
-        stage('macOS ARM64') {
-          agent { label 'macos_arm64' }
-          environment {
-            FASTLANE_HIDE_TIMESTAMP = '1'
-            FASTLANE_SKIP_UPDATE_CHECK = '1'
-            APPLE_ID = credentials('macos-apple-id')
-            TEAM_ID = credentials('macos-team-id')
-            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
-            CODESIGNING_IDENTITY = 'Developer ID Application'
-          }
-          when {
-            expression { params.macos_arm64 }
-            beforeAgent true
-          }
-          steps {
-            script {
-              echo env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "mac_arm64"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
-              checkoutRepos(varRepos)
-
-              if (params.desktop) {
-                build(platform, "commercial")
-                buildDesktop(platform)
-              }
-
-              stageStats."${STAGE_NAME}" = true              
-            }
-          }
-        }
-        stage('Windows x64') {
-          agent {
-            node {
-              label 'win_64'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64"
-            }
-          }
-          when {
-            expression { params.win_64 }
-            beforeAgent true
-          }
-          steps {
-            script {
-              echo env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "win_64"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
-              checkoutRepos(varRepos)
-
-              if (params.core || params.builder || params.server_ce) {
-                build(platform)
-                if (params.builder)   buildBuilder(platform)
-                if (params.server_ce) buildServer(platform)
-              }
-
-              if (params.desktop || params.server_ee || params.server_de) {
-                build(platform, "commercial")
-                if (params.desktop)   buildDesktop(platform)
-                if (params.server_ee) buildServer(platform, "enterprise")
-                if (params.server_de) buildServer(platform, "developer")
-              }
-
-              stageStats."${STAGE_NAME}" = true
-            }
-          }
-        }
-
-        stage('Windows x64 (VS19)') {
-          agent {
-            node {
-              label 'win_64_vs19'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64"
-            }
-          }
-          when {
-            expression { params.win_64_vs19 }
-            beforeAgent true
-          }
-          environment {
-            USE_VS19 = '1'
-          }
-          steps {
-            script {
-              echo env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "win_64"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
-              checkoutRepos(varRepos)
-
-              if (params.core || params.builder || params.server_ce) {
-                build(platform)
-                if (params.builder)   buildBuilder(platform)
-                if (params.server_ce) buildServer(platform)
-              }
-
-              if (params.desktop || params.server_ee || params.server_de) {
-                build(platform, "commercial")
-                if (params.desktop)   buildDesktop(platform)
-                if (params.server_ee) buildServer(platform, "enterprise")
-                if (params.server_de) buildServer(platform, "developer")
-              }
-
-              stageStats."${STAGE_NAME}" = true
-            }
-          }
-        }
-
-        stage('Windows x86') {
-          agent {
-            node {
-              label 'win_32'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32"
-            }
-          }
-          when {
-            expression { params.win_32 }
-            beforeAgent true
-          }
-          steps {
-            script {
-              echo env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "win_32"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
-              checkoutRepos(varRepos)
-
-              if (params.core) {
-                build(platform)
-              }
-
-              if (params.desktop) {
-                build(platform, "commercial")
-                buildDesktop(platform)
-              }
-
-              stageStats."${STAGE_NAME}" = true
-            }
-          }
-        }
-        stage('Windows x64 XP') {
-          agent {
-            node {
-              label 'win_64_xp'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_64_xp"
-            }
-          }
-          when {
-            expression { params.win_64_xp }
-            beforeAgent true
-          }
-          environment {
-            _WIN_XP = '1'
-          }
-          steps {
-            script {
-              echo env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "win_64_xp"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
-              checkoutRepos(varRepos)
-
-              if (params.desktop) {
-                build(platform, "commercial")
-                buildDesktop(platform)
-              }
-
-              stageStats."${STAGE_NAME}" = true
-            }
-          }
-        }
-        stage('Windows x86 XP') {
-          agent {
-            node {
-              label 'win_32_xp'
-              customWorkspace "C:\\oo\\${env.BRANCH_NAME}\\win_32_xp"
-            }
-          }
-          when {
-            expression { params.win_32_xp }
-            beforeAgent true
-          }
-          environment {
-            _WIN_XP = '1'
-          }
-          steps {
-            script {
-              echo env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "win_32_xp"
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
-              checkoutRepos(varRepos)
-
-              if (params.desktop) {
-                build(platform, "commercial")
-                buildDesktop(platform)
-              }
-
-              stageStats."${STAGE_NAME}" = true
-            }
-          }
-        }
+        // Android
         stage('Android') {
-          agent { label 'android' }
+          agent { label 'android_ubuntu20' }
           when {
-            expression { params.android && params.core }
+            expression { params.android && params.mobile }
             beforeAgent true
           }
           steps {
             script {
-              echo env.NODE_NAME
+              echo "NODE_NAME=" + env.NODE_NAME
               stageStats."${STAGE_NAME}" = false
 
               if (params.wipe) deleteDir()
+              sh "rm -rfv *.zip"
 
-              buildAndroid(env.BRANCH_NAME)
+              String platform = "android"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, null)
+              checkoutRepos(varRepos)
+
+              if (params.mobile) {
+                build(platform)
+                buildAndroid(env.BRANCH_NAME)
+              }
 
               stageStats."${STAGE_NAME}" = true
             }
-          }
-        }
       }
     }
   }
@@ -700,7 +661,7 @@ pipeline {
         }
       }
       script {
-        if (params.linux_64)
+        if (params.linux_x86_64 || params.linux_aarch64)
           build (
             job: 'repo-manager',
             parameters: [
