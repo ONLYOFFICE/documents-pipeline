@@ -58,7 +58,7 @@ pipeline {
     S3_BUCKET = "repo-doc-onlyoffice-com"
   }
   options {
-    skipDefaultCheckout true
+    checkoutToSubdirectory 'documents-pipeline'
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
     ansiColor('xterm')
   }
