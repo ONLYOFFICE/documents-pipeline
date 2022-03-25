@@ -550,7 +550,7 @@ pipeline {
 
               String platform = "linux_64"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(platform, env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
               ArrayList allRepos = constRepos.plus(varRepos)
               checkoutRepos(varRepos)
 
