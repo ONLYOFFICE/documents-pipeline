@@ -1,6 +1,6 @@
 defaults = [
-  branch:            'experimental',
-  version:           '99.99.99',
+  branch:          'experimental',
+  version:         '99.99.99',
   clean:           true,
   windows_x64:     true,
   windows_x86:     true,
