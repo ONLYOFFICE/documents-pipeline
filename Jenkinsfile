@@ -856,30 +856,24 @@ void buildDesktop (String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
   String product = "desktop"
   String buildPackage, fplatform, winDeployPath, macosDeployPath, scheme
-  ArrayList targets = ['clean']
 
   if (platform.startsWith("win")) {
 
-    if (platform == 'win_64') {
-      targets += ['innosetup-x64', 'winsparkle-update', 'winsparkle-files', 'advinst-x64', 'portable-x64']
-    } else if (platform == 'win_32') {
-      targets += ['innosetup-x86', 'winsparkle-update', 'advinst-x86', 'portable-x86']
-    } else if (platform == 'win_64_xp') {
-      targets += ['innosetup-x64-xp', 'winsparkle-update', 'portable-x64-xp']      
-    } else if (platform == 'win_32_xp') {
-      targets += ['innosetup-x86-xp', 'winsparkle-update', 'portable-x86-xp']
-    }
-    if (params.signing) targets += ['sign']
+    bat "cd desktop-apps && \
+      make clean-package && \
+      make packages"
 
-    bat "cd build_tools && call python make_package.py" + \
-      " --product desktop" + \
-      " --version ${env.PRODUCT_VERSION}" + \
-      " --build ${env.BUILD_NUMBER}" + \
-      " --targets ${targets.join(' ')}"
-
-    if (platform.startsWith("win_64"))      fplatform = "Windows x64"
+    if      (platform.startsWith("win_64")) fplatform = "Windows x64"
     else if (platform.startsWith("win_32")) fplatform = "Windows x86"
     winDeployPath = "windows/${version}/desktop/"
+
+    dir ("desktop-apps/win-linux/package/windows") {
+      uploadFiles("*.exe", winDeployPath, product, fplatform, "Installer")
+      uploadFiles("*.msi", winDeployPath, product, fplatform, "Installer")
+      uploadFiles("*.zip", winDeployPath, product, fplatform, "Portable")
+      uploadFiles("update/*.exe,update/*.xml,update/*.html",
+        winDeployPath, product, fplatform, "WinSparkle")
+    }
 
     dir ("desktop-apps/win-linux/package/windows") {
       uploadFiles("*.exe", winDeployPath, product, fplatform, "Installer")
@@ -950,20 +944,14 @@ void buildBuilder(String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
   String product = "builder"
   String fplatform, winDeployPath
-  ArrayList targets = ['clean']
 
   if (platform.startsWith("win")) {
 
-    if (platform == 'win_64') targets += ['innosetup-x64', 'portable-x64']
-    if (params.signing) targets += ['sign']
+    bat "cd document-builder-package && \
+      make clean && \
+      make packages"
 
-    bat "cd build_tools && call python make_package.py" + \
-      " --product builder" + \
-      " --version ${env.PRODUCT_VERSION}" + \
-      " --build ${env.BUILD_NUMBER}" + \
-      " --targets ${targets.join(' ')}"
-
-    if (platform.startsWith("win_64"))      fplatform = "Windows x64"
+    if      (platform.startsWith("win_64")) fplatform = "Windows x64"
     else if (platform.startsWith("win_32")) fplatform = "Windows x86"
     winDeployPath = "windows/${version}/builder/"
 
