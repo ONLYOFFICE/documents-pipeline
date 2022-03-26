@@ -60,7 +60,6 @@ pipeline {
   options {
     checkoutToSubdirectory 'documents-pipeline'
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
-    ansiColor('xterm')
   }
   parameters {
     booleanParam (
