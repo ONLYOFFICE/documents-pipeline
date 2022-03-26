@@ -1165,8 +1165,8 @@ void uploadFiles2(String product, String platform, ArrayList items) {
 
   items.each { item ->
     findFiles(glob: item.glob).each {
-      s3uri = "${s3deploy}/${dest}${dest.endsWith('/') ? it.name : ''}"
-      file = item.dest.endsWith('/') ? it.name : item.dest.drop(dest.lastIndexOf('/')+1)
+      s3uri = "${s3deploy}/${item.dest}${item.dest.endsWith('/') ? it.name : ''}"
+      file = item.dest.endsWith('/') ? it.name : item.dest.drop(item.dest.lastIndexOf('/')+1)
       cmdUpload(it.path, s3uri)
 
       listDeploy.add([
