@@ -264,7 +264,7 @@ pipeline {
             beforeAgent true
           }
           environment {
-            _X86 = '1'
+            UNAME_M = 'i686'
           }
           steps {
             script {
@@ -343,7 +343,7 @@ pipeline {
           }
           environment {
             _WIN_XP = '1'
-            _X86 = '1'
+            UNAME_M = 'i686'
           }
           steps {
             script {
