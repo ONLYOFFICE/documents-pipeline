@@ -263,6 +263,9 @@ pipeline {
             expression { params.windows_x86 }
             beforeAgent true
           }
+          environment {
+            _X86 = '1'
+          }
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
@@ -340,6 +343,7 @@ pipeline {
           }
           environment {
             _WIN_XP = '1'
+            _X86 = '1'
           }
           steps {
             script {
