@@ -397,6 +397,9 @@ pipeline {
             expression { params.win_32 }
             beforeAgent true
           }
+          environment {
+            _X86 = '1'
+          }
           steps {
             script {
               stageStats."${STAGE_NAME}" = false
@@ -472,6 +475,7 @@ pipeline {
           }
           environment {
             _WIN_XP = '1'
+            _X86 = '1'
           }
           steps {
             script {
