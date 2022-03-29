@@ -556,23 +556,22 @@ pipeline {
 
               if (params.core || params.builder || params.server_ce) {
                 build(platform)
-                // if (params.builder)   buildBuilder(platform)
-                // if (params.server_ce) buildServer(platform)
+                if (params.builder)   buildBuilder(platform)
+                if (params.server_ce) buildServer(platform)
               }
 
               if (params.desktop || params.server_ee || params.server_de) {
                 build(platform, "commercial")
 
-              //   if (params.desktop) {
-              //     buildDesktop(platform)
-              //   }
-              //   if (params.server_ee) {
-              //     buildServer(platform, "enterprise")
-              //   }
-              //   if (params.server_de)
-              //     buildServer(platform, "developer")
+                // if (params.desktop) {
+                //   buildDesktop(platform)
+                // }
+                if (params.server_ee) {
+                  buildServer(platform, "enterprise")
+                }
+                if (params.server_de)
+                  buildServer(platform, "developer")
               }
-              // if (params.test) linuxTest()
 
               stageStats."${STAGE_NAME}" = true
             }
@@ -963,13 +962,20 @@ void buildBuilder(String platform) {
       uploadFiles("zip/*.zip", winDeployPath, product, fplatform, "Portable")
     }
 
-  } else if (platform == "linux_64") {
+  } else if (platform.startsWith("linux")) {
 
-    sh "cd document-builder-package && \
-      make clean && \
-      make packages"
-
-    fplatform = "Linux x64"
+    if (platform == "linux_64") {
+      fplatform = "Linux x64"
+      sh "cd document-builder-package && \
+        make clean && \
+        make packages"
+    }
+    if (platform == "linux_arm64") {
+      fplatform = "Linux ARM64"      
+      sh "cd document-builder-package && \
+        make clean && \
+        make deb UNAME_M=aarch64"
+    }
 
     dir ("document-builder-package") {
       uploadFiles2(product, fplatform, [
@@ -1015,14 +1021,22 @@ void buildServer(String platform, String edition='community') {
       uploadFiles("exe/*.exe", winDeployPath, product, fplatform, "Installer")
     }
 
-  } else if (platform == "linux_64") {
+  } else if (platform.startsWith("linux")) {
 
-    sh "cd document-server-package && \
-      export PRODUCT_NAME=${productName.toLowerCase()} && \
-      make clean && \
-      make packages"
-
-    fplatform = "Linux x64"
+    if (platform == "linux_64") {
+      fplatform = "Linux x64"
+      sh "cd document-server-package && \
+        export PRODUCT_NAME=${productName.toLowerCase()} && \
+        make clean && \
+        make packages"
+    }
+    if (platform == "linux_arm64") {
+      fplatform = "Linux ARM64"
+      sh "cd document-server-package && \
+        export PRODUCT_NAME=${productName.toLowerCase()} && \
+        make clean && \
+        make deb UNAME_M=aarch64"
+    }
 
     dir ("document-server-package") {
       uploadFiles2(product, fplatform, [
@@ -1033,11 +1047,12 @@ void buildServer(String platform, String edition='community') {
       ])
     }
 
-    sh "cd Docker-DocumentServer && \
-      export PRODUCT_NAME=${productName.toLowerCase()} && \
-      make clean && \
-      make deploy"
-
+    if (platform == "linux_64") {
+      sh "cd Docker-DocumentServer && \
+        export PRODUCT_NAME=${productName.toLowerCase()} && \
+        make clean && \
+        make deploy"
+    }
   }
 }
 
