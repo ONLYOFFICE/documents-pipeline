@@ -676,14 +676,15 @@ def getConstRepos(String branch = 'master') {
 }
 
 def getVarRepos(String branch = 'master', String platform, String branding) {
-  String reposOutput, scriptArgs
-
   checkoutRepos(getConstRepos(branch))
 
-  scriptArgs = "--module \"${getModules(platform).join(' ')}\""
+  String modules = getModules(platform).join(' ')
+  String scriptArgs = ""
+  if (!modules.isEmpty()) scriptArgs = "--module \"${modules}\""
   if (platform != null) scriptArgs += " --platform \"${platform}\""
   if (branding != null) scriptArgs += " --branding \"${branding}\""
 
+  String reposOutput
   if (platform.startsWith("win")) {
     reposOutput = powershell(
       script: "cd build_tools\\scripts\\develop; \
