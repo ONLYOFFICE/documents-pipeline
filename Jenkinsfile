@@ -878,14 +878,6 @@ void buildDesktop (String platform) {
         winDeployPath, product, fplatform, "WinSparkle")
     }
 
-    dir ("desktop-apps/win-linux/package/windows") {
-      uploadFiles("*.exe", winDeployPath, product, fplatform, "Installer")
-      uploadFiles("*.msi", winDeployPath, product, fplatform, "Installer")
-      uploadFiles("*.zip", winDeployPath, product, fplatform, "Portable")
-      uploadFiles("update/*.exe,update/*.xml,update/*.html",
-        winDeployPath, product, fplatform, "WinSparkle")
-    }
-
   } else if (platform.startsWith("mac")) {
 
     if (platform == "mac_64" && env.USE_V8 == '1') {
