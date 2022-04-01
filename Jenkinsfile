@@ -967,7 +967,7 @@ void buildBuilder(String platform) {
       fplatform = "Linux ARM64"      
       sh "cd document-builder-package && \
         make clean && \
-        make deb UNAME_M=aarch64"
+        make packages UNAME_M=aarch64"
     }
 
     dir ("document-builder-package") {
@@ -1028,7 +1028,7 @@ void buildServer(String platform, String edition='community') {
       sh "cd document-server-package && \
         export PRODUCT_NAME=${productName.toLowerCase()} && \
         make clean && \
-        make deb UNAME_M=aarch64"
+        make packages UNAME_M=aarch64"
     }
 
     dir ("document-server-package") {
