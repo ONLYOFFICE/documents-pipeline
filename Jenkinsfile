@@ -531,7 +531,7 @@ pipeline {
         stage('Linux x64 (Ubuntu 20)') {
           agent { label 'linux_64_ubuntu20' }
           when {
-            expression { params.linux_x86_64 }
+            expression { params.linux_x86_64 && false }
             beforeAgent true
           }
           environment {
