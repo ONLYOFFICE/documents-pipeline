@@ -55,8 +55,6 @@ pipeline {
   }
   options {
     buildDiscarder logRotator(daysToKeepStr: '90', artifactDaysToKeepStr: '30')
-    overrideIndexTriggers false
-    ansiColor('xterm')
   }
   parameters {
     booleanParam (
@@ -399,6 +397,9 @@ pipeline {
             expression { params.win_32 }
             beforeAgent true
           }
+          environment {
+            UNAME_M = 'i686'
+          }
           steps {
             script {
               stageStats."${STAGE_NAME}" = false
@@ -474,6 +475,7 @@ pipeline {
           }
           environment {
             _WIN_XP = '1'
+            UNAME_M = 'i686'
           }
           steps {
             script {
