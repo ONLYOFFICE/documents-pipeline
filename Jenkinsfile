@@ -296,7 +296,7 @@ pipeline {
         stage('Windows x64 XP') {
           agent {
             node {
-              label 'win_64_xp'
+              label 'windows_x64_xp'
               customWorkspace "C:\\oo\\${branchDir}_x64_xp"
             }
           }
@@ -333,7 +333,7 @@ pipeline {
         stage('Windows x86 XP') {
           agent {
             node {
-              label 'win_32_xp'
+              label 'windows_x86_xp'
               customWorkspace "C:\\oo\\${branchDir}_x86_xp"
             }
           }
@@ -370,7 +370,7 @@ pipeline {
         }
         // macOS
         stage('macOS x64') {
-          agent { label 'macos_64' }
+          agent { label 'macos_x86_64' }
           environment {
             FASTLANE_HIDE_TIMESTAMP = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
@@ -410,7 +410,7 @@ pipeline {
           }
         }
         stage('macOS x64 V8') {
-          agent { label 'macos_64_v8' }
+          agent { label 'macos_x86_64_v8' }
           environment {
             FASTLANE_HIDE_TIMESTAMP = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
@@ -486,7 +486,7 @@ pipeline {
         }
         // Linux
         stage('Linux x64') {
-          agent { label 'linux_64' }
+          agent { label 'linux_x86_64' }
           when {
             expression { params.linux_x86_64 }
             beforeAgent true
@@ -533,7 +533,7 @@ pipeline {
           }
         }
         stage('Linux ARM64') {
-          agent { label 'linux_64_ubuntu20' }
+          agent { label 'linux_aarch64' }
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
@@ -579,7 +579,7 @@ pipeline {
         }
         // Android
         stage('Android') {
-          agent { label 'android_ubuntu20' }
+          agent { label 'android' }
           when {
             expression { params.android && params.mobile }
             beforeAgent true
@@ -610,7 +610,7 @@ pipeline {
   }
   post {
     always {
-      node('master') {
+      node('built-in') {
         script {
           generateReports()
         }
@@ -628,14 +628,14 @@ pipeline {
       }
     }
     fixed {
-      node('master') {
+      node('built-in') {
         script {
           sendTelegramMessage(getJobStats('fixed'), '-1001773122025')
         }
       }
     }
     failure {
-      node('master') {
+      node('built-in') {
         script {
           sendTelegramMessage(getJobStats('failed'), '-1001773122025')
         }
