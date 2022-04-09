@@ -992,7 +992,6 @@ void buildServer(String platform, String edition='community') {
       export PRODUCT_NAME=${productName.toLowerCase()} && \
       make clean && \
       make packages ${makeargs}"
-    }
 
     uploadFiles(product, platforms[platform].title, [
         [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
