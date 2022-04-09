@@ -565,7 +565,7 @@ pipeline {
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "linux_arm64"
+              String platform = "linux_aarch64"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
               ArrayList allRepos = constRepos.plus(varRepos)
