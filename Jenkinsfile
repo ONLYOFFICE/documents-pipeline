@@ -842,7 +842,7 @@ void buildCore(String platform) {
   Closure coreDeployPath = {
     return "${s3bucket}/${p.os}/core/${branch}/${it}/${p.arch}"
   }
-  String cmdUpload = """
+  String uploadCmd = """
     aws s3 cp --acl public-read --no-progress \
       build_tools/out/${platforms[platform].build}/onlyoffice/core/core.7z \
       s3://${coreDeployPath(p.version)}/core.7z
@@ -851,7 +851,7 @@ void buildCore(String platform) {
       s3://${coreDeployPath('latest')}/
   """
 
-  if (platforms[platform].isUnix) sh cmdUpload else bat cmdUpload
+  if (platforms[platform].isUnix) sh uploadCmd else bat uploadCmd
 }
 
 void buildDesktop(String platform) {
@@ -1052,11 +1052,11 @@ void uploadFiles(String product, String platform, ArrayList items, \
           md5: cmdMd5sum(file.path)
           // sha256: cmdSha256sum(it.path)
         ])
-        cmdUpload += "aws s3 cp --acl public-read --no-progress " \
+        uploadCmd += "aws s3 cp --acl public-read --no-progress " \
           + "${file.path} s3://${srcPath}; "
       }
     }
-    if (platform ==~ /^Windows.*/) bat cmdUpload else sh cmdUpload
+    if (platform ==~ /^Windows.*/) bat uploadCmd else sh uploadCmd
   }
 
   listDeploy.addAll(localListDeploy)
