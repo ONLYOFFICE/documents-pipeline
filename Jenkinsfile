@@ -1158,7 +1158,7 @@ def getHtml(ArrayList data) {
 def getJobStats(String jobStatus) {
   String text = "Build [${currentBuild.fullDisplayName}]" \
     + "(${currentBuild.absoluteUrl}) ${jobStatus}"
-  stageStats.each { stage, status ->
+  stageStats.sort().each { stage, status ->
     text += "\n${status ? '🔵' : '🔴'} ${stage.replaceAll('_','\\\\_')}"
   }
   return text
