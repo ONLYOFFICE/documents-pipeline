@@ -851,7 +851,7 @@ void buildCore(String platform) {
       s3://${coreDeployPath('latest')}/
   """
 
-  if (platforms[platform].isUnix) sh uploadCmd else bat uploadCmd
+  if (platforms[platform].isUnix) sh uploadCmd else powershell uploadCmd
 }
 
 void buildDesktop(String platform) {
@@ -935,8 +935,8 @@ void buildBuilder(String platform) {
       make packages"
 
     uploadFiles("builder", platforms[platform].title, [
-        [section: "Installer", glob: "exe/*.exe", dest: "/ubuntu/"],
-        [section: "Portable",  glob: "zip/*.zip", dest: "/centos/"]
+        [section: "Installer", glob: "exe/*.exe", dest: "/"],
+        [section: "Portable",  glob: "zip/*.zip", dest: "/"]
       ], "document-builder-package", "${s3prefix}/windows/${version}/builder")
 
   } else if (platform ==~ /^linux.*/) {
@@ -1056,7 +1056,7 @@ void uploadFiles(String product, String platform, ArrayList items, \
           + "${file.path} s3://${srcPath}; "
       }
     }
-    if (platform ==~ /^Windows.*/) bat uploadCmd else sh uploadCmd
+    if (platforms[platform].isUnix) sh uploadCmd else powershell uploadCmd
   }
 
   listDeploy.addAll(localListDeploy)
