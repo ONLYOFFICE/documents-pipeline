@@ -856,7 +856,7 @@ void buildCore(String platform) {
 
 void buildDesktop(String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
-  String suffix, target, scheme, makeargs
+  String suffix, target, scheme, makeargs = ""
 
   if (platform ==~ /^windows.*/) {
 
@@ -926,7 +926,7 @@ void buildDesktop(String platform) {
 
 void buildBuilder(String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
-  String makeargs
+  String makeargs = ""
 
   if (platform ==~ /^windows.*/) {
 
@@ -957,7 +957,7 @@ void buildBuilder(String platform) {
 
 void buildServer(String platform, String edition='community') {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
-  String product, productName, makeargs
+  String product, productName, makeargs = ""
 
   switch(edition) {
     case "community":
