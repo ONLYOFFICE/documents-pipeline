@@ -1159,7 +1159,7 @@ def getJobStats(String jobStatus) {
   String text = "Build [${currentBuild.fullDisplayName}]" \
     + "(${currentBuild.absoluteUrl}) ${jobStatus}"
   stageStats.each { stage, status ->
-    text += "\n${status ? '🔵' : '🔴'} ${stage}"
+    text += "\n${status ? '🔵' : '🔴'} ${stage.replaceAll('_','\\\\_')}"
   }
   return text
 }
