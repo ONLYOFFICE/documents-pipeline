@@ -864,7 +864,7 @@ void buildDesktop(String platform) {
       make clean-package && \
       make packages"
 
-    uploadFiles("desktop", platforms[platform].title, [
+    uploadFiles("desktop", platform, [
         [section: "Installer",  glob: "*.exe", dest: "/"],
         [section: "Installer",  glob: "*.msi", dest: "/"],
         [section: "Portable",   glob: "*.zip", dest: "/"],
@@ -898,7 +898,7 @@ void buildDesktop(String platform) {
     //   returnStdout: true).trim()
 
     scheme = "ONLYOFFICE-${suffix}"
-    uploadFiles("desktop", platforms[platform].title, [
+    uploadFiles("desktop", platform, [
         [section: "Disk Image", glob: "*.dmg", dest: "/"],
         [section: "Sparkle",
          glob: "${scheme}-*.zip,update/*.delta,update/*.xml,update/*.html",
@@ -912,7 +912,7 @@ void buildDesktop(String platform) {
       make clean && \
       make packages ${makeargs}"
 
-    uploadFiles("desktop", platforms[platform].title, [
+    uploadFiles("desktop", platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
         [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
         [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
@@ -934,7 +934,7 @@ void buildBuilder(String platform) {
       make clean && \
       make packages"
 
-    uploadFiles("builder", platforms[platform].title, [
+    uploadFiles("builder", platform, [
         [section: "Installer", glob: "exe/*.exe", dest: "/"],
         [section: "Portable",  glob: "zip/*.zip", dest: "/"]
       ], "document-builder-package", "${s3prefix}/windows/${version}/builder")
@@ -946,7 +946,7 @@ void buildBuilder(String platform) {
       make clean && \
       make packages ${makeargs}"
 
-    uploadFiles("builder", platforms[platform].title, [
+    uploadFiles("builder", platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",    dest: "/ubuntu/"],
         [section: "CentOS",   glob: "rpm/**/*.rpm", dest: "/centos/"],
         [section: "Portable", glob: "tar/*.tar.gz", dest: "/linux/" ]
@@ -981,7 +981,7 @@ void buildServer(String platform, String edition='community') {
       make clean && \
       make packages"
 
-    uploadFiles(product, platforms[platform].title, [
+    uploadFiles(product, platform, [
         [section: "Installer", glob: "exe/*.exe", dest: "/"  ]
       ], "document-server-package", "${s3prefix}/windows/${version}/server")
 
@@ -993,7 +993,7 @@ void buildServer(String platform, String edition='community') {
       make clean && \
       make packages ${makeargs}"
 
-    uploadFiles(product, platforms[platform].title, [
+    uploadFiles(product, platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
         [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
         [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
@@ -1014,7 +1014,7 @@ void buildAndroid(String branch = 'master', String config = 'release') {
 
   sh "cd build_tools/out && \
     zip -r ../../android-libs-${version}.zip ./android* ./js"
-  uploadFiles("mobile", "Android", [
+  uploadFiles("mobile", "android", [
       [section: "Libs", glob: "*.zip", dest: "/android/"],
     ], "", s3prefix)
 }
@@ -1044,7 +1044,7 @@ void uploadFiles(String product, String platform, ArrayList items, \
         srcPath = "${destPrefix}${item.dest}"
         localListDeploy.add([
           product: product,
-          platform: platform,
+          platform: platforms[platform].title,
           section: item.section,
           path: srcPath,
           file: file.name,
