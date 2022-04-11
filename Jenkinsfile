@@ -1000,7 +1000,7 @@ void buildServer(String platform, String edition='community') {
         [section: "Portable", glob: "*.tar.gz",         dest: "/linux/"   ]
       ], "document-server-package", s3prefix)
 
-    if (platform == "linux_64") {
+    if (platform == "linux_x86_64") {
       sh "cd Docker-DocumentServer && \
         export PRODUCT_NAME=${productName.toLowerCase()} && \
         make clean && \
