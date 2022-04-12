@@ -19,6 +19,7 @@ defaults = [
   server_ee:       true,
   server_de:       true,
   mobile:          true,
+  password:        false,
   beta:            false,
   test:            false,
   sign:            true,
@@ -54,7 +55,6 @@ pipeline {
     RELEASE_BRANCH = "${defaults.branch}"
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
-    CODESIGN_CERT_PWD = credentials('codesign-cert-pwd')
     S3_BUCKET = "repo-doc-onlyoffice-com"
   }
   options {
@@ -163,6 +163,13 @@ pipeline {
       defaultValue: defaults.mobile
     )
     // Other
+    /*
+    booleanParam (
+      name:         'password_protection',
+      description:  'Enable password protection',
+      defaultValue: defaults.password
+    )
+    */
     booleanParam (
       name:         'beta',
       description:  'Beta (enabled anyway on develop)',
@@ -198,10 +205,10 @@ pipeline {
         script {
           if (params.signing) env.ENABLE_SIGNING=1
 
-          branding = "onlyoffice"
+          branding = env.COMPANY_NAME.toLowerCase()
           s3region = "eu-west-1"
           s3bucket = "repo-doc-onlyoffice-com"
-          s3prefix = "${s3bucket}/${env.COMPANY_NAME.toLowerCase()}/${env.RELEASE_BRANCH}"
+          s3prefix = "${s3bucket}/${branding}/${env.RELEASE_BRANCH}"
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
           platforms = [
             windows_x64:     [title: "Windows x64",     arch: "x64",   build: "win_64",      isUnix: false],
@@ -237,7 +244,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -262,7 +269,7 @@ pipeline {
                 if (params.server_de) buildServer(platform, "developer")
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
@@ -283,7 +290,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -304,7 +311,7 @@ pipeline {
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
@@ -325,7 +332,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -341,7 +348,7 @@ pipeline {
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
@@ -363,7 +370,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -379,7 +386,7 @@ pipeline {
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
@@ -401,7 +408,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -412,16 +419,17 @@ pipeline {
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
               checkoutRepos(varRepos)
 
-              if (params.core)
+              if (params.core) {
                 buildArtifacts(platform)
                 buildCore(platform)
+              }
 
               if (params.desktop) {
                 buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
@@ -443,7 +451,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -459,7 +467,7 @@ pipeline {
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true              
+              stageStats."${env.STAGE_NAME}" = true              
             }
           }
         }
@@ -480,7 +488,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -496,7 +504,7 @@ pipeline {
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true              
+              stageStats."${env.STAGE_NAME}" = true              
             }
           }
         }
@@ -510,7 +518,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -532,20 +540,16 @@ pipeline {
 
               if (params.desktop || params.server_ee || params.server_de) {
                 buildArtifacts(platform, "commercial")
-
-                if (params.desktop) {
-                  buildDesktop(platform)
-                }
+                if (params.desktop)   buildDesktop(platform)
                 if (params.server_ee) {
                   buildServer(platform, "enterprise")
                   tagRepos(allRepos, "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
                 }
-                if (params.server_de)
-                  buildServer(platform, "developer")
+                if (params.server_de) buildServer(platform, "developer")
               }
               if (params.test) linuxTest()
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
@@ -558,7 +562,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -579,18 +583,12 @@ pipeline {
 
               if (params.desktop || params.server_ee || params.server_de) {
                 buildArtifacts(platform, "commercial")
-
-                // if (params.desktop) {
-                //   buildDesktop(platform)
-                // }
-                if (params.server_ee) {
-                  buildServer(platform, "enterprise")
-                }
-                if (params.server_de)
-                  buildServer(platform, "developer")
+                if (params.desktop)   buildDesktop(platform)
+                if (params.server_ee) buildServer(platform, "enterprise")
+                if (params.server_de) buildServer(platform, "developer")
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
@@ -604,7 +602,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe) deleteDir()
               sh "rm -rfv *.zip"
@@ -618,7 +616,7 @@ pipeline {
                 buildAndroid(env.BRANCH_NAME)
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
@@ -637,7 +635,7 @@ pipeline {
           build (
             job: 'repo-manager',
             parameters: [
-              string (name: 'company', value: env.COMPANY_NAME.toLowerCase()),
+              string (name: 'company', value: branding),
               string (name: 'branch', value: env.RELEASE_BRANCH)
             ],
             wait: false
@@ -737,7 +735,7 @@ def getVarRepos(String branch = 'master', String platform, String branding) {
     repos.add(repo)
   }
 
-  return repos
+  return repos.sort()
 }
 
 void checkoutRepos(ArrayList repos) {
@@ -806,6 +804,8 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
     args.add("--config use_v8")
   if (platform == "android")
     args.add("--config release")
+  // if (params.password_protection)
+  //   args.add("--features \"enable_protection disable_signatures\"")
   if (params.beta)
     args.add("--beta 1")
   if (!params.extra_args.isEmpty())
@@ -907,7 +907,7 @@ void buildDesktop(String platform) {
 
   } else if (platform ==~ /^linux.*/) {
 
-    if (platform == "linux_aarch64") makeargs = "UNAME_M=aarch64"
+    if (platform == "linux_aarch64") makeargs = "-e UNAME_M=aarch64"
     sh "cd desktop-apps/win-linux/package/linux && \
       make clean && \
       make packages ${makeargs}"
@@ -941,7 +941,7 @@ void buildBuilder(String platform) {
 
   } else if (platform ==~ /^linux.*/) {
 
-    if (platform == "linux_aarch64") makeargs = "UNAME_M=aarch64"
+    if (platform == "linux_aarch64") makeargs = "-e UNAME_M=aarch64"
     sh "cd document-builder-package && \
       make clean && \
       make packages ${makeargs}"
@@ -987,7 +987,7 @@ void buildServer(String platform, String edition='community') {
 
   } else if (platform ==~ /^linux.*/) {
 
-    if (platform == "linux_aarch64") makeargs = "UNAME_M=aarch64"
+    if (platform == "linux_aarch64") makeargs = "-e UNAME_M=aarch64"
     sh "cd document-server-package && \
       export PRODUCT_NAME=${productName.toLowerCase()} && \
       make clean && \
@@ -1017,6 +1017,18 @@ void buildAndroid(String branch = 'master', String config = 'release') {
   uploadFiles("mobile", "android", [
       [section: "Libs", glob: "*.zip", dest: "/android/"],
     ], "", s3prefix)
+}
+
+void buildPackages(String platform, String product, ArrayList targets) {
+  String args = "-- product ${product}" \
+    + " --version ${env.PRODUCT_VERSION}" \
+    + " --build ${env.BUILD_NUMBER}" \
+    + " --targets ${targets.join(' ')}"
+  if (platforms[platform].isUnix) {
+    sh "cd build_tools && ./make_package.py ${args}"
+  } else {
+    bat "cd build_tools && call python make_package.py ${args}"
+  }
 }
 
 // Upload
