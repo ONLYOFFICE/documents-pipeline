@@ -1046,7 +1046,7 @@ void uploadFiles(String product, String platform, ArrayList items, \
           product: product,
           platform: platforms[platform].title,
           section: item.section,
-          path: srcPath,
+          path: srcPath + file.name,
           file: file.name,
           size: file.length,
           md5: cmdMd5sum(file.path)
