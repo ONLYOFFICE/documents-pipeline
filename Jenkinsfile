@@ -19,6 +19,7 @@ defaults = [
   server_ee:       true,
   server_de:       true,
   mobile:          true,
+  password:        false,
   beta:            false,
   test:            false,
   sign:            true,
@@ -54,7 +55,6 @@ pipeline {
     RELEASE_BRANCH = "${defaults.branch}"
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
-    CODESIGN_CERT_PWD = credentials('codesign-cert-pwd')
     S3_BUCKET = "repo-doc-onlyoffice-com"
   }
   options {
@@ -163,6 +163,13 @@ pipeline {
       defaultValue: defaults.mobile
     )
     // Other
+    /*
+    booleanParam (
+      name:         'password_protection',
+      description:  'Enable password protection',
+      defaultValue: defaults.password
+    )
+    */
     booleanParam (
       name:         'beta',
       description:  'Beta (enabled anyway on develop)',
@@ -198,10 +205,23 @@ pipeline {
         script {
           if (params.signing) env.ENABLE_SIGNING=1
 
+          branding = env.COMPANY_NAME.toLowerCase()
           s3region = "eu-west-1"
           s3bucket = "repo-doc-onlyoffice-com"
-          s3deploy = "${s3bucket}/${env.COMPANY_NAME.toLowerCase()}/${env.RELEASE_BRANCH}"
+          s3prefix = "${s3bucket}/${branding}/${env.RELEASE_BRANCH}"
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
+          platforms = [
+            windows_x64:     [title: "Windows x64",     arch: "x64",   build: "win_64",      isUnix: false],
+            windows_x64_xp:  [title: "Windows XP x64",  arch: "x64",   build: "win_64_xp",   isUnix: false],
+            windows_x86:     [title: "Windows x86",     arch: "x86",   build: "win_32",      isUnix: false],
+            windows_x86_xp:  [title: "Windows XP x86",  arch: "x86",   build: "win_32_xp",   isUnix: false],
+            macos_x86_64:    [title: "macOS x86_64",    arch: "x64",   build: "mac_64",      isUnix: true ],
+            macos_x86_64_v8: [title: "macOS V8 x86_64", arch: "x64",   build: "mac_64",      isUnix: true ],
+            macos_arm64:     [title: "macOS ARM64",     arch: "arm64", build: "mac_arm64",   isUnix: true ],
+            linux_x86_64:    [title: "Linux x86_64",    arch: "x64",   build: "linux_64",    isUnix: true ],
+            linux_aarch64:   [title: "Linux aarch64",   arch: "arm64", build: "linux_arm64", isUnix: true ],
+            android:         [title: "Android",         arch: "arm",   build: "android",     isUnix: true ]
+          ]
           listDeploy = []
           stageStats = [:]
         }
@@ -224,31 +244,32 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "win_64"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              String platform = "windows_x64"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
               checkoutRepos(varRepos)
 
               if (params.core || params.builder || params.server_ce) {
-                build(platform)
+                buildArtifacts(platform)
+                if (params.core)      buildCore(platform)
                 if (params.builder)   buildBuilder(platform)
                 if (params.server_ce) buildServer(platform)
               }
 
               if (params.desktop || params.server_ee || params.server_de) {
-                build(platform, "commercial")
+                buildArtifacts(platform, "commercial")
                 if (params.desktop)   buildDesktop(platform)
                 if (params.server_ee) buildServer(platform, "enterprise")
                 if (params.server_de) buildServer(platform, "developer")
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
@@ -263,37 +284,41 @@ pipeline {
             expression { params.windows_x86 }
             beforeAgent true
           }
+          environment {
+            UNAME_M = 'i686'
+          }
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "win_32"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              String platform = "windows_x86"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
               checkoutRepos(varRepos)
 
               if (params.core) {
-                build(platform)
+                buildArtifacts(platform)
+                buildCore(platform)
               }
 
               if (params.desktop) {
-                build(platform, "commercial")
+                buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
-        stage('Windows x64 XP') {
+        stage('Windows XP x64') {
           agent {
             node {
-              label 'win_64_xp'
+              label 'windows_x64_xp'
               customWorkspace "C:\\oo\\${branchDir}_x64_xp"
             }
           }
@@ -307,30 +332,30 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "win_64_xp"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              String platform = "windows_x64_xp"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
               checkoutRepos(varRepos)
 
               if (params.desktop) {
-                build(platform, "commercial")
+                buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
-        stage('Windows x86 XP') {
+        stage('Windows XP x86') {
           agent {
             node {
-              label 'win_32_xp'
+              label 'windows_x86_xp'
               customWorkspace "C:\\oo\\${branchDir}_x86_xp"
             }
           }
@@ -340,33 +365,34 @@ pipeline {
           }
           environment {
             _WIN_XP = '1'
+            UNAME_M = 'i686'
           }
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "win_32_xp"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              String platform = "windows_x86_xp"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
               checkoutRepos(varRepos)
 
               if (params.desktop) {
-                build(platform, "commercial")
+                buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
         // macOS
-        stage('macOS x64') {
-          agent { label 'macos_64' }
+        stage('macOS x86_64') {
+          agent { label 'macos_x86_64' }
           environment {
             FASTLANE_HIDE_TIMESTAMP = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
@@ -382,31 +408,33 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "mac_64"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              String platform = "macos_x86_64"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
               checkoutRepos(varRepos)
 
-              if (params.core)
-                build(platform)
+              if (params.core) {
+                buildArtifacts(platform)
+                buildCore(platform)
+              }
 
               if (params.desktop) {
-                build(platform, "commercial")
+                buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
-        stage('macOS x64 V8') {
-          agent { label 'macos_64_v8' }
+        stage('macOS V8 x86_64') {
+          agent { label 'macos_x86_64_v8' }
           environment {
             FASTLANE_HIDE_TIMESTAMP = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
@@ -423,23 +451,23 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "mac_64"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              String platform = "macos_x86_64_v8"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
               checkoutRepos(varRepos)
 
               if (params.desktop) {
-                build(platform, "commercial")
+                buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true              
+              stageStats."${env.STAGE_NAME}" = true              
             }
           }
         }
@@ -460,29 +488,29 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "mac_arm64"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              String platform = "macos_arm64"
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
               checkoutRepos(varRepos)
 
               if (params.desktop) {
-                build(platform, "commercial")
+                buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
 
-              stageStats."${STAGE_NAME}" = true              
+              stageStats."${env.STAGE_NAME}" = true              
             }
           }
         }
         // Linux
-        stage('Linux x64') {
-          agent { label 'linux_64' }
+        stage('Linux x86_64') {
+          agent { label 'linux_x86_64' }
           when {
             expression { params.linux_x86_64 }
             beforeAgent true
@@ -490,95 +518,43 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "linux_64"
+              String platform = "linux_x86_64"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
               ArrayList allRepos = constRepos.plus(varRepos)
               checkoutRepos(varRepos)
 
               if (params.core || params.builder || params.server_ce) {
-                build(platform)
+                buildArtifacts(platform)
+                if (params.core)      buildCore(platform)
                 if (params.builder)   buildBuilder(platform)
                 if (params.server_ce) buildServer(platform)
               }
 
               if (params.desktop || params.server_ee || params.server_de) {
-                build(platform, "commercial")
-
-                if (params.desktop) {
-                  buildDesktop(platform)
-                }
+                buildArtifacts(platform, "commercial")
+                if (params.desktop)   buildDesktop(platform)
                 if (params.server_ee) {
                   buildServer(platform, "enterprise")
                   tagRepos(allRepos, "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
                 }
-                if (params.server_de)
-                  buildServer(platform, "developer")
+                if (params.server_de) buildServer(platform, "developer")
               }
               if (params.test) linuxTest()
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
-        stage('Linux x64 (Ubuntu 20)') {
-          agent { label 'linux_64_ubuntu20' }
-          when {
-            expression { params.linux_x86_64 && false }
-            beforeAgent true
-          }
-          environment {
-            USE_UBUNTU20 = '1'
-          }
-          steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "linux_64"
-              ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
-              ArrayList allRepos = constRepos.plus(varRepos)
-              checkoutRepos(varRepos)
-
-              if (params.core || params.builder || params.server_ce) {
-                build(platform)
-                // if (params.builder)   buildBuilder(platform)
-                // if (params.server_ce) buildServer(platform)
-              }
-
-              if (params.desktop || params.server_ee || params.server_de) {
-                build(platform, "commercial")
-
-                // if (params.desktop) {
-                //   buildDesktop(platform)
-                // }
-                // if (params.server_ee) {
-                //   buildServer(platform, "enterprise")
-                // }
-                // if (params.server_de)
-                //   buildServer(platform, "developer")
-              }
-              // if (params.test) linuxTest()
-
-              stageStats."${STAGE_NAME}" = true
-            }
-          }
-        }
-        stage('Linux ARM64') {
-          agent { label 'linux_64_ubuntu20' }
+        stage('Linux aarch64') {
+          agent { label 'linux_aarch64' }
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
@@ -586,46 +562,39 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "linux_arm64"
+              String platform = "linux_aarch64"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, "onlyoffice")
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
               ArrayList allRepos = constRepos.plus(varRepos)
               checkoutRepos(varRepos)
 
               if (params.core || params.builder || params.server_ce) {
-                build(platform)
-                // if (params.builder)   buildBuilder(platform)
-                // if (params.server_ce) buildServer(platform)
+                buildArtifacts(platform)
+                if (params.builder)   buildBuilder(platform)
+                if (params.server_ce) buildServer(platform)
               }
 
               if (params.desktop || params.server_ee || params.server_de) {
-                build(platform, "commercial")
-
-              //   if (params.desktop) {
-              //     buildDesktop(platform)
-              //   }
-              //   if (params.server_ee) {
-              //     buildServer(platform, "enterprise")
-              //   }
-              //   if (params.server_de)
-              //     buildServer(platform, "developer")
+                buildArtifacts(platform, "commercial")
+                if (params.desktop)   buildDesktop(platform)
+                if (params.server_ee) buildServer(platform, "enterprise")
+                if (params.server_de) buildServer(platform, "developer")
               }
-              // if (params.test) linuxTest()
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
         // Android
         stage('Android') {
-          agent { label 'android_ubuntu20' }
+          agent { label 'android' }
           when {
             expression { params.android && params.mobile }
             beforeAgent true
@@ -633,7 +602,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${STAGE_NAME}" = false
+              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe) deleteDir()
               sh "rm -rfv *.zip"
@@ -643,11 +612,11 @@ pipeline {
               checkoutRepos(varRepos)
 
               if (params.mobile) {
-                build(platform)
+                buildArtifacts(platform)
                 buildAndroid(env.BRANCH_NAME)
               }
 
-              stageStats."${STAGE_NAME}" = true
+              stageStats."${env.STAGE_NAME}" = true
             }
           }
         }
@@ -656,7 +625,7 @@ pipeline {
   }
   post {
     always {
-      node('master') {
+      node('built-in') {
         script {
           generateReports()
         }
@@ -666,7 +635,7 @@ pipeline {
           build (
             job: 'repo-manager',
             parameters: [
-              string (name: 'company', value: env.COMPANY_NAME.toLowerCase()),
+              string (name: 'company', value: branding),
               string (name: 'branch', value: env.RELEASE_BRANCH)
             ],
             wait: false
@@ -674,14 +643,14 @@ pipeline {
       }
     }
     fixed {
-      node('master') {
+      node('built-in') {
         script {
           sendTelegramMessage(getJobStats('fixed'), '-1001773122025')
         }
       }
     }
     failure {
-      node('master') {
+      node('built-in') {
         script {
           sendTelegramMessage(getJobStats('failed'), '-1001773122025')
         }
@@ -722,24 +691,25 @@ def getConstRepos(String branch = 'master') {
 }
 
 def getVarRepos(String branch = 'master', String platform, String branding) {
-  String reposOutput, scriptArgs
-
   checkoutRepos(getConstRepos(branch))
 
-  scriptArgs = "--module \"${getModules(platform).join(' ')}\""
-  if (platform != null) scriptArgs += " --platform \"${platform}\""
+  String modules = getModules(platforms[platform].build).join(' ')
+  String scriptArgs = ""
+  if (!modules.isEmpty()) scriptArgs = "--module \"${modules}\""
+  if (platform != null) scriptArgs += " --platform \"${platforms[platform].build}\""
   if (branding != null) scriptArgs += " --branding \"${branding}\""
 
-  if (platform.startsWith("win")) {
-    reposOutput = powershell(
-      script: "cd build_tools\\scripts\\develop; \
-        python print_repositories.py ${scriptArgs}",
-      returnStdout: true
-    )
-  } else {
+  String reposOutput
+  if (platforms[platform].isUnix) {
     reposOutput = sh(
       script: "cd build_tools/scripts/develop && \
         ./print_repositories.py ${scriptArgs}",
+      returnStdout: true
+    )
+  } else {
+    reposOutput = powershell(
+      script: "cd build_tools\\scripts\\develop; \
+        python print_repositories.py ${scriptArgs}",
       returnStdout: true
     )
   }
@@ -765,7 +735,7 @@ def getVarRepos(String branch = 'master', String platform, String branding) {
     repos.add(repo)
   }
 
-  return repos
+  return repos.sort()
 }
 
 void checkoutRepos(ArrayList repos) {
@@ -787,13 +757,13 @@ void tagRepos(ArrayList repos, String tag) {
   }
 }
 
-// Configure
+// Build
 
 def getModules(String platform, String license = "any") {
   Boolean isOpenSource = license in ["opensource", "any"]
   Boolean isCommercial = license in ["commercial", "any"]
   Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
-  Boolean pDesktop = platform != "linux_arm64"
+  Boolean pDesktop = true
   Boolean pBuilder = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pMobile = platform == "android"
@@ -834,6 +804,8 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
     args.add("--config use_v8")
   if (platform == "android")
     args.add("--config release")
+  // if (params.password_protection)
+  //   args.add("--features \"enable_protection disable_signatures\"")
   if (params.beta)
     args.add("--beta 1")
   if (!params.extra_args.isEmpty())
@@ -842,209 +814,160 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   return args.join(' ')
 }
 
-// Build
-
-void build(String platform, String license = 'opensource') {
-  Boolean isUnix = false
-
-  if (platform.startsWith("win")) {
-
-    bat "cd build_tools && \
-      call python configure.py ${getConfigArgs(platform, license)} && \
-      call python make.py"
-
-  } else {
-
+void buildArtifacts(String platform, String license = 'opensource') {
+  if (platforms[platform].isUnix) {
     sh "cd build_tools && \
-      ./configure.py ${getConfigArgs(platform, license)} && \
+      ./configure.py ${getConfigArgs(platforms[platform].build, license)} && \
       ./make.py"
-    isUnix = true
-
-  }
-
-  if (license == "opensource" && platform in ["win_64", "win_32", "mac_64", "linux_64"]) {
-    String os, arch, version, coreFile
-    String branch = env.BRANCH_NAME
-
-    if (platform.startsWith("win"))   os = "windows" else
-    if (platform.startsWith("mac"))   os = "mac"     else
-    if (platform.startsWith("linux")) os = "linux"
-
-    if (platform in ["win_64", "win_32"])
-      version = "${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}" else
-    if (platform in ["linux_64", "mac_64"])
-      version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
-
-    if (platform.endsWith("_32")) arch = "x86" else
-    if (platform.endsWith("_64")) arch = "x64"
-
-    coreFile = "core.7z"
-    if (env.USE_UBUNTU20 == "1") coreFile = "core-ubuntu20.7z"
-
-    Closure coreDeployPath = {
-      return "${s3bucket}/${os}/core/${branch}/${it}/${arch}"
-    }
-
-    String cmdUpload = """
-      aws s3 cp --acl public-read --no-progress \
-        build_tools/out/${platform}/onlyoffice/core/core.7z \
-        s3://${coreDeployPath(version)}/${coreFile}
-      aws s3 sync --delete --acl public-read --no-progress \
-        s3://${coreDeployPath(version)}/ \
-        s3://${coreDeployPath('latest')}/
-    """
-
-    if (isUnix) sh cmdUpload else bat cmdUpload
+  } else {
+    bat "cd build_tools && \
+      call python configure.py ${getConfigArgs(platforms[platform].build, license)} && \
+      call python make.py"
   }
 }
 
 // Build Packages
 
-void buildDesktop (String platform) {
+void buildCore(String platform) {
+  String branch = env.BRANCH_NAME
+  String version = env.PRODUCT_VERSION
+  String build = env.BUILD_NUMBER
+  LinkedHashMap path = [
+    windows_x64:  [os: "windows", version: "${version}.${build}", arch: "x64"],
+    windows_x86:  [os: "windows", version: "${version}.${build}", arch: "x86"],
+    macos_x86_64: [os: "macos",   version: "${version}-${build}", arch: "x64"],
+    linux_x86_64: [os: "linux",   version: "${version}-${build}", arch: "x64"]
+  ]
+  def p = path[platform]
+  Closure coreDeployPath = {
+    return "${s3bucket}/${p.os}/core/${branch}/${it}/${p.arch}"
+  }
+  String uploadCmd = """
+    aws s3 cp --acl public-read --no-progress \
+      build_tools/out/${platforms[platform].build}/onlyoffice/core/core.7z \
+      s3://${coreDeployPath(p.version)}/core.7z
+    aws s3 sync --delete --acl public-read --no-progress \
+      s3://${coreDeployPath(p.version)}/ \
+      s3://${coreDeployPath('latest')}/
+  """
+
+  if (platforms[platform].isUnix) sh uploadCmd else powershell uploadCmd
+}
+
+void buildDesktop(String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
-  String product = "desktop"
-  String buildPackage, fplatform, winDeployPath, macosDeployPath, scheme
-  ArrayList targets = ['clean']
+  String makeargs = ""
 
-  if (platform.startsWith("win")) {
+  if (platform ==~ /^windows.*/) {
 
-    if (platform == 'win_64') {
+    ArrayList targets = ['clean']
+    if (platform == 'windows_x64') {
       targets += ['innosetup-x64', 'winsparkle-update', 'winsparkle-files',
                   'advinst-x64', 'portable-zip-x64', 'portable-evb-x64']
-    } else if (platform == 'win_32') {
+    } else if (platform == 'windows_x86') {
       targets += ['innosetup-x86', 'winsparkle-update',
                   'advinst-x86', 'portable-zip-x86', 'portable-evb-x86']
-    } else if (platform == 'win_64_xp') {
+    } else if (platform == 'windows_x64_xp') {
       targets += ['innosetup-x64-xp', 'winsparkle-update', 'portable-zip-x64-xp']      
-    } else if (platform == 'win_32_xp') {
+    } else if (platform == 'windows_x86_xp') {
       targets += ['innosetup-x86-xp', 'winsparkle-update', 'portable-zip-x86-xp']
     }
     if (params.signing) targets += ['sign']
+    buildPackages("desktop", platform, targets)
 
-    bat "cd build_tools && call python make_package.py" + \
-      " --product desktop" + \
-      " --version ${env.PRODUCT_VERSION}" + \
-      " --build ${env.BUILD_NUMBER}" + \
-      " --targets ${targets.join(' ')}"
+    uploadFiles("desktop", platform, [
+        [section: "Installer",  glob: "*.exe", dest: "/"],
+        [section: "Installer",  glob: "*.msi", dest: "/"],
+        [section: "Portable",   glob: "*.zip", dest: "/"],
+        [section: "WinSparkle",
+         glob: "update/*.exe,update/*.xml,update/*.html", dest: "/"],
+      ],
+      "desktop-apps/win-linux/package/windows",
+      "${s3prefix}/windows/${version}/desktop")
 
-    if (platform.startsWith("win_64"))      fplatform = "Windows x64"
-    else if (platform.startsWith("win_32")) fplatform = "Windows x86"
-    winDeployPath = "windows/${version}/desktop/"
+  } else if (platform ==~ /^macos.*/) {
 
-    dir ("desktop-apps/win-linux/package/windows") {
-      uploadFiles("*.exe", winDeployPath, product, fplatform, "Installer")
-      uploadFiles("*.msi", winDeployPath, product, fplatform, "Installer")
-      uploadFiles("*.zip", winDeployPath, product, fplatform, "Portable")
-      uploadFiles("portable/*.exe", winDeployPath, product, fplatform, "Portable")
-      uploadFiles("update/*.exe,update/*.xml,update/*.html",
-        winDeployPath, product, fplatform, "WinSparkle")
+    String suffix
+    ArrayList targets = ['clean']
+    if (platform == "macos_x86_64_v8") {
+      suffix = "v8"
+      targets = ["diskimage-v8-x86_64"]
+    } else if (platform == "macos_x86_64") {
+      suffix = "x86_64"
+      targets = ["diskimage-x86_64"]
+    } else if (platform == "macos_arm64") {
+      suffix = "arm"
+      targets = ["diskimage-arm64"]
     }
 
-  } else if (platform.startsWith("mac")) {
+    buildPackages("desktop", platform, targets)
 
-    if (platform == "mac_64" && env.USE_V8 == '1') {
-      buildPackage = "diskimage-v8-x86_64"
-      fplatform = "macOS x86-64 V8 (legacy)"
-      scheme = "ONLYOFFICE-v8"
-      macosDeployPath = "macos/${version}/v8/"
-    } else if (platform == "mac_64") {
-      buildPackage = "diskimage-x86_64"
-      fplatform = "macOS x86-64"
-      scheme = "ONLYOFFICE-x86_64"
-      macosDeployPath = "macos/${version}/x86_64/"
-    } else if (platform == "mac_arm64") {
-      buildPackage = "diskimage-arm64"
-      fplatform = "macOS ARM64"
-      scheme = "ONLYOFFICE-arm"
-      macosDeployPath = "macos/${version}/arm/"
-    }
+    // String appVersion = sh (
+    //   script: "mdls -name kMDItemVersion -raw desktop-apps/macos/build/ONLYOFFICE.app",
+    //   returnStdout: true).trim()
 
-    sh "rm -rfv \
-      ~/Library/Developer/Xcode/Archives/* \
-      ~/Library/Caches/Sparkle_generate_appcast/*"
-    sh "cd build_tools && \
-      ./make_packages.py --product desktop --package ${buildPackage}"
+    String scheme = "ONLYOFFICE-${suffix}"
+    uploadFiles("desktop", platform, [
+        [section: "Disk Image", glob: "*.dmg", dest: "/"],
+        [section: "Sparkle",
+         glob: "${scheme}-*.zip,update/*.delta,update/*.xml,update/*.html",
+         dest: "/"],
+      ], "desktop-apps/macos/build", "${s3prefix}/macos/${version}/${suffix}")
 
-    String appVersion = sh (
-      script: "mdls -name kMDItemVersion -raw desktop-apps/macos/build/ONLYOFFICE.app",
-      returnStdout: true).trim()
+  } else if (platform ==~ /^linux.*/) {
 
-    dir ("desktop-apps/macos/build") {
-      uploadFiles("*.dmg", macosDeployPath, product, fplatform, "Disk Image")
-      uploadFiles("${scheme}-*.zip,update/*.delta,update/*.xml,update/*.html",
-        macosDeployPath, product, fplatform, "Sparkle")
-    }
-
-  } else if (platform == "linux_64") {
-
+    if (platform == "linux_aarch64") makeargs = "-e UNAME_M=aarch64"
     sh "cd desktop-apps/win-linux/package/linux && \
       make clean && \
-      make packages"
+      make packages ${makeargs}"
 
-    fplatform = "Linux x64"
-
-    dir ("desktop-apps/win-linux/package/linux") {
-      uploadFiles2(product, fplatform, [
-        [section: "Ubuntu",   glob: "deb/*.deb",        dest: "ubuntu/"  ],
-        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "centos/"  ],
-        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "altlinux/"],
-        [section: "Rosa",     glob: "urpmi/**/*.rpm",   dest: "rosa/"    ],
-        [section: "Portable", glob: "tar/**/*.tar.gz",  dest: "linux/"   ]
-        // [section: "AstraLinux Signed", glob: "deb-astra/*.deb",  dest: "astralinux/"]
-      ])
-    }
+    uploadFiles("desktop", platform, [
+        [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
+        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
+        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
+        [section: "Rosa",     glob: "urpmi/**/*.rpm",   dest: "/rosa/"    ],
+        [section: "Portable", glob: "tar/**/*.tar.gz",  dest: "/linux/"   ]
+        // [section: "AstraLinux Signed", glob: "deb-astra/*.deb", dest: "/astralinux/"]
+      ], "desktop-apps/win-linux/package/linux", s3prefix)
 
   }
 }
 
 void buildBuilder(String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
-  String product = "builder"
-  String fplatform, winDeployPath
-  ArrayList targets = ['clean']
+  String makeargs = ""
 
-  if (platform.startsWith("win")) {
+  if (platform ==~ /^windows.*/) {
 
-    if (platform == 'win_64') targets += ['innosetup-x64', 'portable-x64']
+    ArrayList targets = ['clean']
+    if (platform == 'windows_x64') targets += ['innosetup-x64', 'portable-x64']
     if (params.signing) targets += ['sign']
+    buildPackages("builder", platform, targets)
 
-    bat "cd build_tools && call python make_package.py" + \
-      " --product builder" + \
-      " --version ${env.PRODUCT_VERSION}" + \
-      " --build ${env.BUILD_NUMBER}" + \
-      " --targets ${targets.join(' ')}"
+    uploadFiles("builder", platform, [
+        [section: "Installer", glob: "exe/*.exe", dest: "/"],
+        [section: "Portable",  glob: "zip/*.zip", dest: "/"]
+      ], "document-builder-package", "${s3prefix}/windows/${version}/builder")
 
-    if (platform.startsWith("win_64"))      fplatform = "Windows x64"
-    else if (platform.startsWith("win_32")) fplatform = "Windows x86"
-    winDeployPath = "windows/${version}/builder/"
+  } else if (platform ==~ /^linux.*/) {
 
-    dir ("document-builder-package") {
-      uploadFiles("exe/*.exe", winDeployPath, product, fplatform, "Installer")
-      uploadFiles("zip/*.zip", winDeployPath, product, fplatform, "Portable")
-    }
-
-  } else if (platform == "linux_64") {
-
+    if (platform == "linux_aarch64") makeargs = "-e UNAME_M=aarch64"
     sh "cd document-builder-package && \
       make clean && \
-      make packages"
+      make packages ${makeargs}"
 
-    fplatform = "Linux x64"
-
-    dir ("document-builder-package") {
-      uploadFiles2(product, fplatform, [
-        [section: "Ubuntu",   glob: "deb/*.deb",    dest: "ubuntu/"],
-        [section: "CentOS",   glob: "rpm/**/*.rpm", dest: "centos/"],
-        [section: "Portable", glob: "tar/*.tar.gz", dest: "linux/" ]
-      ])
-    }
+    uploadFiles("builder", platform, [
+        [section: "Ubuntu",   glob: "deb/*.deb",    dest: "/ubuntu/"],
+        [section: "CentOS",   glob: "rpm/**/*.rpm", dest: "/centos/"],
+        [section: "Portable", glob: "tar/*.tar.gz", dest: "/linux/" ]
+      ], "document-builder-package", s3prefix)
 
   }
 }
 
 void buildServer(String platform, String edition='community') {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
-  String product, productName, winDeployPath
+  String product, productName, makeargs = ""
 
   switch(edition) {
     case "community":
@@ -1061,43 +984,38 @@ void buildServer(String platform, String edition='community') {
       break
   }
 
-  if (platform == "win_64") {
+  if (platform ==~ /^windows.*/) {
 
     bat "cd document-server-package && \
       set \"PRODUCT_NAME=${productName}\" && \
       make clean && \
       make packages"
 
-    fplatform = "Windows x64"
-    winDeployPath = "windows/${version}/server/"
+    uploadFiles(product, platform, [
+        [section: "Installer", glob: "exe/*.exe", dest: "/"  ]
+      ], "document-server-package", "${s3prefix}/windows/${version}/server")
 
-    dir ("document-server-package") {
-      uploadFiles("exe/*.exe", winDeployPath, product, fplatform, "Installer")
-    }
+  } else if (platform ==~ /^linux.*/) {
 
-  } else if (platform == "linux_64") {
-
+    if (platform == "linux_aarch64") makeargs = "-e UNAME_M=aarch64"
     sh "cd document-server-package && \
       export PRODUCT_NAME=${productName.toLowerCase()} && \
       make clean && \
-      make packages"
+      make packages ${makeargs}"
 
-    fplatform = "Linux x64"
+    uploadFiles(product, platform, [
+        [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
+        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
+        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
+        [section: "Portable", glob: "*.tar.gz",         dest: "/linux/"   ]
+      ], "document-server-package", s3prefix)
 
-    dir ("document-server-package") {
-      uploadFiles2(product, fplatform, [
-        [section: "Ubuntu",   glob: "deb/*.deb",        dest: "ubuntu/"  ],
-        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "centos/"  ],
-        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "altlinux/"],
-        [section: "Portable", glob: "*.tar.gz",         dest: "linux/"   ]
-      ])
+    if (platform == "linux_x86_64") {
+      sh "cd Docker-DocumentServer && \
+        export PRODUCT_NAME=${productName.toLowerCase()} && \
+        make clean && \
+        make deploy"
     }
-
-    sh "cd Docker-DocumentServer && \
-      export PRODUCT_NAME=${productName.toLowerCase()} && \
-      make clean && \
-      make deploy"
-
   }
 }
 
@@ -1106,83 +1024,64 @@ void buildAndroid(String branch = 'master', String config = 'release') {
 
   sh "cd build_tools/out && \
     zip -r ../../android-libs-${version}.zip ./android* ./js"
-  uploadFiles("*.zip", "android/", "mobile", "Android", "Libs")
+  uploadFiles("mobile", "android", [
+      [section: "Libs", glob: "*.zip", dest: "/android/"],
+    ], "", s3prefix)
+}
+
+void buildPackages(String product, String platform, ArrayList targets) {
+  String args = "-- product ${product}" \
+    + " --version ${env.PRODUCT_VERSION}" \
+    + " --build ${env.BUILD_NUMBER}" \
+    + " --targets ${targets.join(' ')}"
+  if (platforms[platform].isUnix) {
+    sh "cd build_tools && ./make_package.py ${args}"
+  } else {
+    bat "cd build_tools && call python make_package.py ${args}"
+  }
 }
 
 // Upload
 
-void uploadFiles(String glob, String dest, String product, String platform, String section) {
-  String s3uri, file
-  Closure cmdUpload = { local, remote ->
-    String cmd = "aws s3 cp --acl public-read --no-progress ${local} s3://${remote}"
-    if (platform ==~ /^Windows.*/) bat cmd else sh cmd
-  }
+void uploadFiles(String product, String platform, ArrayList items, \
+                 String srcPrefix = '', String destPrefix = '') {
+  String srcPath, uploadCmd = ""
+  ArrayList localListDeploy = []
+
   Closure cmdMd5sum = {
-    if (platform ==~ /^Windows.*/) {
+    if (platform ==~ /^windows.*/) {
       return powershell (
         script: "Get-FileHash ${it} -Algorithm MD5 | Select -ExpandProperty Hash",
         returnStdout: true).trim()
-    } else if (platform ==~ /^macOS.*/) {
+    } else if (platform ==~ /^macos.*/) {
       return sh (script: "md5 -qs ${it}", returnStdout: true).trim()
     } else {
       return sh (script: "md5sum ${it} | cut -c -32", returnStdout: true).trim()
     }
   }
 
-  findFiles(glob: glob).each {
-    s3uri = "${s3deploy}/${dest}${dest.endsWith('/') ? it.name : ''}"
-    file = dest.endsWith('/') ? it.name : dest.drop(dest.lastIndexOf('/')+1)
-    cmdUpload(it.path, s3uri)
-
-    listDeploy.add([
-      product: product,
-      platform: platform,
-      section: section,
-      path: s3uri,
-      file: file,
-      size: it.length,
-      md5: cmdMd5sum(it.path)
-      // sha256: cmdSha256sum(it.path)
-    ])
-  }
-}
-
-void uploadFiles2(String product, String platform, ArrayList items) {
-  String s3uri, file
-  Closure cmdUpload = { local, remote ->
-    String cmd = "aws s3 cp --acl public-read --no-progress ${local} s3://${remote}"
-    if (platform ==~ /^Windows.*/) bat cmd else sh cmd
-  }
-  Closure cmdMd5sum = {
-    if (platform ==~ /^Windows.*/) {
-      return powershell (
-        script: "Get-FileHash ${it} -Algorithm MD5 | Select -ExpandProperty Hash",
-        returnStdout: true).trim()
-    } else if (platform ==~ /^macOS.*/) {
-      return sh (script: "md5 -qs ${it}", returnStdout: true).trim()
-    } else {
-      return sh (script: "md5sum ${it} | cut -c -32", returnStdout: true).trim()
+  dir(srcPrefix) {
+    items.each { item ->
+      findFiles(glob: item.glob).each { file ->
+        srcPath = "${destPrefix}${item.dest}"
+        localListDeploy.add([
+          product: product,
+          platform: platforms[platform].title,
+          section: item.section,
+          path: srcPath + file.name,
+          file: file.name,
+          size: file.length,
+          md5: cmdMd5sum(file.path)
+          // sha256: cmdSha256sum(it.path)
+        ])
+        uploadCmd += "aws s3 cp --acl public-read --no-progress " \
+          + "${file.path} s3://${srcPath}; "
+      }
     }
+    if (platforms[platform].isUnix) sh uploadCmd else powershell uploadCmd
   }
 
-  items.each { item ->
-    findFiles(glob: item.glob).each {
-      s3uri = "${s3deploy}/${item.dest}${item.dest.endsWith('/') ? it.name : ''}"
-      file = item.dest.endsWith('/') ? it.name : item.dest.drop(item.dest.lastIndexOf('/')+1)
-      cmdUpload(it.path, s3uri)
-
-      listDeploy.add([
-        product: product,
-        platform: platform,
-        section: item.section,
-        path: s3uri,
-        file: file,
-        size: it.length,
-        md5: cmdMd5sum(it.path)
-        // sha256: cmdSha256sum(it.path)
-      ])
-    }
-  }
+  listDeploy.addAll(localListDeploy)
 }
 
 // Tests
@@ -1281,8 +1180,8 @@ def getHtml(ArrayList data) {
 def getJobStats(String jobStatus) {
   String text = "Build [${currentBuild.fullDisplayName}]" \
     + "(${currentBuild.absoluteUrl}) ${jobStatus}"
-  stageStats.each { stage, status ->
-    text += "\n${status ? '🔵' : '🔴'} ${stage}"
+  stageStats.sort().each { stage, status ->
+    text += "\n${status ? '🔵' : '🔴'} ${stage.replaceAll('_','\\\\_')}"
   }
   return text
 }
