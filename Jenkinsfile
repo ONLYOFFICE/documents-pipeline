@@ -1019,7 +1019,7 @@ void buildAndroid(String branch = 'master', String config = 'release') {
     ], "", s3prefix)
 }
 
-void buildPackages(String platform, String product, ArrayList targets) {
+void buildPackages(String product, String platform, ArrayList targets) {
   String args = "-- product ${product}" \
     + " --version ${env.PRODUCT_VERSION}" \
     + " --build ${env.BUILD_NUMBER}" \
