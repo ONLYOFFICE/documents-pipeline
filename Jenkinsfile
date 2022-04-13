@@ -583,7 +583,7 @@ pipeline {
 
               if (params.desktop || params.server_ee || params.server_de) {
                 buildArtifacts(platform, "commercial")
-                if (params.desktop)   buildDesktop(platform)
+                // if (params.desktop)   buildDesktop(platform)
                 if (params.server_ee) buildServer(platform, "enterprise")
                 if (params.server_de) buildServer(platform, "developer")
               }
@@ -605,16 +605,13 @@ pipeline {
               stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe) deleteDir()
-              sh "rm -rfv *.zip"
 
               String platform = "android"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, null)
               checkoutRepos(varRepos)
 
-              if (params.mobile) {
-                buildArtifacts(platform)
-                buildAndroid(env.BRANCH_NAME)
-              }
+              buildArtifacts(platform)
+              buildAndroid(env.BRANCH_NAME)
 
               stageStats."${env.STAGE_NAME}" = true
             }
@@ -763,7 +760,7 @@ def getModules(String platform, String license = "any") {
   Boolean isOpenSource = license in ["opensource", "any"]
   Boolean isCommercial = license in ["commercial", "any"]
   Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
-  Boolean pDesktop = true
+  Boolean pDesktop = platform != ["linux_arm64"]
   Boolean pBuilder = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pMobile = platform == "android"
@@ -1022,7 +1019,8 @@ void buildServer(String platform, String edition='community') {
 void buildAndroid(String branch = 'master', String config = 'release') {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
 
-  sh "cd build_tools/out && \
+  sh "rm -rfv *.zip && \
+    cd build_tools/out && \
     zip -r ../../android-libs-${version}.zip ./android* ./js"
   uploadFiles("mobile", "android", [
       [section: "Libs", glob: "*.zip", dest: "/android/"],
@@ -1030,7 +1028,7 @@ void buildAndroid(String branch = 'master', String config = 'release') {
 }
 
 void buildPackages(String product, String platform, ArrayList targets) {
-  String args = "-- product ${product}" \
+  String args = "--product ${product}" \
     + " --version ${env.PRODUCT_VERSION}" \
     + " --build ${env.BUILD_NUMBER}" \
     + " --targets ${targets.join(' ')}"
@@ -1106,26 +1104,20 @@ void generateReports() {
   Boolean server_de = deploy.server_de != null
   Boolean mobile = deploy.mobile != null
 
-  dir ("html") {
-    sh """
-      rm -fv *.html
-      test -f style.css || wget -nv https://unpkg.com/style.css -O style.css
-    """
-
-    if (desktop)
-      publishReport("DesktopEditors", ["desktop.html": deploy.desktop])
-    if (builder)
-      publishReport("DocumentBuilder", ["builder.html": deploy.builder])
-    if (server_ce || server_ee || server_de) {
-      Map serverReports = [:]
-      if (server_ce) serverReports."server_ce.html" = deploy.server_ce
-      if (server_ee) serverReports."server_ee.html" = deploy.server_ee
-      if (server_de) serverReports."server_de.html" = deploy.server_de
-      publishReport("DocumentServer", serverReports)
-    }
-    if (mobile)
-      publishReport("Mobile", ["mobile.html": deploy.mobile])
+  deleteDir()
+  if (desktop)
+    publishReport("DesktopEditors", ["desktop.html": deploy.desktop])
+  if (builder)
+    publishReport("DocumentBuilder", ["builder.html": deploy.builder])
+  if (server_ce || server_ee || server_de) {
+    Map serverReports = [:]
+    if (server_ce) serverReports."server_ce.html" = deploy.server_ce
+    if (server_ee) serverReports."server_ee.html" = deploy.server_ee
+    if (server_de) serverReports."server_de.html" = deploy.server_de
+    publishReport("DocumentServer", serverReports)
   }
+  if (mobile)
+    publishReport("Mobile", ["mobile.html": deploy.mobile])
 }
 
 void publishReport(String title, Map files) {
@@ -1134,8 +1126,8 @@ void publishReport(String title, Map files) {
   }
   publishHTML([
     allowMissing: false,
-    alwaysLinkToLastBuild: false,
-    includes: files.collect({ it.key }).join(',') + ",*.css",
+    alwaysLinkToLastBuild: true,
+    includes: files.collect({ it.key }).join(','),
     keepAll: true,
     reportDir: '',
     reportFiles: files.collect({ it.key }).join(','),
@@ -1151,7 +1143,7 @@ def getHtml(ArrayList data) {
   }
 
   text = "<html>\n<head>" \
-    + "\n  <link rel=\"stylesheet\" href=\"style.css\">" \
+    + "\n  <link rel=\"stylesheet\" href=\"https://unpkg.com/style.css\">" \
     + "\n  <style type=\"text/css\">body { margin: 24px; }</style>" \
     + "\n<head>\n<body>"
   data.groupBy { it.platform }.sort().each { platform, sections ->
