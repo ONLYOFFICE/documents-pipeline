@@ -605,16 +605,13 @@ pipeline {
               stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe) deleteDir()
-              sh "rm -rfv *.zip"
 
               String platform = "android"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, null)
               checkoutRepos(varRepos)
 
-              if (params.mobile) {
-                buildArtifacts(platform)
-                buildAndroid(env.BRANCH_NAME)
-              }
+              buildArtifacts(platform)
+              buildAndroid(env.BRANCH_NAME)
 
               stageStats."${env.STAGE_NAME}" = true
             }
@@ -1012,7 +1009,8 @@ void buildServer(String platform, String edition='community') {
 void buildAndroid(String branch = 'master', String config = 'release') {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
 
-  sh "cd build_tools/out && \
+  sh "rm -rfv *.zip && \
+    cd build_tools/out && \
     zip -r ../../android-libs-${version}.zip ./android* ./js"
   uploadFiles("mobile", "android", [
       [section: "Libs", glob: "*.zip", dest: "/android/"],
