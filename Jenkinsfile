@@ -583,7 +583,7 @@ pipeline {
 
               if (params.desktop || params.server_ee || params.server_de) {
                 buildArtifacts(platform, "commercial")
-                if (params.desktop)   buildDesktop(platform)
+                // if (params.desktop)   buildDesktop(platform)
                 if (params.server_ee) buildServer(platform, "enterprise")
                 if (params.server_de) buildServer(platform, "developer")
               }
@@ -763,7 +763,7 @@ def getModules(String platform, String license = "any") {
   Boolean isOpenSource = license in ["opensource", "any"]
   Boolean isCommercial = license in ["commercial", "any"]
   Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
-  Boolean pDesktop = true
+  Boolean pDesktop = platform != ["linux_arm64"]
   Boolean pBuilder = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pMobile = platform == "android"
