@@ -1096,26 +1096,20 @@ void generateReports() {
   Boolean server_de = deploy.server_de != null
   Boolean mobile = deploy.mobile != null
 
-  dir ("html") {
-    sh """
-      rm -fv *.html
-      test -f style.css || wget -nv https://unpkg.com/style.css -O style.css
-    """
-
-    if (desktop)
-      publishReport("DesktopEditors", ["desktop.html": deploy.desktop])
-    if (builder)
-      publishReport("DocumentBuilder", ["builder.html": deploy.builder])
-    if (server_ce || server_ee || server_de) {
-      Map serverReports = [:]
-      if (server_ce) serverReports."server_ce.html" = deploy.server_ce
-      if (server_ee) serverReports."server_ee.html" = deploy.server_ee
-      if (server_de) serverReports."server_de.html" = deploy.server_de
-      publishReport("DocumentServer", serverReports)
-    }
-    if (mobile)
-      publishReport("Mobile", ["mobile.html": deploy.mobile])
+  deleteDir()
+  if (desktop)
+    publishReport("DesktopEditors", ["desktop.html": deploy.desktop])
+  if (builder)
+    publishReport("DocumentBuilder", ["builder.html": deploy.builder])
+  if (server_ce || server_ee || server_de) {
+    Map serverReports = [:]
+    if (server_ce) serverReports."server_ce.html" = deploy.server_ce
+    if (server_ee) serverReports."server_ee.html" = deploy.server_ee
+    if (server_de) serverReports."server_de.html" = deploy.server_de
+    publishReport("DocumentServer", serverReports)
   }
+  if (mobile)
+    publishReport("Mobile", ["mobile.html": deploy.mobile])
 }
 
 void publishReport(String title, Map files) {
@@ -1124,8 +1118,8 @@ void publishReport(String title, Map files) {
   }
   publishHTML([
     allowMissing: false,
-    alwaysLinkToLastBuild: false,
-    includes: files.collect({ it.key }).join(',') + ",*.css",
+    alwaysLinkToLastBuild: true,
+    includes: files.collect({ it.key }).join(','),
     keepAll: true,
     reportDir: '',
     reportFiles: files.collect({ it.key }).join(','),
@@ -1141,7 +1135,7 @@ def getHtml(ArrayList data) {
   }
 
   text = "<html>\n<head>" \
-    + "\n  <link rel=\"stylesheet\" href=\"style.css\">" \
+    + "\n  <link rel=\"stylesheet\" href=\"https://unpkg.com/style.css\">" \
     + "\n  <style type=\"text/css\">body { margin: 24px; }</style>" \
     + "\n<head>\n<body>"
   data.groupBy { it.platform }.sort().each { platform, sections ->
