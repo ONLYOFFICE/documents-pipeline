@@ -1018,7 +1018,7 @@ void buildAndroid(String branch = 'master', String config = 'release') {
 }
 
 void buildPackages(String product, String platform, ArrayList targets) {
-  String args = "-- product ${product}" \
+  String args = "--product ${product}" \
     + " --version ${env.PRODUCT_VERSION}" \
     + " --build ${env.BUILD_NUMBER}" \
     + " --targets ${targets.join(' ')}"
