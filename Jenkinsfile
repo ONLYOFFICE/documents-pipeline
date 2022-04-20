@@ -48,6 +48,15 @@ if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
   ])
 }
 
+branding = [
+  onlyoffice: true,
+  company:    "ONLYOFFICE",
+  company_lc: "onlyoffice",
+  owner:      "ONLYOFFICE",
+  repo:       "onlyoffice",
+  winWsDir:   "oo",
+]
+
 pipeline {
   agent none
   environment {
@@ -204,11 +213,9 @@ pipeline {
       steps {
         script {
           if (params.signing) env.ENABLE_SIGNING=1
-
-          branding = env.COMPANY_NAME.toLowerCase()
           s3region = "eu-west-1"
           s3bucket = "repo-doc-onlyoffice-com"
-          s3prefix = "${s3bucket}/${branding}/${env.RELEASE_BRANCH}"
+          s3prefix = "${s3bucket}/${branding.company_lc}/${env.RELEASE_BRANCH}"
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
           platforms = [
             windows_x64:     [title: "Windows x64",     arch: "x64",   build: "win_64",      isUnix: false],
@@ -234,7 +241,7 @@ pipeline {
           agent {
             node {
               label 'windows_x64'
-              customWorkspace "C:\\oo\\${branchDir}_x64"
+              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x64"
             }
           }
           when {
@@ -252,7 +259,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "windows_x64"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
               if (params.core || params.builder || params.server_ce) {
@@ -277,7 +284,7 @@ pipeline {
           agent {
             node {
               label 'windows_x86'
-              customWorkspace "C:\\oo\\${branchDir}_x86"
+              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x86"
             }
           }
           when {
@@ -298,7 +305,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "windows_x86"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
               if (params.core) {
@@ -319,7 +326,7 @@ pipeline {
           agent {
             node {
               label 'windows_x64_xp'
-              customWorkspace "C:\\oo\\${branchDir}_x64_xp"
+              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x64_xp"
             }
           }
           when {
@@ -340,7 +347,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "windows_x64_xp"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
               if (params.desktop) {
@@ -356,7 +363,7 @@ pipeline {
           agent {
             node {
               label 'windows_x86_xp'
-              customWorkspace "C:\\oo\\${branchDir}_x86_xp"
+              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x86_xp"
             }
           }
           when {
@@ -378,7 +385,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "windows_x86_xp"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
               if (params.desktop) {
@@ -416,7 +423,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "macos_x86_64"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
               if (params.core) {
@@ -459,7 +466,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "macos_x86_64_v8"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
               if (params.desktop) {
@@ -496,7 +503,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "macos_arm64"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
               if (params.desktop) {
@@ -527,7 +534,7 @@ pipeline {
 
               String platform = "linux_x86_64"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               ArrayList allRepos = constRepos.plus(varRepos)
               checkoutRepos(varRepos)
 
@@ -571,7 +578,7 @@ pipeline {
 
               String platform = "linux_aarch64"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               ArrayList allRepos = constRepos.plus(varRepos)
               checkoutRepos(varRepos)
 
@@ -632,7 +639,7 @@ pipeline {
           build (
             job: 'repo-manager',
             parameters: [
-              string (name: 'company', value: branding),
+              string (name: 'company', value: branding.company_lc),
               string (name: 'branch', value: env.RELEASE_BRANCH)
             ],
             wait: false
@@ -679,15 +686,15 @@ void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus
 
 def getConstRepos(String branch = 'master') {
   return [
-    [owner: "ONLYOFFICE", name: "build_tools"],
-    [owner: "ONLYOFFICE", name: "onlyoffice" ]
+    [owner: "ONLYOFFICE",   name: "build_tools"],
+    [owner: branding.owner, name: branding.repo]
   ].each {
     it.branch = branch
     it.dir = it.name
   }
 }
 
-def getVarRepos(String branch = 'master', String platform, String branding) {
+def getVarRepos(String branch, String platform, String branding) {
   checkoutRepos(getConstRepos(branch))
 
   String modules = getModules(platforms[platform].build).join(' ')
@@ -760,7 +767,7 @@ def getModules(String platform, String license = "any") {
   Boolean isOpenSource = license in ["opensource", "any"]
   Boolean isCommercial = license in ["commercial", "any"]
   Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
-  Boolean pDesktop = platform != ["linux_arm64"]
+  Boolean pDesktop = platform != "linux_arm64"
   Boolean pBuilder = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pMobile = platform == "android"
@@ -791,10 +798,10 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   args.add("--update false")
   args.add("--clean ${params.clean.toString()}")
   args.add("--qt-dir ${env.QT_PATH}")
-  if (platform.endsWith("_xp"))
+  if (platform in ["win_64_xp", "win_32_xp"])
     args.add("--qt-dir-xp ${env.QT56_PATH}")
   if (license == "commercial")
-    args.add("--branding \"onlyoffice\"")
+    args.add("--branding ${branding.repo}")
   if (platform in ["win_64", "win_32"])
     args.add("--vs-version 2019")
   if (platform == "mac_64" && env.USE_V8 == "1")
@@ -841,7 +848,7 @@ void buildCore(String platform) {
   }
   String uploadCmd = """
     aws s3 cp --acl public-read --no-progress \
-      build_tools/out/${platforms[platform].build}/onlyoffice/core/core.7z \
+      build_tools/out/${platforms[platform].build}/${branding.company_lc}/core/core.7z \
       s3://${coreDeployPath(p.version)}/core.7z
     aws s3 sync --delete --acl public-read --no-progress \
       s3://${coreDeployPath(p.version)}/ \
@@ -903,17 +910,20 @@ void buildDesktop(String platform) {
     //   script: "mdls -name kMDItemVersion -raw desktop-apps/macos/build/ONLYOFFICE.app",
     //   returnStdout: true).trim()
 
-    String scheme = "ONLYOFFICE-${suffix}"
     uploadFiles("desktop", platform, [
         [section: "Disk Image", glob: "*.dmg", dest: "/"],
         [section: "Sparkle",
-         glob: "${scheme}-*.zip,update/*.delta,update/*.xml,update/*.html",
+         glob: "${branding.company}-${suffix}-*.zip,update/*.delta,update/*.xml,update/*.html",
          dest: "/"],
       ], "desktop-apps/macos/build", "${s3prefix}/macos/${version}/${suffix}")
 
   } else if (platform ==~ /^linux.*/) {
 
-    if (platform == "linux_aarch64") makeargs = "-e UNAME_M=aarch64"
+    if (!branding.onlyoffice)
+      makeargs += " -e BRANDING_DIR=../../../../${branding.repo}/desktop-apps/win-linux/package/linux"
+    if (platform == "linux_aarch64")
+      makeargs += " -e UNAME_M=aarch64"
+
     sh "cd desktop-apps/win-linux/package/linux && \
       make clean && \
       make packages ${makeargs}"
@@ -923,7 +933,7 @@ void buildDesktop(String platform) {
         [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
         [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
         [section: "Rosa",     glob: "urpmi/**/*.rpm",   dest: "/rosa/"    ],
-        [section: "Portable", glob: "tar/**/*.tar.gz",  dest: "/linux/"   ]
+        [section: "Portable", glob: "tar/**/*.tar.gz",  dest: "/linux/"   ],
         // [section: "AstraLinux Signed", glob: "deb-astra/*.deb", dest: "/astralinux/"]
       ], "desktop-apps/win-linux/package/linux", s3prefix)
 
@@ -948,7 +958,10 @@ void buildBuilder(String platform) {
 
   } else if (platform ==~ /^linux.*/) {
 
-    if (platform == "linux_aarch64") makeargs = "-e UNAME_M=aarch64"
+    if (platform == "linux_aarch64")
+      makeargs += " -e UNAME_M=aarch64"
+    if (!branding.onlyoffice)
+      makeargs += " -e BRANDING_DIR=../${branding.repo}/document-builder-package"
     sh "cd document-builder-package && \
       make clean && \
       make packages ${makeargs}"
@@ -983,10 +996,12 @@ void buildServer(String platform, String edition='community') {
 
   if (platform ==~ /^windows.*/) {
 
+    makeargs = "-e PRODUCT_NAME=${productName}"
+    if (!branding.onlyoffice)
+      makeargs += " -e BRANDING_DIR=../${branding.repo}/document-server-package"
     bat "cd document-server-package && \
-      set \"PRODUCT_NAME=${productName}\" && \
       make clean && \
-      make packages"
+      make packages ${makeargs}"
 
     uploadFiles(product, platform, [
         [section: "Installer", glob: "exe/*.exe", dest: "/"  ]
@@ -994,9 +1009,12 @@ void buildServer(String platform, String edition='community') {
 
   } else if (platform ==~ /^linux.*/) {
 
-    if (platform == "linux_aarch64") makeargs = "-e UNAME_M=aarch64"
+    makeargs = "-e PRODUCT_NAME=${productName.toLowerCase()}"
+    if (platform == "linux_aarch64")
+      makeargs += " -e UNAME_M=aarch64"
+    if (!branding.onlyoffice)
+      makeargs += " -e BRANDING_DIR=../${branding.repo}/document-server-package"
     sh "cd document-server-package && \
-      export PRODUCT_NAME=${productName.toLowerCase()} && \
       make clean && \
       make packages ${makeargs}"
 
@@ -1008,10 +1026,12 @@ void buildServer(String platform, String edition='community') {
       ], "document-server-package", s3prefix)
 
     if (platform == "linux_x86_64") {
+      makeargs = "-e PRODUCT_NAME=${productName.toLowerCase()}"
+      if (!branding.onlyoffice)
+        makeargs += " -e ONLYOFFICE_VALUE=ds"
       sh "cd Docker-DocumentServer && \
-        export PRODUCT_NAME=${productName.toLowerCase()} && \
         make clean && \
-        make deploy"
+        make deploy ${makeargs}"
     }
   }
 }
@@ -1032,11 +1052,12 @@ void buildPackages(String product, String platform, ArrayList targets) {
     + " --version ${env.PRODUCT_VERSION}" \
     + " --build ${env.BUILD_NUMBER}" \
     + " --targets ${targets.join(' ')}"
-  if (platforms[platform].isUnix) {
+  if (!branding.onlyoffice)
+    args += " --branding ${branding.repo}"
+  if (platforms[platform].isUnix)
     sh "cd build_tools && ./make_package.py ${args}"
-  } else {
+  else
     bat "cd build_tools && call python make_package.py ${args}"
-  }
 }
 
 // Upload
