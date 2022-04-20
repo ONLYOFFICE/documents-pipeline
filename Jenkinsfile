@@ -798,7 +798,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   args.add("--update false")
   args.add("--clean ${params.clean.toString()}")
   args.add("--qt-dir ${env.QT_PATH}")
-  if (platform.endsWith("_xp"))
+  if (platform in ["win_64_xp", "win_32_xp"])
     args.add("--qt-dir-xp ${env.QT56_PATH}")
   if (license == "commercial")
     args.add("--branding ${branding.repo}")
@@ -848,7 +848,7 @@ void buildCore(String platform) {
   }
   String uploadCmd = """
     aws s3 cp --acl public-read --no-progress \
-      build_tools/out/${platforms[platform].build}/onlyoffice/core/core.7z \
+      build_tools/out/${platforms[platform].build}/${branding.company_lc}/core/core.7z \
       s3://${coreDeployPath(p.version)}/core.7z
     aws s3 sync --delete --acl public-read --no-progress \
       s3://${coreDeployPath(p.version)}/ \
@@ -990,10 +990,13 @@ void buildServer(String platform, String edition='community') {
 
   if (platform ==~ /^windows.*/) {
 
+    makeargs = "-e PRODUCT_NAME=${productName}"
+    if (!branding.onlyoffice)
+      makeargs += " -e BRANDING_DIR=../${branding.repo}/document-server-package"
+
     bat "cd document-server-package && \
-      set \"PRODUCT_NAME=${productName}\" && \
       make clean && \
-      make packages"
+      make packages ${makeargs}"
 
     uploadFiles(product, platform, [
         [section: "Installer", glob: "exe/*.exe", dest: "/"  ]
@@ -1001,9 +1004,12 @@ void buildServer(String platform, String edition='community') {
 
   } else if (platform ==~ /^linux.*/) {
 
-    if (platform == "linux_aarch64") makeargs = "-e UNAME_M=aarch64"
+    makeargs = "-e PRODUCT_NAME=${productName.toLowerCase()}"
+    if (platform == "linux_aarch64")
+      makeargs += " -e UNAME_M=aarch64"
+    if (!branding.onlyoffice)
+      makeargs += " -e BRANDING_DIR=../${branding.repo}/document-server-package"
     sh "cd document-server-package && \
-      export PRODUCT_NAME=${productName.toLowerCase()} && \
       make clean && \
       make packages ${makeargs}"
 
@@ -1015,10 +1021,12 @@ void buildServer(String platform, String edition='community') {
       ], "document-server-package", s3prefix)
 
     if (platform == "linux_x86_64") {
+      makeargs = "-e PRODUCT_NAME=${productName.toLowerCase()}"
+      if (!branding.onlyoffice)
+        makeargs += " -e ONLYOFFICE_VALUE=ds"
       sh "cd Docker-DocumentServer && \
-        export PRODUCT_NAME=${productName.toLowerCase()} && \
         make clean && \
-        make deploy"
+        make deploy ${makeargs}"
     }
   }
 }
