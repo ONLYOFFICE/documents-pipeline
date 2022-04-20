@@ -57,6 +57,82 @@ branding = [
   winWsDir:   "oo",
 ]
 
+packages = [
+  windows: [
+    desktop: [
+      srcPrefix: "desktop-apps/win-linux/package/windows",
+      destPrefix: "${s3prefix}/windows/${version}/desktop",
+      items: [
+        [section: "Installer",  glob: "*.exe", dest: "/"],
+        [section: "Installer",  glob: "*.msi", dest: "/"],
+        [section: "Portable",   glob: "*.zip", dest: "/"],
+        [section: "WinSparkle",
+         glob: "update/*.exe,update/*.xml,update/*.html", dest: "/"]
+      ]
+    ],
+    builder: [
+      srcPrefix: "document-builder-package",
+      destPrefix: "${s3prefix}/windows/${version}/builder",
+      items: [
+        [section: "Installer", glob: "exe/*.exe", dest: "/"],
+        [section: "Portable",  glob: "zip/*.zip", dest: "/"]
+      ]
+    ],
+    server: [
+      srcPrefix: "document-server-package",
+      destPrefix: "${s3prefix}/windows/${version}/server",
+      items: [
+        [section: "Installer", glob: "exe/*.exe", dest: "/"]
+      ]
+    ]
+  ],
+  macos: [
+    desktop: [
+      srcPrefix: "desktop-apps/macos/build",
+      destPrefix: "${s3prefix}/macos/${version}/${suffix}",
+      items: [
+        [section: "Disk Image", glob: "*.dmg", dest: "/"],
+        [section: "Sparkle",
+         glob: "${branding.company}-${suffix}-*.zip,update/*.delta,update/*.xml,update/*.html",
+         dest: "/"]
+      ]
+    ]
+  ],
+  linux: [
+    desktop: [
+      srcPrefix: "desktop-apps/win-linux/package/linux",
+      destPrefix: s3prefix,
+      items: [
+        [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
+        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
+        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
+        [section: "Rosa",     glob: "urpmi/**/*.rpm",   dest: "/rosa/"    ],
+        [section: "Portable", glob: "tar/**/*.tar.gz",  dest: "/linux/"   ],
+        // [section: "AstraLinux Signed", glob: "deb-astra/*.deb", dest: "/astralinux/"]
+      ]
+    ],
+    builder: [
+      srcPrefix: "document-builder-package",
+      destPrefix: s3prefix,
+      items: [
+        [section: "Ubuntu",   glob: "deb/*.deb",    dest: "/ubuntu/"],
+        [section: "CentOS",   glob: "rpm/**/*.rpm", dest: "/centos/"],
+        [section: "Portable", glob: "tar/*.tar.gz", dest: "/linux/" ]
+      ]
+    ],
+    server: [
+      srcPrefix: "document-server-package",
+      destPrefix: s3prefix,
+      items: [
+        [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
+        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
+        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
+        [section: "Portable", glob: "*.tar.gz",         dest: "/linux/"   ]
+      ]
+    ]
+  ]
+]
+
 pipeline {
   agent none
   environment {
@@ -866,20 +942,13 @@ void buildDesktop(String platform) {
 
     if (!branding.onlyoffice)
       makeargs += " -e BRANDING_DIR=../${branding.repo}/desktop-apps"
-
     bat "cd desktop-apps && \
       make clean-package && \
       make packages ${makeargs}"
-
-    uploadFiles("desktop", platform, [
-        [section: "Installer",  glob: "*.exe", dest: "/"],
-        [section: "Installer",  glob: "*.msi", dest: "/"],
-        [section: "Portable",   glob: "*.zip", dest: "/"],
-        [section: "WinSparkle",
-         glob: "update/*.exe,update/*.xml,update/*.html", dest: "/"],
-      ],
-      "desktop-apps/win-linux/package/windows",
-      "${s3prefix}/windows/${version}/desktop")
+    uploadFiles("desktop", platform,
+                packages.windows.desktop.items,
+                packages.windows.desktop.srcPrefix,
+                packages.windows.desktop.destPrefix)
 
   } else if (platform ==~ /^macos.*/) {
 
@@ -899,17 +968,13 @@ void buildDesktop(String platform) {
       ~/Library/Caches/Sparkle_generate_appcast/*"
     sh "cd build_tools && \
       ./make_packages.py --product desktop --package ${target}"
-
     // String appVersion = sh (
     //   script: "mdls -name kMDItemVersion -raw desktop-apps/macos/build/ONLYOFFICE.app",
     //   returnStdout: true).trim()
-
-    uploadFiles("desktop", platform, [
-        [section: "Disk Image", glob: "*.dmg", dest: "/"],
-        [section: "Sparkle",
-         glob: "${branding.company}-${suffix}-*.zip,update/*.delta,update/*.xml,update/*.html",
-         dest: "/"],
-      ], "desktop-apps/macos/build", "${s3prefix}/macos/${version}/${suffix}")
+    uploadFiles("desktop", platform,
+                packages.macos.desktop.items,
+                packages.macos.desktop.srcPrefix,
+                packages.macos.desktop.destPrefix)
 
   } else if (platform ==~ /^linux.*/) {
 
@@ -917,19 +982,13 @@ void buildDesktop(String platform) {
       makeargs += " -e BRANDING_DIR=../../../../${branding.repo}/desktop-apps/win-linux/package/linux"
     if (platform == "linux_aarch64")
       makeargs += " -e UNAME_M=aarch64"
-
     sh "cd desktop-apps/win-linux/package/linux && \
       make clean && \
       make packages ${makeargs}"
-
-    uploadFiles("desktop", platform, [
-        [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
-        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
-        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
-        [section: "Rosa",     glob: "urpmi/**/*.rpm",   dest: "/rosa/"    ],
-        [section: "Portable", glob: "tar/**/*.tar.gz",  dest: "/linux/"   ],
-        // [section: "AstraLinux Signed", glob: "deb-astra/*.deb", dest: "/astralinux/"]
-      ], "desktop-apps/win-linux/package/linux", s3prefix)
+    uploadFiles("desktop", platform,
+                packages.linux.desktop.items,
+                packages.linux.desktop.srcPrefix,
+                packages.linux.desktop.destPrefix)
 
   }
 }
@@ -945,26 +1004,22 @@ void buildBuilder(String platform) {
     bat "cd document-builder-package && \
       make clean && \
       make packages ${makeargs}"
-
-    uploadFiles("builder", platform, [
-        [section: "Installer", glob: "exe/*.exe", dest: "/"],
-        [section: "Portable",  glob: "zip/*.zip", dest: "/"]
-      ], "document-builder-package", "${s3prefix}/windows/${version}/builder")
+    uploadFiles("builder", platform,
+                packages.windows.builder.items,
+                packages.windows.builder.srcPrefix,
+                packages.windows.builder.destPrefix)
 
   } else if (platform ==~ /^linux.*/) {
 
     if (platform == "linux_aarch64")
       makeargs += " -e UNAME_M=aarch64"
-
     sh "cd document-builder-package && \
       make clean && \
       make packages ${makeargs}"
-
-    uploadFiles("builder", platform, [
-        [section: "Ubuntu",   glob: "deb/*.deb",    dest: "/ubuntu/"],
-        [section: "CentOS",   glob: "rpm/**/*.rpm", dest: "/centos/"],
-        [section: "Portable", glob: "tar/*.tar.gz", dest: "/linux/" ]
-      ], "document-builder-package", s3prefix)
+    uploadFiles("builder", platform,
+                packages.linux.builder.items,
+                packages.linux.builder.srcPrefix,
+                packages.linux.builder.destPrefix)
 
   }
 }
@@ -993,14 +1048,13 @@ void buildServer(String platform, String edition='community') {
     makeargs = "-e PRODUCT_NAME=${productName}"
     if (!branding.onlyoffice)
       makeargs += " -e BRANDING_DIR=../${branding.repo}/document-server-package"
-
     bat "cd document-server-package && \
       make clean && \
       make packages ${makeargs}"
-
-    uploadFiles(product, platform, [
-        [section: "Installer", glob: "exe/*.exe", dest: "/"  ]
-      ], "document-server-package", "${s3prefix}/windows/${version}/server")
+    uploadFiles(product, platform,
+                packages.windows.server.items,
+                packages.windows.server.srcPrefix,
+                packages.windows.server.destPrefix)
 
   } else if (platform ==~ /^linux.*/) {
 
@@ -1012,13 +1066,10 @@ void buildServer(String platform, String edition='community') {
     sh "cd document-server-package && \
       make clean && \
       make packages ${makeargs}"
-
-    uploadFiles(product, platform, [
-        [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
-        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
-        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
-        [section: "Portable", glob: "*.tar.gz",         dest: "/linux/"   ]
-      ], "document-server-package", s3prefix)
+    uploadFiles(product, platform,
+                packages.linux.server.items,
+                packages.linux.server.srcPrefix,
+                packages.linux.server.destPrefix)
 
     if (platform == "linux_x86_64") {
       makeargs = "-e PRODUCT_NAME=${productName.toLowerCase()}"
