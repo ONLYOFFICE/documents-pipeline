@@ -894,20 +894,18 @@ void buildDesktop(String platform) {
       target = "diskimage-arm64"
     }
 
-    sh """
-      #!/bin/sh -e
-      echo=/bin/echo
+    sh """#!/bin/bash -e
       plistbuddy=/usr/libexec/PlistBuddy
       url=http://download.onlyoffice.com/install/desktop/editors/mac/${suffix}/onlyoffice.xml
       appcast=\$(curl -s \$url 2> /dev/null)
       path=desktop-apps/macos/ONLYOFFICE/Resources/ONLYOFFICE-${suffix}/Info.plist
-      \$echo -n "RELEASE_MACOS_VERSION="
+      echo -n "RELEASE_MACOS_VERSION="
       echo \$appcast | xmllint --xpath "/rss/channel/item[1]/enclosure/@*[name()='sparkle:shortVersionString']" - | cut -f 2 -d \\"
-      \$echo -n "RELEASE_MACOS_BUILD="
+      echo -n "RELEASE_MACOS_BUILD="
       echo \$appcast | xmllint --xpath "/rss/channel/item[1]/enclosure/@*[name()='sparkle:version']" - | cut -f 2 -d \\"
-      \$echo -n "CURRENT_MACOS_VERSION="
+      echo -n "CURRENT_MACOS_VERSION="
       \$plistbuddy -c 'print :CFBundleShortVersionString' \$path
-      \$echo -n "CURRENT_MACOS_BUILD="
+      echo -n "CURRENT_MACOS_BUILD="
       \$plistbuddy -c 'print :CFBundleVersion' \$path
     """
     sh "rm -rfv \
