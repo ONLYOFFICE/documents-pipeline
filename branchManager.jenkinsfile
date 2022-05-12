@@ -316,8 +316,7 @@ def mergeBranch(String repo, String branch, ArrayList baseBranches) {
       merged=0
       rev_branch=\$(git rev-parse @)
       for base in "\${base_branches[@]}"; do
-        git switch \$base || \
-          (((++merged)) && continue)
+        git switch \$base || (((++merged)) && continue)
         git reset --hard origin/\$base
         rev_base=\$(git rev-parse @)
         if [[ \$rev_branch == \$rev_base ]]; then
@@ -328,9 +327,11 @@ def mergeBranch(String repo, String branch, ArrayList baseBranches) {
         gh pr create --repo ${repo} --base \$base --head ${branch} \
           --title "Merge branch ${branch} into \$base" --fill || \
         true
-        git merge ${branch} --no-edit --no-ff \
-          -m "Merge branch ${branch} into \$base" || \
-        continue
+        if ! git merge ${branch} --no-edit --no-ff \
+          -m "Merge branch ${branch} into \$base"; then
+          git merge --abort
+          continue
+        fi
         git push origin \$base
         ((++merged))
       done
@@ -419,7 +420,7 @@ def sendNotification() {
     switch(status.primary) {
       case 'skip':    text += '🔘'; break
       case 'success': text += '☑️'; break
-      case 'failure': text += '🛑'; break
+      case 'failure': text += '🚫'; break
       default:        text += '➖'
     }
     switch(status.secondary) {
