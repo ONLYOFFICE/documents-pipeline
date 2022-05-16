@@ -905,10 +905,21 @@ void buildDesktop(String platform) {
       targets = ["diskimage-arm64"]
     }
 
+    sh """#!/bin/bash -e
+      plistbuddy=/usr/libexec/PlistBuddy
+      url=http://download.onlyoffice.com/install/desktop/editors/mac/${suffix}/onlyoffice.xml
+      appcast=\$(curl -s \$url 2> /dev/null)
+      path=desktop-apps/macos/ONLYOFFICE/Resources/ONLYOFFICE-${suffix}/Info.plist
+      echo -n "RELEASE_MACOS_VERSION="
+      echo \$appcast | xmllint --xpath "/rss/channel/item[1]/enclosure/@*[name()='sparkle:shortVersionString']" - | cut -f 2 -d \\"
+      echo -n "RELEASE_MACOS_BUILD="
+      echo \$appcast | xmllint --xpath "/rss/channel/item[1]/enclosure/@*[name()='sparkle:version']" - | cut -f 2 -d \\"
+      echo -n "CURRENT_MACOS_VERSION="
+      \$plistbuddy -c 'print :CFBundleShortVersionString' \$path
+      echo -n "CURRENT_MACOS_BUILD="
+      \$plistbuddy -c 'print :CFBundleVersion' \$path
+    """
     buildPackages("desktop", platform, targets)
-    // String appVersion = sh (
-    //   script: "mdls -name kMDItemVersion -raw desktop-apps/macos/build/ONLYOFFICE.app",
-    //   returnStdout: true).trim()
     uploadFiles("desktop", platform, [
         [section: "Disk Image", glob: "*.dmg", dest: "/"],
         [section: "Sparkle",
