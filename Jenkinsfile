@@ -868,8 +868,6 @@ void buildDesktop(String platform) {
     if (!branding.onlyoffice)
       makeargs += " -e BRANDING_DIR=../${branding.repo}/desktop-apps"
     bat "cd desktop-apps && \
-      sed -i '15s;http.\\+;https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/download/vcr/2022/vc_redist.x64.exe;' win-linux\\package\\windows\\Makefile.mk && \
-      sed -i '18s;http.\\+;https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/download/vcr/2022/vc_redist.x86.exe;' win-linux\\package\\windows\\Makefile.mk && \
       make clean-package && \
       make packages ${makeargs}"
     uploadFiles("desktop", platform, [
