@@ -744,7 +744,7 @@ def getVarRepos(String branch, String platform, String branding) {
 }
 
 void checkoutRepos(ArrayList repos) {
-  echo repos.collect({"${it.owner}/${it.name} (${it.branch})"}).join("\n")
+  echo repos.sort().collect({"${it.owner}/${it.name} (${it.branch})"}).join("\n")
   repos.each {
     checkoutRepo(it.owner + "/" + it.name, it.branch, it.dir)
   }
