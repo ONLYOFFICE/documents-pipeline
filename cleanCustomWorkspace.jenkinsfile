@@ -11,8 +11,7 @@ pipeline {
     stage('Clean workspace') {
       steps {
         script {
-          ArrayList labelList = ['win_64', 'win_32', 'win_64_xp', 'win_32_xp']
-          parallel winCleanStages(labelList, params.branch)
+          parallel winCleanStages(params.branch)
         }
       }
       when {
@@ -22,16 +21,15 @@ pipeline {
   }
 }
 
-def winCleanStages(ArrayList labels, String branch) {
+def winCleanStages(String branch) {
   Map nodes = [:]
+  String branchDir = branch.replaceAll(/\//,'_')
 
-  labels.each { label ->
-    nodesByLabel(label).each {
-      nodes["${label} ${it}"] = { ->
-        node(it) {
-          stage("${label} ${it}") {
-            dir ("C:/oo/${branch}/${label}") { deleteDir() }
-          }
+  nodesByLabel("windows").each {
+    nodes["${it}"] = { ->
+      node(it) {
+        stage("${it}") {
+          powershell "Remove-Item -Verbose -Recurse -Force C:\\oo\\${branchDir}*"
         }
       }
     }
