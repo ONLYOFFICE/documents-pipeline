@@ -742,7 +742,7 @@ def getVarRepos(String branch, String platform, String branding) {
     repos.add(repo)
   }
 
-  return repos.sort()
+  return repos
 }
 
 void checkoutRepos(ArrayList repos) {
