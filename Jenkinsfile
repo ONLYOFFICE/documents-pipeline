@@ -692,6 +692,7 @@ def getConstRepos(String branch = 'master') {
   ].each {
     it.branch = branch
     it.dir = it.name
+    it.tag = true
   }
 }
 
@@ -726,7 +727,8 @@ def getVarRepos(String branch, String platform, String branding) {
       owner: "ONLYOFFICE",
       name: lineSplit[0],
       branch: "master",
-      dir: (lineSplit[1] == null) ? "${lineSplit[0]}" : "${lineSplit[1]}/${lineSplit[0]}"
+      dir: (lineSplit[1] == null) ? "${lineSplit[0]}" : "${lineSplit[1]}/${lineSplit[0]}",
+      tag: !lineSplit[0].startsWith("plugin-")
     ]
     if (branch != 'master') repo.branch = resolveScm(
         source: [
@@ -740,7 +742,7 @@ def getVarRepos(String branch, String platform, String branding) {
     repos.add(repo)
   }
 
-  return repos.sort()
+  return repos
 }
 
 void checkoutRepos(ArrayList repos) {
@@ -751,7 +753,7 @@ void checkoutRepos(ArrayList repos) {
 }
 
 void tagRepos(ArrayList repos, String tag) {
-  repos.each {
+  repos.findAll { it.tag }.each {
     sh """
       cd ${it.dir}
       git tag -l | xargs git tag -d
