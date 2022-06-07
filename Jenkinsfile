@@ -898,7 +898,7 @@ void buildDesktop(String platform) {
     ArrayList targets = ['clean']
     if (platform == "macos_x86_64_v8") {
       suffix = "v8"
-      targets = ["diskimage-v8-x86_64"]
+      targets = ["diskimage-x86_64-v8"]
     } else if (platform == "macos_x86_64") {
       suffix = "x86_64"
       targets = ["diskimage-x86_64"]
