@@ -1031,15 +1031,6 @@ void buildServer(String platform, String edition='community') {
         [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
         [section: "Portable", glob: "*.tar.gz",         dest: "/linux/"   ]
       ], "document-server-package", s3prefix)
-
-    if (platform == "linux_x86_64") {
-      makeargs = "-e PRODUCT_NAME=${productName.toLowerCase()}"
-      if (!branding.onlyoffice)
-        makeargs += " -e ONLYOFFICE_VALUE=ds"
-      sh "cd Docker-DocumentServer && \
-        make clean && \
-        make deploy ${makeargs}"
-    }
   }
 }
 
