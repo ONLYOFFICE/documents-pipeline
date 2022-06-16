@@ -518,7 +518,7 @@ pipeline {
         }
         // Linux
         stage('Linux x86_64') {
-          agent { label 'linux_x86_64' }
+          agent { label 'linux_x86_64_ubuntu16' }
           when {
             expression { params.linux_x86_64 }
             beforeAgent true
