@@ -59,12 +59,12 @@ branding = [
 
 platforms = [
   windows_x64:     [title: "Windows x64",     build: "win_64",      isUnix: false],
-  windows_x64_xp:  [title: "Windows XP x64",  build: "win_64_xp",   isUnix: false],
+  windows_x64_xp:  [title: "Windows x64 XP",  build: "win_64_xp",   isUnix: false],
   windows_x86:     [title: "Windows x86",     build: "win_32",      isUnix: false],
-  windows_x86_xp:  [title: "Windows XP x86",  build: "win_32_xp",   isUnix: false],
+  windows_x86_xp:  [title: "Windows x86 XP",  build: "win_32_xp",   isUnix: false],
   macos_x86_64:    [title: "macOS x86_64",    build: "mac_64",      isUnix: true ],
-  macos_x86_64_v8: [title: "macOS V8 x86_64", build: "mac_64",      isUnix: true ],
-  macos_arm64:     [title: "macOS ARM64",     build: "mac_arm64",   isUnix: true ],
+  macos_x86_64_v8: [title: "macOS x86_64 V8", build: "mac_64",      isUnix: true ],
+  macos_arm64:     [title: "macOS arm64",     build: "mac_arm64",   isUnix: true ],
   linux_x86_64:    [title: "Linux x86_64",    build: "linux_64",    isUnix: true ],
   linux_aarch64:   [title: "Linux aarch64",   build: "linux_arm64", isUnix: true ],
   android:         [title: "Android",         build: "android",     isUnix: true ]
@@ -107,12 +107,12 @@ pipeline {
     )
     booleanParam (
       name:         'windows_x64_xp',
-      description:  'Build Windows XP x64 targets (Visual Studio 2015)',
+      description:  'Build Windows x64 XP targets (Visual Studio 2015)',
       defaultValue: defaults.windows_x64_xp
     )
     booleanParam (
       name:         'windows_x86_xp',
-      description:  'Build Windows XP x86 targets (Visual Studio 2015)',
+      description:  'Build Windows x86 XP targets (Visual Studio 2015)',
       defaultValue: defaults.windows_x86_xp
     )
     // macOS
@@ -123,12 +123,12 @@ pipeline {
     )
     booleanParam (
       name:         'macos_x86_64_v8',
-      description:  'Build macOS V8 x86-64 targets',
+      description:  'Build macOS x86-64 V8 targets',
       defaultValue: defaults.macos_x86_64_v8
     )
     booleanParam (
       name:         'macos_arm64',
-      description:  'Build macOS ARM64 targets',
+      description:  'Build macOS arm64 targets',
       defaultValue: defaults.macos_arm64
     )
     // Linux
@@ -323,7 +323,7 @@ pipeline {
             }
           }
         }
-        stage('Windows XP x64') {
+        stage('Windows x64 XP') {
           agent {
             node {
               label 'windows_x64_xp'
@@ -360,7 +360,7 @@ pipeline {
             }
           }
         }
-        stage('Windows XP x86') {
+        stage('Windows x86 XP') {
           agent {
             node {
               label 'windows_x86_xp'
@@ -441,7 +441,7 @@ pipeline {
             }
           }
         }
-        stage('macOS V8 x86_64') {
+        stage('macOS x86_64 V8') {
           agent { label 'macos_x86_64_v8' }
           environment {
             FASTLANE_HIDE_TIMESTAMP = '1'
@@ -479,7 +479,7 @@ pipeline {
             }
           }
         }
-        stage('macOS ARM64') {
+        stage('macOS arm64') {
           agent { label 'macos_arm64' }
           environment {
             FASTLANE_HIDE_TIMESTAMP = '1'
