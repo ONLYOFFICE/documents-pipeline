@@ -842,7 +842,7 @@ void buildCore(String platform) {
   LinkedHashMap path = [
     windows_x64:  [os: "windows", version: "${version}.${build}", arch: "x64"],
     windows_x86:  [os: "windows", version: "${version}.${build}", arch: "x86"],
-    macos_x86_64: [os: "macos",   version: "${version}-${build}", arch: "x64"],
+    macos_x86_64: [os: "mac",     version: "${version}-${build}", arch: "x64"],
     linux_x86_64: [os: "linux",   version: "${version}-${build}", arch: "x64"]
   ]
   def p = path[platform]
