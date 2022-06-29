@@ -906,6 +906,7 @@ void buildDesktop(String platform) {
       suffix = "arm"
       targets = ["diskimage-arm64"]
     }
+    targets.add("sparkle-updates")
 
     sh """#!/bin/bash -e
       plistbuddy=/usr/libexec/PlistBuddy
