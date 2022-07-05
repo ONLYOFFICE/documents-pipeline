@@ -534,6 +534,7 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "linux_x86_64"
+              String gitTag = "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               ArrayList allRepos = constRepos.plus(varRepos)
@@ -551,9 +552,21 @@ pipeline {
                 if (params.desktop)   buildDesktop(platform)
                 if (params.server_ee) {
                   buildServer(platform, "enterprise")
-                  tagRepos(allRepos, "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
+                  tagRepos(allRepos, gitTag)
                 }
                 if (params.server_de) buildServer(platform, "developer")
+
+                if (params.server_ee) {
+                  Boolean buildDocker = sh(returnStatus: true, script: """
+                    repo=ONLYOFFICE/Docker-DocumentServer
+                    workflow=build-4testing.yml
+                    # gh --repo \$repo workflow run \$workflow && sleep 5
+                    run_id=\$(gh --repo \$repo run list --workflow \$workflow \\
+                      --branch ${gitTag} --json databaseId --jq '.[0].databaseId')
+                    gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
+                    gh --repo \$repo run view \$run_id --verbose --exit-status
+                  """) == 0
+                }
               }
               if (params.test) linuxTest()
 
