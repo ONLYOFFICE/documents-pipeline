@@ -252,7 +252,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
+              setStageStats()
 
               if (params.wipe)
                 deleteDir()
@@ -277,7 +277,7 @@ pipeline {
                 if (params.server_de) buildServer(platform, "developer")
               }
 
-              stageStats."${env.STAGE_NAME}" = true
+              setStageStats(0)
             }
           }
         }
@@ -298,7 +298,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
+              setStageStats()
 
               if (params.wipe)
                 deleteDir()
@@ -319,7 +319,7 @@ pipeline {
                 buildDesktop(platform)
               }
 
-              stageStats."${env.STAGE_NAME}" = true
+              setStageStats(0)
             }
           }
         }
@@ -340,7 +340,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
+              setStageStats()
 
               if (params.wipe)
                 deleteDir()
@@ -356,7 +356,7 @@ pipeline {
                 buildDesktop(platform)
               }
 
-              stageStats."${env.STAGE_NAME}" = true
+              setStageStats(0)
             }
           }
         }
@@ -378,7 +378,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
+              setStageStats()
 
               if (params.wipe)
                 deleteDir()
@@ -394,7 +394,7 @@ pipeline {
                 buildDesktop(platform)
               }
 
-              stageStats."${env.STAGE_NAME}" = true
+              setStageStats(0)
             }
           }
         }
@@ -416,7 +416,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
+              setStageStats()
 
               if (params.wipe)
                 deleteDir()
@@ -437,7 +437,7 @@ pipeline {
                 buildDesktop(platform)
               }
 
-              stageStats."${env.STAGE_NAME}" = true
+              setStageStats(0)
             }
           }
         }
@@ -459,7 +459,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
+              setStageStats()
 
               if (params.wipe)
                 deleteDir()
@@ -475,7 +475,7 @@ pipeline {
                 buildDesktop(platform)
               }
 
-              stageStats."${env.STAGE_NAME}" = true
+              setStageStats(0)
             }
           }
         }
@@ -496,7 +496,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
+              setStageStats()
 
               if (params.wipe)
                 deleteDir()
@@ -512,7 +512,7 @@ pipeline {
                 buildDesktop(platform)
               }
 
-              stageStats."${env.STAGE_NAME}" = true
+              setStageStats(0)
             }
           }
         }
@@ -526,7 +526,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
+              setStageStats()
 
               if (params.wipe)
                 deleteDir()
@@ -566,11 +566,15 @@ pipeline {
                     gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
                     gh --repo \$repo run view \$run_id --verbose --exit-status
                   """) == 0
+                  if (!buildDocker) {
+                    unstable("Docker build failure")
+                    setStageStats(1)
+                  }
                 }
               }
               if (params.test) linuxTest()
 
-              stageStats."${env.STAGE_NAME}" = true
+              setStageStats(0)
             }
           }
         }
@@ -583,7 +587,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
+              setStageStats()
 
               if (params.wipe)
                 deleteDir()
@@ -609,7 +613,7 @@ pipeline {
                 if (params.server_de) buildServer(platform, "developer")
               }
 
-              stageStats."${env.STAGE_NAME}" = true
+              setStageStats(0)
             }
           }
         }
@@ -623,7 +627,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
+              setStageStats()
 
               if (params.wipe) deleteDir()
 
@@ -634,7 +638,7 @@ pipeline {
               buildArtifacts(platform)
               buildAndroid(env.BRANCH_NAME)
 
-              stageStats."${env.STAGE_NAME}" = true
+              setStageStats(0)
             }
           }
         }
@@ -1202,11 +1206,25 @@ def getHtml(ArrayList data) {
 
 // Notifications
 
+def setStageStats(Integer code) {
+  if (code == null) {
+    stageStats["${env.STAGE_NAME}"] = 2
+  }
+  else if (code == 0 && stageStats["${env.STAGE_NAME}"] == 1) {
+    stageStats["${env.STAGE_NAME}"] = 1
+  }
+  else {
+    stageStats["${env.STAGE_NAME}"] = code
+  }
+  return
+}
+
 def getJobStats(String jobStatus) {
-  String text = "Build [${currentBuild.fullDisplayName}]" \
-    + "(${currentBuild.absoluteUrl}) ${jobStatus}"
-  stageStats.sort().each { stage, status ->
-    text += "\n${status ? '🔵' : '🔴'} ${stage.replaceAll('_','\\\\_')}"
+  String text = "Build [" + currentBuild.fullDisplayName \
+      + "](" + currentBuild.absoluteUrl + ") " + jobStatus
+  ArrayList icons = ["🟢", "🟡", "🔴"]
+  stageStats.sort().each { stage, code ->
+    text += "\n" + icons[code] + " " + stage.replaceAll('_','\\\\_')
   }
   return text
 }
