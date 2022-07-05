@@ -961,6 +961,7 @@ void buildDesktop(String platform) {
         [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
         [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
         [section: "Rosa",     glob: "urpmi/**/*.rpm",   dest: "/rosa/"    ],
+        [section: "SUSE Linux", glob: "suse-rpm/**/*.rpm", dest: "/suse/" ],
         [section: "Portable", glob: "tar/**/*.tar.gz",  dest: "/linux/"   ],
         // [section: "AstraLinux Signed",
         //  glob: "deb-astra/*.deb", dest: "/astralinux/"]
