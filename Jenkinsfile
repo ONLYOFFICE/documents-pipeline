@@ -519,6 +519,9 @@ pipeline {
         // Linux
         stage('Linux x86_64') {
           agent { label 'linux_x86_64_ubuntu16' }
+          environment {
+            GITHUB_TOKEN = credentials('github-token')
+          }
           when {
             expression { params.linux_x86_64 }
             beforeAgent true
@@ -550,17 +553,15 @@ pipeline {
               if (params.desktop || params.server_ee || params.server_de) {
                 buildArtifacts(platform, "commercial")
                 if (params.desktop)   buildDesktop(platform)
-                if (params.server_ee) {
-                  buildServer(platform, "enterprise")
-                  tagRepos(allRepos, gitTag)
-                }
+                if (params.server_ee) buildServer(platform, "enterprise")
                 if (params.server_de) buildServer(platform, "developer")
-
-                if (params.server_ee) {
+                if (params.server_ee || params.server_de) {
+                  tagRepos(allRepos, gitTag)
                   Boolean buildDocker = sh(returnStatus: true, script: """
                     repo=ONLYOFFICE/Docker-DocumentServer
                     workflow=build-4testing.yml
-                    # gh --repo \$repo workflow run \$workflow && sleep 5
+                    sleep 5
+                    # gh --repo \$repo workflow run \$workflow
                     run_id=\$(gh --repo \$repo run list --workflow \$workflow \\
                       --branch ${gitTag} --json databaseId --jq '.[0].databaseId')
                     gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
