@@ -252,7 +252,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -272,9 +271,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildPackages(platform, "commercial")
               }
-
-              stageStats."${env.STAGE_NAME}" = true
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('Windows x86') {
@@ -294,7 +296,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -314,9 +315,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildPackages(platform, "commercial")
               }
-
-              stageStats."${env.STAGE_NAME}" = true
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('Windows x64 XP') {
@@ -336,7 +340,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -351,9 +354,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildPackages(platform, "commercial")
               }
-
-              stageStats."${env.STAGE_NAME}" = true
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('Windows x86 XP') {
@@ -374,7 +380,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -389,9 +394,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildPackages(platform, "commercial")
               }
-
-              stageStats."${env.STAGE_NAME}" = true
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         // macOS
@@ -412,7 +420,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -432,9 +439,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildPackages(platform, "commercial")
               }
-
-              stageStats."${env.STAGE_NAME}" = true
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('macOS x86_64 V8') {
@@ -455,7 +465,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -470,9 +479,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildPackages(platform, "commercial")
               }
-
-              stageStats."${env.STAGE_NAME}" = true
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('macOS arm64') {
@@ -492,7 +504,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -507,9 +518,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildPackages(platform, "commercial")
               }
-
-              stageStats."${env.STAGE_NAME}" = true
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         // Linux
@@ -522,7 +536,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -547,9 +560,12 @@ pipeline {
                   tagRepos(allRepos, "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
               }
               if (params.test) linuxTest()
-
-              stageStats."${env.STAGE_NAME}" = true
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('Linux aarch64') {
@@ -561,7 +577,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe)
                 deleteDir()
@@ -583,9 +598,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildPackages(platform, "commercial")
               }
-
-              stageStats."${env.STAGE_NAME}" = true
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         // Android
@@ -598,7 +616,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              stageStats."${env.STAGE_NAME}" = false
 
               if (params.wipe) deleteDir()
 
@@ -608,9 +625,12 @@ pipeline {
 
               buildArtifacts(platform, "opensource")
               buildPackages(platform)
-
-              stageStats."${env.STAGE_NAME}" = true
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
       }
@@ -618,11 +638,7 @@ pipeline {
   }
   post {
     always {
-      node('built-in') {
-        script {
-          generateReports()
-        }
-      }
+      node('built-in') { script { generateReports() } }
       script {
         if (params.linux_x86_64 || params.linux_aarch64)
           build (
@@ -636,25 +652,13 @@ pipeline {
       }
     }
     fixed {
-      node('built-in') {
-        script {
-          sendTelegramMessage(getJobStats('fixed'))
-        }
-      }
+      node('built-in') { script { sendTelegramMessage('fixed') } }
     }
     unstable {
-      node('built-in') {
-        script {
-          sendTelegramMessage(getJobStats('unstable'))
-        }
-      }
+      node('built-in') { script { sendTelegramMessage('unstable') } }
     }
     failure {
-      node('built-in') {
-        script {
-          sendTelegramMessage(getJobStats('failure'))
-        }
-      }
+      node('built-in') { script { sendTelegramMessage('failure') } }
     }
   }
 }
@@ -1174,16 +1178,14 @@ def getHtml(ArrayList data) {
 
 // Notifications
 
-def getJobStats(String jobStatus) {
-  String text = "Build [${currentBuild.fullDisplayName}]" \
-    + "(${currentBuild.absoluteUrl}) ${jobStatus}"
-  stageStats.sort().each { stage, status ->
-    text += "\n${status ? '🔵' : '🔴'} ${stage.replaceAll('_','\\\\_')}"
+void sendTelegramMessage(String jobStatus, String chatId = '-1001773122025', Boolean markdown = true) {
+  String text = "Build [" + currentBuild.fullDisplayName \
+      + "](" + currentBuild.absoluteUrl + ") " + jobStatus
+  ArrayList icons = ["🟢", "🟡", "🔴"]
+  stageStats.sort().each { stage, code ->
+    text += "\n" + icons[code] + " " + stage.replaceAll('_','\\\\_')
   }
-  return text
-}
 
-void sendTelegramMessage(String text, String chatId = '-1001773122025', Boolean markdown = true) {
   if (params.notify) sh(
     label: "Send Telegram Message",
     script: "curl -X POST -s -S \
