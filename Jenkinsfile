@@ -638,14 +638,21 @@ pipeline {
     fixed {
       node('built-in') {
         script {
-          sendTelegramMessage(getJobStats('fixed'), '-1001773122025')
+          sendTelegramMessage(getJobStats('fixed'))
+        }
+      }
+    }
+    unstable {
+      node('built-in') {
+        script {
+          sendTelegramMessage(getJobStats('unstable'))
         }
       }
     }
     failure {
       node('built-in') {
         script {
-          sendTelegramMessage(getJobStats('failed'), '-1001773122025')
+          sendTelegramMessage(getJobStats('failure'))
         }
       }
     }
@@ -1176,7 +1183,7 @@ def getJobStats(String jobStatus) {
   return text
 }
 
-void sendTelegramMessage(String text, String chatId, Boolean markdown = true) {
+void sendTelegramMessage(String text, String chatId = '-1001773122025', Boolean markdown = true) {
   if (params.notify) sh(
     label: "Send Telegram Message",
     script: "curl -X POST -s -S \
