@@ -252,7 +252,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats()
+              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -298,7 +298,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats()
+              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -340,7 +340,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats()
+              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -378,7 +378,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats()
+              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -416,7 +416,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats()
+              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -459,7 +459,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats()
+              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -496,7 +496,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats()
+              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -526,7 +526,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats()
+              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -587,7 +587,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats()
+              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -627,7 +627,7 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats()
+              setStageStats(2)
 
               if (params.wipe) deleteDir()
 
@@ -1207,7 +1207,7 @@ def getHtml(ArrayList data) {
 
 // Notifications
 
-def setStageStats(Integer code) {
+void setStageStats(Integer code) {
   if (code == null) {
     stageStats["${env.STAGE_NAME}"] = 2
   }
@@ -1217,7 +1217,6 @@ def setStageStats(Integer code) {
   else {
     stageStats["${env.STAGE_NAME}"] = code
   }
-  return
 }
 
 def getJobStats(String jobStatus) {
