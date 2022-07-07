@@ -557,17 +557,20 @@ pipeline {
                 if (params.server_de) buildServer(platform, "developer")
                 if (params.server_ee || params.server_de) {
                   tagRepos(allRepos, gitTag)
-                  Boolean buildDocker = sh(returnStatus: true, script: """
-                    repo=ONLYOFFICE/Docker-DocumentServer
-                    workflow=build-4testing.yml
-                    sleep 5
-                    # gh --repo \$repo workflow run \$workflow
-                    run_id=\$(gh --repo \$repo run list --workflow \$workflow \\
-                      --branch ${gitTag} --json databaseId --jq '.[0].databaseId')
-                    gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-                    gh --repo \$repo run view \$run_id --verbose --exit-status
-                  """) == 0
-                  if (!buildDocker) {
+                  try {
+                    sh """
+                      repo=ONLYOFFICE/Docker-DocumentServer
+                      workflow=build-4testing.yml
+                      sleep 5
+                      # gh --repo \$repo workflow run \$workflow
+                      run_id=\$(gh --repo \$repo run list --workflow \$workflow \\
+                        --branch ${gitTag} --json databaseId --jq '.[0].databaseId')
+                      gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
+                      gh --repo \$repo run view \$run_id --verbose --exit-status
+                    """
+                  }
+                  catch(err) {
+                    echo "Caught: ${err}"
                     unstable("Docker build failure")
                     setStageStats(1)
                   }
