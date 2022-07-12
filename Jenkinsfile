@@ -252,7 +252,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -276,9 +275,12 @@ pipeline {
                 if (params.server_ee) buildServer(platform, "enterprise")
                 if (params.server_de) buildServer(platform, "developer")
               }
-
-              setStageStats(0)
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('Windows x86') {
@@ -298,7 +300,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -318,9 +319,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
-
-              setStageStats(0)
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('Windows x64 XP') {
@@ -340,7 +344,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -355,9 +358,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
-
-              setStageStats(0)
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('Windows x86 XP') {
@@ -378,7 +384,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -393,9 +398,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
-
-              setStageStats(0)
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         // macOS
@@ -416,7 +424,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -436,9 +443,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
-
-              setStageStats(0)
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('macOS x86_64 V8') {
@@ -459,7 +469,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -474,9 +483,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
-
-              setStageStats(0)
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('macOS arm64') {
@@ -496,7 +508,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -511,9 +522,12 @@ pipeline {
                 buildArtifacts(platform, "commercial")
                 buildDesktop(platform)
               }
-
-              setStageStats(0)
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         // Linux
@@ -529,7 +543,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -572,14 +585,16 @@ pipeline {
                   catch(err) {
                     echo "Caught: ${err}"
                     unstable("Docker build failure")
-                    setStageStats(1)
                   }
                 }
               }
               if (params.test) linuxTest()
-
-              setStageStats(0)
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         stage('Linux aarch64') {
@@ -591,7 +606,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats(2)
 
               if (params.wipe)
                 deleteDir()
@@ -616,9 +630,12 @@ pipeline {
                 if (params.server_ee) buildServer(platform, "enterprise")
                 if (params.server_de) buildServer(platform, "developer")
               }
-
-              setStageStats(0)
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
         // Android
@@ -631,7 +648,6 @@ pipeline {
           steps {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
-              setStageStats(2)
 
               if (params.wipe) deleteDir()
 
@@ -641,9 +657,12 @@ pipeline {
 
               buildArtifacts(platform)
               buildAndroid(env.BRANCH_NAME)
-
-              setStageStats(0)
             }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
       }
@@ -651,11 +670,7 @@ pipeline {
   }
   post {
     always {
-      node('built-in') {
-        script {
-          generateReports()
-        }
-      }
+      node('built-in') { script { generateReports() } }
       script {
         if (params.linux_x86_64 || params.linux_aarch64)
           build (
@@ -669,18 +684,13 @@ pipeline {
       }
     }
     fixed {
-      node('built-in') {
-        script {
-          sendTelegramMessage(getJobStats('fixed'), '-1001773122025')
-        }
-      }
+      node('built-in') { script { sendTelegramMessage('fixed') } }
+    }
+    unstable {
+      node('built-in') { script { sendTelegramMessage('unstable') } }
     }
     failure {
-      node('built-in') {
-        script {
-          sendTelegramMessage(getJobStats('failed'), '-1001773122025')
-        }
-      }
+      node('built-in') { script { sendTelegramMessage('failure') } }
     }
   }
 }
@@ -1211,29 +1221,14 @@ def getHtml(ArrayList data) {
 
 // Notifications
 
-void setStageStats(Integer code) {
-  if (code == null) {
-    stageStats["${env.STAGE_NAME}"] = 2
-  }
-  else if (code == 0 && stageStats["${env.STAGE_NAME}"] == 1) {
-    stageStats["${env.STAGE_NAME}"] = 1
-  }
-  else {
-    stageStats["${env.STAGE_NAME}"] = code
-  }
-}
-
-def getJobStats(String jobStatus) {
+void sendTelegramMessage(String jobStatus, String chatId = '-1001773122025', Boolean markdown = true) {
   String text = "Build [" + currentBuild.fullDisplayName \
       + "](" + currentBuild.absoluteUrl + ") " + jobStatus
   ArrayList icons = ["🟢", "🟡", "🔴"]
   stageStats.sort().each { stage, code ->
     text += "\n" + icons[code] + " " + stage.replaceAll('_','\\\\_')
   }
-  return text
-}
 
-void sendTelegramMessage(String text, String chatId, Boolean markdown = true) {
   if (params.notify) sh(
     label: "Send Telegram Message",
     script: "curl -X POST -s -S \
