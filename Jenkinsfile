@@ -705,9 +705,10 @@ void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus
       branches: [[name: 'refs/heads/' + branch]],
       doGenerateSubmoduleConfigurations: false,
       extensions: [
-        [$class: 'SubmoduleOption', recursiveSubmodules: true],
+        [$class: 'AuthorInChangelog'],
         [$class: 'RelativeTargetDirectory', relativeTargetDir: dir],
-        [$class: 'ScmName', name: "${repo}"]
+        [$class: 'ScmName', name: "${repo}"],
+        [$class: 'SubmoduleOption', recursiveSubmodules: true]
       ],
       submoduleCfg: [],
       userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
