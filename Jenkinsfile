@@ -560,7 +560,7 @@ pipeline {
                   try {
                     sh """
                       repo=ONLYOFFICE/Docker-DocumentServer
-                      workflow=build-4testing.yml
+                      workflow=4testing-build.yml
                       sleep 5
                       # gh --repo \$repo workflow run \$workflow
                       run_id=\$(gh --repo \$repo run list --workflow \$workflow \\
