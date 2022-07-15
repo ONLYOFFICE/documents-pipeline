@@ -957,6 +957,9 @@ void deployDesktop(String platform) {
         // [section: "AstraLinux Signed",
         //  glob: "deb-astra/*.deb", dest: "/astralinux/"]
       ], "desktop-apps/win-linux/package/linux", s3prefix)
+    uploadFiles("desktop", platform, [
+        [section: "AppImage", glob: "out/*.AppImage", dest: "/appimage/"]
+      ], "appimage-desktopeditors", s3prefix)
   }
 }
 
@@ -975,6 +978,9 @@ void deployBuilder(String platform) {
         [section: "CentOS",   glob: "rpm/**/*.rpm", dest: "/centos/"],
         [section: "Portable", glob: "tar/*.tar.gz", dest: "/linux/" ]
       ], "document-builder-package", s3prefix)
+    uploadFiles("builder", platform, [
+        [section: "AppImage", glob: "out/*.AppImage", dest: "/appimage/"]
+      ], "appimage-documentbuilder", s3prefix)
   }
 }
 
