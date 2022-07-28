@@ -1115,6 +1115,8 @@ void uploadFiles(String product, String platform, ArrayList items, \
     items.each { item ->
       findFiles(glob: item.glob).each { file ->
         srcPath = "${destPrefix}${item.dest}"
+        srcMd5sum = cmdMd5sum(file.path)
+        println file.path + " " + srcMd5sum
         localListDeploy.add([
           product: product,
           platform: platforms[platform].title,
@@ -1122,7 +1124,7 @@ void uploadFiles(String product, String platform, ArrayList items, \
           path: srcPath + file.name,
           file: file.name,
           size: file.length,
-          md5: cmdMd5sum(file.path)
+          md5: srcMd5sum
           // sha256: cmdSha256sum(it.path)
         ])
         uploadCmd += "aws s3 cp --acl public-read --no-progress " \
@@ -1148,6 +1150,7 @@ void linuxTest() {
 // Reports
 
 void generateReports() {
+  println listDeploy
   Map deploy = listDeploy.groupBy { it.product }
 
   Boolean desktop = deploy.desktop != null
