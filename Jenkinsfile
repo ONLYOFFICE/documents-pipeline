@@ -961,6 +961,14 @@ void buildDesktop(String platform) {
          glob: "${branding.company}-${suffix}-*.zip,update/*.delta,update/*.xml,update/*.html",
          dest: "/"],
       ], "desktop-apps/macos/build", "${s3prefix}/macos/${version}/${suffix}")
+    sh """#!/bin/bash -e
+      cd desktop-apps/macos/build/update
+      md5 *.zip *.delta > md5sums.txt
+      shasum -a 256 *.zip *.delta > sha256sums.txt
+    """
+    uploadFiles("desktop", platform, [
+        [section: "Checksums", glob: "*.txt", dest: "/"],
+      ], "desktop-apps/macos/build/update", "${s3prefix}/macos/${version}/${suffix}")
 
   } else if (platform ==~ /^linux.*/) {
 
@@ -1099,24 +1107,12 @@ void uploadFiles(String product, String platform, ArrayList items, \
   String srcPath, uploadCmd = ""
   ArrayList localListDeploy = []
 
-  Closure cmdMd5sum = {
-    if (platform ==~ /^windows.*/) {
-      return powershell (
-        script: "Get-FileHash ${it} -Algorithm MD5 | Select -ExpandProperty Hash",
-        returnStdout: true).trim()
-    } else if (platform ==~ /^macos.*/) {
-      return sh (script: "md5 -qs ${it}", returnStdout: true).trim()
-    } else {
-      return sh (script: "md5sum ${it} | cut -c -32", returnStdout: true).trim()
-    }
-  }
-
   dir(srcPrefix) {
     items.each { item ->
       findFiles(glob: item.glob).each { file ->
         srcPath = "${destPrefix}${item.dest}"
-        srcMd5sum = cmdMd5sum(file.path)
-        println file.path + " " + srcMd5sum
+        srcMD5Sum = getMD5Sum(platform, file.path)
+        println file.path + " " + srcMD5Sum
         localListDeploy.add([
           product: product,
           platform: platforms[platform].title,
@@ -1124,7 +1120,7 @@ void uploadFiles(String product, String platform, ArrayList items, \
           path: srcPath + file.name,
           file: file.name,
           size: file.length,
-          md5: srcMd5sum
+          md5: srcMD5Sum
           // sha256: cmdSha256sum(it.path)
         ])
         uploadCmd += "aws s3 cp --acl public-read --no-progress " \
@@ -1135,6 +1131,20 @@ void uploadFiles(String product, String platform, ArrayList items, \
   }
 
   listDeploy.addAll(localListDeploy)
+}
+
+def getMD5Sum(String platform == "linux", String file) {
+  String output
+  if (platform ==~ /^windows.*/) {
+    output = powershell(
+      script: "Get-FileHash ${file} -Algorithm MD5 | Select -ExpandProperty Hash",
+      returnStdout: true)
+  } else if (platform ==~ /^macos.*/) {
+    output = sh(script: "md5 -qs ${file}", returnStdout: true)
+  } else {
+    output = sh(script: "md5sum ${file} | cut -c -32", returnStdout: true)
+  }
+  return output.trim()
 }
 
 // Tests
