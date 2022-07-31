@@ -1111,7 +1111,7 @@ void uploadFiles(String product, String platform, ArrayList items, \
     items.each { item ->
       findFiles(glob: item.glob).each { file ->
         srcPath = "${destPrefix}${item.dest}"
-        srcMD5Sum = getMD5Sum(platform, file.path)
+        srcMD5Sum = getMD5Sum(file.path, platform)
         println file.path + " " + srcMD5Sum
         localListDeploy.add([
           product: product,
@@ -1133,7 +1133,7 @@ void uploadFiles(String product, String platform, ArrayList items, \
   listDeploy.addAll(localListDeploy)
 }
 
-def getMD5Sum(String platform == "linux", String file) {
+def getMD5Sum(String file, String platform = "linux") {
   String output
   if (platform ==~ /^windows.*/) {
     output = powershell(
