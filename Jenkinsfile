@@ -1111,16 +1111,16 @@ void uploadFiles(String product, String platform, ArrayList items, \
     items.each { item ->
       findFiles(glob: item.glob).each { file ->
         srcPath = "${destPrefix}${item.dest}"
-        srcMD5Sum = getMD5Sum(file.path, platform)
-        println file.path + " " + srcMD5Sum
+        // srcMD5Sum = getMD5Sum(file.path, platform)
+        // println file.path + " " + srcMD5Sum
         localListDeploy.add([
           product: product,
           platform: platforms[platform].title,
           section: item.section,
           path: srcPath + file.name,
           file: file.name,
-          size: file.length,
-          md5: srcMD5Sum
+          size: file.length
+          // md5: srcMD5Sum
           // sha256: cmdSha256sum(it.path)
         ])
         uploadCmd += "aws s3 cp --acl public-read --no-progress " \
@@ -1221,8 +1221,8 @@ def getHtml(ArrayList data) {
         text += "\n      <li>" \
           + "\n        <a href=\"${url}\">${it.file}</a>" \
           + ", Size: ${size(it.size)}B" \
-          + ", MD5: <code>${it.md5}</code>" \
           + "\n      </li>"
+          // + ", MD5: <code>${it.md5}</code>" \
       }
       text += "\n    </ul>"
     }
