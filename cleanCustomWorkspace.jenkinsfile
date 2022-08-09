@@ -29,7 +29,7 @@ def winCleanStages(String branch) {
     nodes["${it}"] = { ->
       node(it) {
         stage("${it}") {
-          powershell "Remove-Item -Verbose -Recurse -Force C:\\oo\\${branchDir}*"
+          powershell "Remove-Item -Recurse -Force C:\\oo\\${branchDir}*"
         }
       }
     }
