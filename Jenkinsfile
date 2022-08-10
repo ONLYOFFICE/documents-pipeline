@@ -570,7 +570,7 @@ pipeline {
                 if (params.server_de) buildServer(platform, "developer")
                 if (params.server_ee || params.server_de) {
                   tagRepos(allRepos, gitTag)
-                  try {
+                  catchError(stageResult: 'UNSTABLE', message: 'Docker build failure') {
                     sh """
                       repo=ONLYOFFICE/Docker-DocumentServer
                       workflow=4testing-build.yml
@@ -581,10 +581,6 @@ pipeline {
                       gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
                       gh --repo \$repo run view \$run_id --verbose --exit-status
                     """
-                  }
-                  catch(err) {
-                    echo "Caught: ${err}"
-                    unstable("Docker build failure")
                   }
                 }
               }
