@@ -226,11 +226,10 @@ pipeline {
       steps {
         script {
           if (params.signing) env.ENABLE_SIGNING=1
-          s3region = "eu-west-1"
           s3bucket = "repo-doc-onlyoffice-com"
           s3prefix = "${s3bucket}/${branding.company_lc}/${env.RELEASE_BRANCH}"
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
-          listDeploy = []
+          deployData = []
           stageStats = [:]
         }
       }
@@ -845,9 +844,9 @@ void buildPackages(String platform, String license = 'opensource') {
   // if (params.core && isOpenSource && pCore)        targets.add("core")
   if (params.desktop && isCommercial && pDesktop)  targets.add("desktop")
   if (params.builder && isOpenSource && pBuilder)  targets.add("builder")
-  if (params.server_ce && isOpenSource && pServer) targets.add("server-ce")
-  if (params.server_ee && isCommercial && pServer) targets.add("server-ee")
-  if (params.server_de && isCommercial && pServer) targets.add("server-de")
+  if (params.server_ce && isOpenSource && pServer) targets.add("server-community")
+  if (params.server_ee && isCommercial && pServer) targets.add("server-enterprise")
+  if (params.server_de && isCommercial && pServer) targets.add("server-developer")
   // if (params.mobile && isOpenSource && pMobile)    targets.add("mobile")
 
   String args = " --platform ${platform}" \
@@ -862,12 +861,17 @@ void buildPackages(String platform, String license = 'opensource') {
   else
     bat "cd build_tools && make_package.py ${args}"
 
-  if (params.core && isOpenSource && pCore)        deployCore(platform)
-  if (params.desktop && isCommercial && pDesktop)  deployDesktop(platform)
-  if (params.builder && isOpenSource && pBuilder)  deployBuilder(platform)
-  if (params.server_ce && isOpenSource && pServer) deployServer(platform, "community")
-  if (params.server_ee && isCommercial && pServer) deployServer(platform, "enterprise")
-  if (params.server_de && isCommercial && pServer) deployServer(platform, "developer")
+  if (!pMobile && fileExists('deploy.json')) {
+    def platformDeployData = readJSON(file: 'deploy.json')
+    println platformDeployData
+    deployData += platformDeployData
+  }
+  // if (params.core && isOpenSource && pCore)        deployCore(platform)
+  // if (params.desktop && isCommercial && pDesktop)  deployDesktop(platform)
+  // if (params.builder && isOpenSource && pBuilder)  deployBuilder(platform)
+  // if (params.server_ce && isOpenSource && pServer) deployServer(platform, "community")
+  // if (params.server_ee && isCommercial && pServer) deployServer(platform, "enterprise")
+  // if (params.server_de && isCommercial && pServer) deployServer(platform, "developer")
   if (params.mobile && isOpenSource && pMobile)    deployMobile(env.BRANCH_NAME)
 }
 
@@ -1059,7 +1063,7 @@ void deployMobile(String branch = 'master', String config = 'release') {
 void uploadFiles(String product, String platform, ArrayList items, \
                  String srcPrefix = '', String destPrefix = '') {
   String srcPath, uploadCmd = ""
-  ArrayList localListDeploy = []
+  ArrayList localDeployData = []
 
   Closure cmdMd5sum = {
     if (platform ==~ /^windows.*/) {
@@ -1077,14 +1081,14 @@ void uploadFiles(String product, String platform, ArrayList items, \
     items.each { item ->
       findFiles(glob: item.glob).each { file ->
         srcPath = "${destPrefix}${item.dest}"
-        localListDeploy.add([
+        localDeployData.add([
           product: product,
           platform: platforms[platform].title,
-          section: item.section,
-          path: srcPath + file.name,
+          type: item.type,
+          remote: srcPath + file.name,
           file: file.name,
-          size: file.length,
-          md5: cmdMd5sum(file.path)
+          size: file.length
+          // md5: cmdMd5sum(file.path)
           // sha256: cmdSha256sum(it.path)
         ])
         uploadCmd += "aws s3 cp --acl public-read --no-progress " \
@@ -1094,7 +1098,7 @@ void uploadFiles(String product, String platform, ArrayList items, \
     if (platforms[platform].isUnix) sh uploadCmd else powershell uploadCmd
   }
 
-  listDeploy.addAll(localListDeploy)
+  deployData.addAll(localDeployData)
 }
 
 // Tests
@@ -1110,25 +1114,28 @@ void linuxTest() {
 // Reports
 
 void generateReports() {
-  Map deploy = listDeploy.groupBy { it.product }
+  Map deploy = deployData.groupBy { it.product }
 
+  Boolean core = deploy.core != null
   Boolean desktop = deploy.desktop != null
   Boolean builder = deploy.builder != null
-  Boolean server_ce = deploy.server_ce != null
-  Boolean server_ee = deploy.server_ee != null
-  Boolean server_de = deploy.server_de != null
+  Boolean server_ce = deploy.server_community != null
+  Boolean server_ee = deploy.server_enterprise != null
+  Boolean server_de = deploy.server_developer != null
   Boolean mobile = deploy.mobile != null
 
   deleteDir()
+  if (core)
+    publishReport("Core", ["core.html": deploy.core])
   if (desktop)
     publishReport("DesktopEditors", ["desktop.html": deploy.desktop])
   if (builder)
     publishReport("DocumentBuilder", ["builder.html": deploy.builder])
   if (server_ce || server_ee || server_de) {
     Map serverReports = [:]
-    if (server_ce) serverReports."server_ce.html" = deploy.server_ce
-    if (server_ee) serverReports."server_ee.html" = deploy.server_ee
-    if (server_de) serverReports."server_de.html" = deploy.server_de
+    if (server_ce) serverReports."server_community.html" = deploy.server_community
+    if (server_ee) serverReports."server_enterprise.html" = deploy.server_enterprise
+    if (server_de) serverReports."server_developer.html" = deploy.server_developer
     publishReport("DocumentServer", serverReports)
   }
   if (mobile)
@@ -1158,26 +1165,22 @@ def getHtml(ArrayList data) {
   }
 
   text = "<html>\n<head>" \
-    + "\n  <link rel=\"stylesheet\" href=\"https://unpkg.com/style.css\">" \
-    + "\n  <style type=\"text/css\">body { margin: 24px; }</style>" \
-    + "\n<head>\n<body>"
-  data.groupBy { it.platform }.sort().each { platform, sections ->
-    text += "\n  <h3>${platform}</h3>\n  <ul>"
-    sections.groupBy { it.section }.each { section, files ->
-      text += "\n    <li><b>${section}</b></li>\n    <ul>"
+    + "\n<link rel=\"stylesheet\" href=\"https://unpkg.com/@primer/css@20.4.1/dist/primer.css\">" \
+    + "\n</head>\n<body><div class=\"container-lg px-3 my-5 markdown-body\">"
+  data.groupBy { it.platform }.sort().each { platform, types ->
+    text += "\n<h2>${platform}</h2>\n<dl>"
+    types.groupBy { it.type }.each { type, files ->
+      text += "\n<dt>${type}</dt>\n<dd>"
       files.each {
-        url = "https://s3.${s3region}.amazonaws.com/${it.path}"
-        text += "\n      <li>" \
-          + "\n        <a href=\"${url}\">${it.file}</a>" \
-          + ", Size: ${size(it.size)}B" \
-          + ", MD5: <code>${it.md5}</code>" \
-          + "\n      </li>"
+        title = it.remote.minus(~/^.+\//)
+        url = "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/${it.remote}"
+        text += "\n<a href=\"${url}\">${title}</a> (${size(it.size)}B)<br>"
       }
-      text += "\n    </ul>"
+      text += "\n</dd>"
     }
-    text += "\n  </ul>"
+    text += "\n</dl>"
   }
-  text += "\n</body>\n</html>"
+  text += "\n</div>\n</body>\n</html>"
 
   return text
 }
