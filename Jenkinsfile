@@ -841,13 +841,13 @@ void buildPackages(String platform, String license = 'opensource') {
   Boolean pMobile = platform == "android"
   ArrayList targets = ["clean", "deploy"]
   if (params.signing)                              targets.add("sign")
-  // if (params.core && isOpenSource && pCore)        targets.add("core")
+  if (params.core && isOpenSource && pCore)        targets.add("core")
   if (params.desktop && isCommercial && pDesktop)  targets.add("desktop")
   if (params.builder && isOpenSource && pBuilder)  targets.add("builder")
   if (params.server_ce && isOpenSource && pServer) targets.add("server-community")
   if (params.server_ee && isCommercial && pServer) targets.add("server-enterprise")
   if (params.server_de && isCommercial && pServer) targets.add("server-developer")
-  // if (params.mobile && isOpenSource && pMobile)    targets.add("mobile")
+  if (params.mobile && isOpenSource && pMobile)    targets.add("mobile")
 
   String args = " --platform ${platform}" \
               + " --targets ${targets.join(' ')}" \
