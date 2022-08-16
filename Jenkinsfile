@@ -434,7 +434,7 @@ pipeline {
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
-              if (params.core) {
+              if (params.core || params.builder) {
                 buildArtifacts(platform)
                 buildCore(platform)
                 buildBuilder(platform)
@@ -519,7 +519,7 @@ pipeline {
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
-              if (params.core) {
+              if (params.builder) {
                 buildArtifacts(platform)
                 buildBuilder(platform)
               }
