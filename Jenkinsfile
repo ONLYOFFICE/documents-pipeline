@@ -437,6 +437,7 @@ pipeline {
               if (params.core) {
                 buildArtifacts(platform)
                 buildCore(platform)
+                buildBuilder(platform)
               }
 
               if (params.desktop) {
@@ -517,6 +518,11 @@ pipeline {
               String platform = "macos_arm64"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
+
+              if (params.core) {
+                buildArtifacts(platform)
+                buildBuilder(platform)
+              }
 
               if (params.desktop) {
                 buildArtifacts(platform, "commercial")
@@ -799,7 +805,7 @@ def getModules(String platform, String license = "any") {
   Boolean isCommercial = license in ["commercial", "any"]
   Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
   Boolean pDesktop = platform != "linux_arm64"
-  Boolean pBuilder = platform in ["win_64", "linux_64", "linux_arm64"]
+  Boolean pBuilder = platform in ["win_64", "mac_64", "mac_arm64", "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pMobile = platform == "android"
 
@@ -1003,6 +1009,22 @@ void buildBuilder(String platform) {
         [section: "Installer", glob: "exe/*.exe", dest: "/"],
         [section: "Portable",  glob: "zip/*.zip", dest: "/"]
       ], "document-builder-package", "${s3prefix}/windows/${version}/builder")
+
+  } else if (platform ==~ /^macos.*/) {
+
+    ArrayList targets = ['clean', 'builder']
+    String suffix
+    if (platform == "macos_x86_64_v8") {
+      suffix = "v8"
+    } else if (platform == "macos_x86_64") {
+      suffix = "x86_64"
+    } else if (platform == "macos_arm64") {
+      suffix = "arm"
+    }
+    // buildPackages("builder", platform, targets)
+    // uploadFiles("builder", platform, [
+    //     [section: "Portable",  glob: "zip/*.zip", dest: "/"]
+    //   ], "document-builder-package", "${s3prefix}/macos/builder/${suffix}/${version}")
 
   } else if (platform ==~ /^linux.*/) {
 
