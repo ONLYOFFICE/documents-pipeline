@@ -1014,17 +1014,20 @@ void buildBuilder(String platform) {
 
     ArrayList targets = ['clean', 'builder']
     String suffix
-    if (platform == "macos_x86_64_v8") {
-      suffix = "v8"
-    } else if (platform == "macos_x86_64") {
+    if (platform == "macos_x86_64") {
       suffix = "x86_64"
     } else if (platform == "macos_arm64") {
       suffix = "arm"
     }
+    sh """#!/bin/bash -e
+      rm -rfv document-builder-package/*.xz
+      cd build_tools/out/${platforms[platform].build}/onlyoffice/documentbuilder
+      tar --xz -cvf ../../../../../document-builder-package/onlyoffice-documentbuilder-${suffix}-${version}.tar.xz *
+    """
     // buildPackages("builder", platform, targets)
-    // uploadFiles("builder", platform, [
-    //     [section: "Portable",  glob: "zip/*.zip", dest: "/"]
-    //   ], "document-builder-package", "${s3prefix}/macos/builder/${suffix}/${version}")
+    uploadFiles("builder", platform, [
+        [section: "Portable",  glob: "*.xz", dest: "/"]
+      ], "document-builder-package", "${s3prefix}/macos/${version}/${suffix}")
 
   } else if (platform ==~ /^linux.*/) {
 
