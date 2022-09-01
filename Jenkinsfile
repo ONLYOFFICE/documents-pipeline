@@ -230,6 +230,7 @@ pipeline {
           s3bucket = "repo-doc-onlyoffice-com"
           s3prefix = "${s3bucket}/${branding.company_lc}/${env.RELEASE_BRANCH}"
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
+          gitTag = "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}"
           listDeploy = []
           stageStats = [:]
         }
@@ -539,9 +540,6 @@ pipeline {
         // Linux
         stage('Linux x86_64') {
           agent { label 'linux_x86_64_ubuntu16' }
-          environment {
-            GITHUB_TOKEN = credentials('github-token')
-          }
           when {
             expression { params.linux_x86_64 }
             beforeAgent true
@@ -556,7 +554,6 @@ pipeline {
                 dir ('desktop-apps') { deleteDir() }
 
               String platform = "linux_x86_64"
-              String gitTag = "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               ArrayList allRepos = constRepos.plus(varRepos)
@@ -574,21 +571,10 @@ pipeline {
                 if (params.desktop)   buildDesktop(platform)
                 if (params.server_ee) buildServer(platform, "enterprise")
                 if (params.server_de) buildServer(platform, "developer")
-                if (params.server_ee || params.server_de) {
-                  tagRepos(allRepos, gitTag)
-                  catchError(stageResult: 'UNSTABLE', message: 'Docker build failure') {
-                    sh """
-                      repo=ONLYOFFICE/Docker-DocumentServer
-                      workflow=4testing-build.yml
-                      sleep 5
-                      # gh --repo \$repo workflow run \$workflow
-                      run_id=\$(gh --repo \$repo run list --workflow \$workflow \\
-                        --branch ${gitTag} --json databaseId --jq '.[0].databaseId')
-                      gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-                      gh --repo \$repo run view \$run_id --verbose --exit-status
-                    """
-                  }
-                }
+              }
+
+              if (params.server_ce || params.server_ee || params.server_de) {
+                tagRepos(allRepos, gitTag)
               }
               if (params.test) linuxTest()
             }
@@ -667,6 +653,41 @@ pipeline {
             failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
+      }
+    }
+    stage('Docker') {
+      agent { label 'linux_x86_64 || linux_aarch64 || linux_x86_64_ubuntu16' }
+      environment {
+        GITHUB_TOKEN = credentials('github-token')
+      }
+      when {
+        expression {
+          return params.linux_x86_64 && (params.server_ce || params.server_ee || params.server_de)
+        }
+        beforeAgent true
+      }
+      steps {
+        script {
+          echo "NODE_NAME=" + env.NODE_NAME
+
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE', message: 'Docker build failure') {
+            sh """
+              repo=ONLYOFFICE/Docker-DocumentServer
+              workflow=4testing-build.yml
+              sleep 5
+              # gh --repo \$repo workflow run \$workflow
+              run_id=\$(gh --repo \$repo run list --workflow \$workflow \\
+                --branch ${gitTag} --json databaseId --jq '.[0].databaseId')
+              gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
+              gh --repo \$repo run view \$run_id --verbose --exit-status
+            """
+          }
+        }
+      }
+      post {
+        success  { script { stageStats[STAGE_NAME] = 0 } }
+        unstable { script { stageStats[STAGE_NAME] = 1 } }
+        failure  { script { stageStats[STAGE_NAME] = 2 } }
       }
     }
   }
