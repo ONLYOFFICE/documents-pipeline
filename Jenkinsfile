@@ -835,7 +835,7 @@ def getVarRepos(String branch, String platform, String branding) {
       name: lineSplit[0],
       branch: "master",
       dir: (lineSplit[1] == null) ? "${lineSplit[0]}" : "${lineSplit[1]}/${lineSplit[0]}",
-      tag: !lineSplit[0].startsWith("plugin-")
+      tag: (!lineSplit[0].startsWith("plugin-") && lineSplit[0] != "onlyoffice.github.io")
     ]
     if (branch != 'master') repo.branch = resolveScm(
         source: [
