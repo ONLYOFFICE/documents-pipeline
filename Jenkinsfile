@@ -66,6 +66,8 @@ platforms = [
   macos_x86_64_v8: [title: "macOS x86_64 V8", build: "mac_64",      isUnix: true ],
   macos_arm64:     [title: "macOS arm64",     build: "mac_arm64",   isUnix: true ],
   linux_x86_64:    [title: "Linux x86_64",    build: "linux_64",    isUnix: true ],
+  linux_x86_64_u14: [title: "Linux x86_64 (Ubuntu 14)", build: "linux_64", isUnix: true ],
+  linux_x86_64_u16: [title: "Linux x86_64 (Ubuntu 16)", build: "linux_64", isUnix: true ],
   linux_aarch64:   [title: "Linux aarch64",   build: "linux_arm64", isUnix: true ],
   android:         [title: "Android",         build: "android",     isUnix: true ]
 ]
@@ -538,11 +540,14 @@ pipeline {
           }
         }
         // Linux
-        stage('Linux x86_64') {
-          agent { label 'linux_x86_64_ubuntu16' }
+        stage('Linux x86_64 (Ubuntu 14)') {
+          agent { label 'linux_x86_64_ubuntu14' }
           when {
             expression { params.linux_x86_64 }
             beforeAgent true
+          }
+          environment {
+            DISTRIB_RELEASE = '14.04'
           }
           steps {
             script {
@@ -553,7 +558,7 @@ pipeline {
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "linux_x86_64"
+              String platform = "linux_x86_64_u14"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               ArrayList allRepos = constRepos.plus(varRepos)
@@ -585,11 +590,58 @@ pipeline {
             failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
-        stage('Linux aarch64') {
+        stage('Linux x86_64 (Ubuntu 16)') {
+          agent { label 'linux_x86_64_ubuntu16' }
+          when {
+            expression { params.linux_x86_64 }
+            beforeAgent true
+          }
+          environment {
+            DISTRIB_RELEASE = '16.04'
+          }
+          steps {
+            script {
+              echo "NODE_NAME=" + env.NODE_NAME
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "linux_x86_64_u16"
+              ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
+              ArrayList allRepos = constRepos.plus(varRepos)
+              checkoutRepos(varRepos)
+
+              if (params.core || params.builder || params.server_ce) {
+                buildArtifacts(platform)
+                if (params.builder)   buildBuilder(platform)
+                if (params.server_ce) buildServer(platform)
+              }
+
+              if (params.desktop || params.server_ee || params.server_de) {
+                buildArtifacts(platform, "commercial")
+                if (params.desktop)   buildDesktop(platform)
+                if (params.server_ee) buildServer(platform, "enterprise")
+                if (params.server_de) buildServer(platform, "developer")
+              }
+            }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
+          }
+        }
+        stage('Linux aarch64 (Ubuntu 16)') {
           agent { label 'linux_aarch64' }
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
+          }
+          environment {
+            DISTRIB_RELEASE = '16.04'
           }
           steps {
             script {
@@ -1002,6 +1054,9 @@ void buildDesktop(String platform) {
     sh "cd desktop-apps/win-linux/package/linux && \
       make clean && \
       make packages ${makeargs}"
+    String distPrefix = ""
+    if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
+    if (platform == "linux_x86_64_u16") distPrefix = "/ubuntu16"
     uploadFiles("desktop", platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
         [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
@@ -1011,7 +1066,7 @@ void buildDesktop(String platform) {
         [section: "Portable", glob: "tar/*.tar.*",      dest: "/linux/"   ],
         // [section: "AstraLinux Signed",
         //  glob: "deb-astra/*.deb", dest: "/astralinux/"]
-      ], "desktop-apps/win-linux/package/linux", s3prefix)
+      ], "desktop-apps/win-linux/package/linux", s3prefix + distPrefix)
 
   }
 }
@@ -1059,11 +1114,14 @@ void buildBuilder(String platform) {
     sh "cd document-builder-package && \
       make clean && \
       make packages ${makeargs}"
+    String distPrefix = ""
+    if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
+    if (platform == "linux_x86_64_u16") distPrefix = "/ubuntu16"
     uploadFiles("builder", platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",    dest: "/ubuntu/"],
         [section: "CentOS",   glob: "rpm/**/*.rpm", dest: "/centos/"],
         [section: "Portable", glob: "tar/*.tar.gz", dest: "/linux/" ]
-      ], "document-builder-package", s3prefix)
+      ], "document-builder-package", s3prefix + distPrefix)
 
   }
 }
@@ -1109,12 +1167,15 @@ void buildServer(String platform, String edition='community') {
     sh "cd document-server-package && \
       make clean && \
       make packages ${makeargs}"
+    String distPrefix = ""
+    if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
+    if (platform == "linux_x86_64_u16") distPrefix = "/ubuntu16"
     uploadFiles(product, platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
         [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
         [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
         [section: "Portable", glob: "*.tar.gz",         dest: "/linux/"   ]
-      ], "document-server-package", s3prefix)
+      ], "document-server-package", s3prefix + distPrefix)
   }
 }
 
