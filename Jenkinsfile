@@ -950,7 +950,7 @@ void buildCore(String platform) {
     windows_x64:  [os: "windows", version: "${version}.${build}", arch: "x64"],
     windows_x86:  [os: "windows", version: "${version}.${build}", arch: "x86"],
     macos_x86_64: [os: "mac",     version: "${version}-${build}", arch: "x64"],
-    linux_x86_64: [os: "linux",   version: "${version}-${build}", arch: "x64"]
+    linux_x86_64_u14: [os: "linux", version: "${version}-${build}", arch: "x64"]
   ]
   def p = path[platform]
   Closure coreDeployPath = {
