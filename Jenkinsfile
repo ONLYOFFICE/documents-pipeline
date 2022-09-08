@@ -54,7 +54,6 @@ branding = [
   company_lc: "onlyoffice",
   owner:      "ONLYOFFICE",
   repo:       "onlyoffice",
-  winWsDir:   "oo",
 ]
 
 platforms = [
@@ -245,7 +244,7 @@ pipeline {
           agent {
             node {
               label 'windows_x64'
-              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x64"
+              customWorkspace "C:\\oo\\${branchDir}_x64"
             }
           }
           when {
@@ -290,7 +289,7 @@ pipeline {
           agent {
             node {
               label 'windows_x86'
-              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x86"
+              customWorkspace "C:\\oo\\${branchDir}_x86"
             }
           }
           when {
@@ -313,9 +312,10 @@ pipeline {
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
-              if (params.core) {
+              if (params.core || params.builder) {
                 buildArtifacts(platform)
-                buildCore(platform)
+                if (params.core)    buildCore(platform)
+                if (params.builder) buildBuilder(platform)
               }
 
               if (params.desktop) {
@@ -334,7 +334,7 @@ pipeline {
           agent {
             node {
               label 'windows_x64_xp'
-              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x64_xp"
+              customWorkspace "C:\\oo\\${branchDir}_x64_xp"
             }
           }
           when {
@@ -373,7 +373,7 @@ pipeline {
           agent {
             node {
               label 'windows_x86_xp'
-              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x86_xp"
+              customWorkspace "C:\\oo\\${branchDir}_x86_xp"
             }
           }
           when {
@@ -879,7 +879,7 @@ def getModules(String platform, String license = "any") {
   Boolean isCommercial = license in ["commercial", "any"]
   Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
   Boolean pDesktop = platform != "linux_arm64"
-  Boolean pBuilder = platform in ["win_64", "mac_64", "mac_arm64", "linux_64", "linux_arm64"]
+  Boolean pBuilder = platform in ["win_64", "win_32", "mac_64", "mac_arm64", "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pMobile = platform == "android"
 
