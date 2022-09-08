@@ -566,7 +566,7 @@ pipeline {
 
               if (params.core || params.builder || params.server_ce) {
                 buildArtifacts(platform)
-                if (params.core)      buildCore(platform)
+                // if (params.core)      buildCore(platform)
                 if (params.builder)   buildBuilder(platform)
                 if (params.server_ce) buildServer(platform)
               }
@@ -577,11 +577,6 @@ pipeline {
                 if (params.server_ee) buildServer(platform, "enterprise")
                 if (params.server_de) buildServer(platform, "developer")
               }
-
-              if (params.server_ce || params.server_ee || params.server_de) {
-                tagRepos(allRepos, gitTag)
-              }
-              if (params.test) linuxTest()
             }
           }
           post {
@@ -616,6 +611,7 @@ pipeline {
 
               if (params.core || params.builder || params.server_ce) {
                 buildArtifacts(platform)
+                if (params.core)      buildCore(platform)
                 if (params.builder)   buildBuilder(platform)
                 if (params.server_ce) buildServer(platform)
               }
@@ -626,6 +622,11 @@ pipeline {
                 if (params.server_ee) buildServer(platform, "enterprise")
                 if (params.server_de) buildServer(platform, "developer")
               }
+
+              if (params.server_ce || params.server_ee || params.server_de) {
+                tagRepos(allRepos, gitTag)
+              }
+              if (params.test) linuxTest()
             }
           }
           post {
@@ -950,7 +951,9 @@ void buildCore(String platform) {
     windows_x64:  [os: "windows", version: "${version}.${build}", arch: "x64"],
     windows_x86:  [os: "windows", version: "${version}.${build}", arch: "x86"],
     macos_x86_64: [os: "mac",     version: "${version}-${build}", arch: "x64"],
-    linux_x86_64_u14: [os: "linux", version: "${version}-${build}", arch: "x64"]
+    linux_x86_64: [os: "linux",   version: "${version}-${build}", arch: "x64"],
+    linux_x86_64_u14: [os: "linux", version: "${version}-${build}", arch: "x64"],
+    linux_x86_64_u16: [os: "linux", version: "${version}-${build}", arch: "x64"]
   ]
   def p = path[platform]
   Closure coreDeployPath = {
@@ -1056,7 +1059,6 @@ void buildDesktop(String platform) {
       make packages ${makeargs}"
     String distPrefix = ""
     if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
-    if (platform == "linux_x86_64_u16") distPrefix = "/ubuntu16"
     uploadFiles("desktop", platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
         [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
@@ -1116,7 +1118,6 @@ void buildBuilder(String platform) {
       make packages ${makeargs}"
     String distPrefix = ""
     if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
-    if (platform == "linux_x86_64_u16") distPrefix = "/ubuntu16"
     uploadFiles("builder", platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",    dest: "/ubuntu/"],
         [section: "CentOS",   glob: "rpm/**/*.rpm", dest: "/centos/"],
@@ -1169,7 +1170,6 @@ void buildServer(String platform, String edition='community') {
       make packages ${makeargs}"
     String distPrefix = ""
     if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
-    if (platform == "linux_x86_64_u16") distPrefix = "/ubuntu16"
     uploadFiles(product, platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
         [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
