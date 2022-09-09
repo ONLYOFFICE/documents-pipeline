@@ -1081,6 +1081,7 @@ void buildBuilder(String platform) {
 
     ArrayList targets = ['clean']
     if (platform == 'windows_x64') targets += ['innosetup-x64', 'portable-x64']
+    if (platform == 'windows_x86') targets += ['innosetup-x86', 'portable-x86']
     if (params.signing) targets += ['sign']
     buildPackages("builder", platform, targets)
     uploadFiles("builder", platform, [
