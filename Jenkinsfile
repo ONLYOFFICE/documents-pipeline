@@ -624,6 +624,17 @@ pipeline {
               }
 
               if (params.server_ce || params.server_ee || params.server_de) {
+                sh """
+                  gh workflow run 4testing-build.yml \
+                    --repo ONLYOFFICE/Docker-DocumentServer \
+                    --ref \$BRANCH_NAME \
+                    -f build=\$BUILD_NUMBER \
+                    -f amd64=${params.linux_x86_64} \
+                    -f arm64=${params.linux_aarch64} \
+                    -f community=${params.server_ce} \
+                    -f enterprise=${params.server_ee} \
+                    -f developer=${params.server_de}
+                """
                 tagRepos(allRepos, gitTag)
               }
               if (params.test) linuxTest()
@@ -725,14 +736,12 @@ pipeline {
 
           catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE', message: 'Docker build failure') {
             sh """
-              repo=ONLYOFFICE/Docker-DocumentServer
-              workflow=4testing-build.yml
+              REPO=ONLYOFFICE/Docker-DocumentServer
               sleep 5
-              # gh --repo \$repo workflow run \$workflow
-              run_id=\$(gh --repo \$repo run list --workflow \$workflow \\
-                --branch ${gitTag} --json databaseId --jq '.[0].databaseId')
-              gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-              gh --repo \$repo run view \$run_id --verbose --exit-status
+              RUN_ID=\$(gh run list --repo \$REPO --workflow 4testing-build.yml \
+                --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+              gh --repo \$REPO run watch \$RUN_ID --interval 15 > /dev/null
+              gh --repo \$REPO run view \$RUN_ID --verbose --exit-status
             """
           }
         }
