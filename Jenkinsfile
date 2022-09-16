@@ -587,12 +587,13 @@ pipeline {
         }
         stage('Linux x86_64 (Ubuntu 16)') {
           agent { label 'linux_x86_64_ubuntu16' }
+          environment {
+            GITHUB_TOKEN = credentials('github-token')
+            DISTRIB_RELEASE = '16.04'
+          }
           when {
             expression { params.linux_x86_64 }
             beforeAgent true
-          }
-          environment {
-            DISTRIB_RELEASE = '16.04'
           }
           steps {
             script {
