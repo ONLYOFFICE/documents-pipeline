@@ -1028,9 +1028,8 @@ void buildDesktop(String platform) {
     buildPackages("desktop", platform, targets)
     uploadFiles("desktop", platform, [
         [section: "Disk Image", glob: "*.dmg", dest: "/"],
-        [section: "Sparkle",
-         glob: "${branding.company}-${suffix}-*.zip,update/*.delta,update/*.xml,update/*.html",
-         dest: "/"],
+        [section: "Archive", glob: "${branding.company}-${suffix}-*.zip", dest: "/"],
+        [section: "Sparkle", glob: "update/*.delta,update/*.xml,update/*.html", dest: "/"],
       ], "desktop-apps/macos/build", "${s3prefix}/macos/${version}/${suffix}")
     sh """#!/bin/bash -e
       cd desktop-apps/macos/build/update
