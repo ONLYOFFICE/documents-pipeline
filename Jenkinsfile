@@ -1310,6 +1310,13 @@ void generateReports() {
 void publishReport(String title, Map files) {
   files.each {
     writeFile file: it.key, text: getHtml(it.value)
+    try {
+      sh "aws s3 cp --acl public-read --no-progress ${it.key} \
+        s3://${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/"
+      echo "https://s3.${s3region}.amazonaws.com/${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.key}"
+    } catch(Exception e) {
+        echo "Caught: ${e}"
+    }
   }
   publishHTML([
     allowMissing: false,
