@@ -1001,13 +1001,13 @@ void buildDesktop(String platform) {
     ArrayList targets = ['clean']
     if (platform == "macos_x86_64_v8") {
       suffix = "v8"
-      targets = ["diskimage-x86_64-v8"]
+      targets.add("diskimage-x86_64-v8")
     } else if (platform == "macos_x86_64") {
       suffix = "x86_64"
-      targets = ["diskimage-x86_64"]
+      targets.add("diskimage-x86_64")
     } else if (platform == "macos_arm64") {
       suffix = "arm"
-      targets = ["diskimage-arm64"]
+      targets.add("diskimage-arm64")
     }
     targets.add("sparkle-updates")
 
