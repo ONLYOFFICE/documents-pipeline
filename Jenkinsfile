@@ -54,7 +54,6 @@ branding = [
   company_lc: "onlyoffice",
   owner:      "ONLYOFFICE",
   repo:       "onlyoffice",
-  winWsDir:   "oo",
 ]
 
 platforms = [
@@ -66,6 +65,8 @@ platforms = [
   macos_x86_64_v8: [title: "macOS x86_64 V8", build: "mac_64",      isUnix: true ],
   macos_arm64:     [title: "macOS arm64",     build: "mac_arm64",   isUnix: true ],
   linux_x86_64:    [title: "Linux x86_64",    build: "linux_64",    isUnix: true ],
+  linux_x86_64_u14: [title: "Linux x86_64 (Ubuntu 14)", build: "linux_64", isUnix: true ],
+  linux_x86_64_u16: [title: "Linux x86_64 (Ubuntu 16)", build: "linux_64", isUnix: true ],
   linux_aarch64:   [title: "Linux aarch64",   build: "linux_arm64", isUnix: true ],
   android:         [title: "Android",         build: "android",     isUnix: true ]
 ]
@@ -226,9 +227,11 @@ pipeline {
       steps {
         script {
           if (params.signing) env.ENABLE_SIGNING=1
+          s3region = "eu-west-1"
           s3bucket = "repo-doc-onlyoffice-com"
           s3prefix = "${s3bucket}/${branding.company_lc}/${env.RELEASE_BRANCH}"
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
+          gitTag = "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}"
           deployData = []
           stageStats = [:]
         }
@@ -241,7 +244,7 @@ pipeline {
           agent {
             node {
               label 'windows_x64'
-              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x64"
+              customWorkspace "C:\\oo\\${branchDir}_x64"
             }
           }
           when {
@@ -282,7 +285,7 @@ pipeline {
           agent {
             node {
               label 'windows_x86'
-              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x86"
+              customWorkspace "C:\\oo\\${branchDir}_x86"
             }
           }
           when {
@@ -305,7 +308,7 @@ pipeline {
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
-              if (params.core) {
+              if (params.core || params.builder) {
                 buildArtifacts(platform, "opensource")
                 buildPackages(platform, "opensource")
               }
@@ -326,7 +329,7 @@ pipeline {
           agent {
             node {
               label 'windows_x64_xp'
-              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x64_xp"
+              customWorkspace "C:\\oo\\${branchDir}_x64_xp"
             }
           }
           when {
@@ -365,7 +368,7 @@ pipeline {
           agent {
             node {
               label 'windows_x86_xp'
-              customWorkspace "C:\\${branding.winWsDir}\\${branchDir}_x86_xp"
+              customWorkspace "C:\\oo\\${branchDir}_x86_xp"
             }
           }
           when {
@@ -429,7 +432,7 @@ pipeline {
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
-              if (params.core) {
+              if (params.core || params.builder) {
                 buildArtifacts(platform, "opensource")
                 buildPackages(platform, "opensource")
               }
@@ -513,6 +516,11 @@ pipeline {
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
+              if (params.builder) {
+                buildArtifacts(platform, "opensource")
+                buildPackages(platform, "opensource")
+              }
+
               if (params.desktop) {
                 buildArtifacts(platform, "commercial")
                 buildPackages(platform, "commercial")
@@ -526,11 +534,15 @@ pipeline {
           }
         }
         // Linux
-        stage('Linux x86_64') {
-          agent { label 'linux_x86_64' }
+        /*
+        stage('Linux x86_64 (Ubuntu 14)') {
+          agent { label 'linux_x86_64_ubuntu14' }
           when {
             expression { params.linux_x86_64 }
             beforeAgent true
+          }
+          environment {
+            DISTRIB_RELEASE = '14.04'
           }
           steps {
             script {
@@ -541,7 +553,54 @@ pipeline {
               else if (params.clean && params.desktop)
                 dir ('desktop-apps') { deleteDir() }
 
-              String platform = "linux_x86_64"
+              String platform = "linux_x86_64_u14"
+              ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
+              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
+              ArrayList allRepos = constRepos.plus(varRepos)
+              checkoutRepos(varRepos)
+
+              if (params.core || params.builder || params.server_ce) {
+                buildArtifacts(platform)
+                // if (params.core)      buildCore(platform)
+                if (params.builder)   buildBuilder(platform)
+                if (params.server_ce) buildServer(platform)
+              }
+
+              if (params.desktop || params.server_ee || params.server_de) {
+                buildArtifacts(platform, "commercial")
+                if (params.desktop)   buildDesktop(platform)
+                if (params.server_ee) buildServer(platform, "enterprise")
+                if (params.server_de) buildServer(platform, "developer")
+              }
+            }
+          }
+          post {
+            success  { script { stageStats[STAGE_NAME] = 0 } }
+            unstable { script { stageStats[STAGE_NAME] = 1 } }
+            failure  { script { stageStats[STAGE_NAME] = 2 } }
+          }
+        }
+        */
+        stage('Linux x86_64 (Ubuntu 16)') {
+          agent { label 'linux_x86_64_ubuntu16' }
+          when {
+            expression { params.linux_x86_64 }
+            beforeAgent true
+          }
+          environment {
+            GITHUB_TOKEN = credentials('github-token')
+            DISTRIB_RELEASE = '16.04'
+          }
+          steps {
+            script {
+              echo "NODE_NAME=" + env.NODE_NAME
+
+              if (params.wipe)
+                deleteDir()
+              else if (params.clean && params.desktop)
+                dir ('desktop-apps') { deleteDir() }
+
+              String platform = "linux_x86_64_u16"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               ArrayList allRepos = constRepos.plus(varRepos)
@@ -555,9 +614,13 @@ pipeline {
               if (params.desktop || params.server_ee || params.server_de) {
                 buildArtifacts(platform, "commercial")
                 buildPackages(platform, "commercial")
-                if (params.server_ee || params.server_de)
-                  tagRepos(allRepos, "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}")
               }
+
+              if (params.server_ce || params.server_ee || params.server_de) {
+                buildDocker()
+                tagRepos(allRepos, gitTag)
+              }
+
               if (params.test) linuxTest()
             }
           }
@@ -567,11 +630,14 @@ pipeline {
             failure  { script { stageStats[STAGE_NAME] = 2 } }
           }
         }
-        stage('Linux aarch64') {
+        stage('Linux aarch64 (Ubuntu 16)') {
           agent { label 'linux_aarch64' }
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
+          }
+          environment {
+            DISTRIB_RELEASE = '16.04'
           }
           steps {
             script {
@@ -634,6 +700,30 @@ pipeline {
         }
       }
     }
+    stage('Docker') {
+      agent { label 'linux_x86_64 || linux_aarch64 || linux_x86_64_ubuntu16' }
+      environment {
+        GITHUB_TOKEN = credentials('github-token')
+      }
+      when {
+        expression {
+          params.linux_x86_64 && (params.server_ce || params.server_ee || params.server_de)
+        }
+        beforeAgent true
+      }
+      steps {
+        script {
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE', message: 'Docker build failure') {
+            checkDocker()
+          }
+        }
+      }
+      post {
+        success  { script { stageStats[STAGE_NAME] = 0 } }
+        unstable { script { stageStats[STAGE_NAME] = 1 } }
+        failure  { script { stageStats[STAGE_NAME] = 2 } }
+      }
+    }
   }
   post {
     always {
@@ -672,9 +762,10 @@ void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus
       branches: [[name: 'refs/heads/' + branch]],
       doGenerateSubmoduleConfigurations: false,
       extensions: [
-        [$class: 'SubmoduleOption', recursiveSubmodules: true],
+        [$class: 'AuthorInChangelog'],
         [$class: 'RelativeTargetDirectory', relativeTargetDir: dir],
-        [$class: 'ScmName', name: "${repo}"]
+        [$class: 'ScmName', name: "${repo}"],
+        [$class: 'SubmoduleOption', recursiveSubmodules: true]
       ],
       submoduleCfg: [],
       userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
@@ -769,7 +860,7 @@ def getModules(String platform, String license = "any") {
   Boolean isCommercial = license in ["commercial", "any"]
   Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
   Boolean pDesktop = platform != "linux_arm64"
-  Boolean pBuilder = platform in ["win_64", "linux_64", "linux_arm64"]
+  Boolean pBuilder = platform in ["win_64", "win_32", "mac_64", "mac_arm64", "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pMobile = platform == "android"
 
@@ -885,7 +976,9 @@ void deployCore(String platform) {
     windows_x64:  [os: "windows", version: "${version}.${build}", arch: "x64"],
     windows_x86:  [os: "windows", version: "${version}.${build}", arch: "x86"],
     macos_x86_64: [os: "mac",     version: "${version}-${build}", arch: "x64"],
-    linux_x86_64: [os: "linux",   version: "${version}-${build}", arch: "x64"]
+    linux_x86_64: [os: "linux",   version: "${version}-${build}", arch: "x64"],
+    linux_x86_64_u14: [os: "linux", version: "${version}-${build}", arch: "x64"],
+    linux_x86_64_u16: [os: "linux", version: "${version}-${build}", arch: "x64"]
   ]
   def p = path[platform]
   Closure coreDeployPath = {
@@ -946,21 +1039,39 @@ void deployDesktop(String platform) {
     """
     uploadFiles("desktop", platform, [
         [section: "Disk Image", glob: "*.dmg", dest: "/"],
-        [section: "Sparkle",
-         glob: "${branding.company}-${suffix}-*.zip,update/*.delta,update/*.xml,update/*.html",
-         dest: "/"],
+        [section: "Archive", glob: "${branding.company}-${suffix}-*.zip", dest: "/"],
+        [section: "Sparkle", glob: "update/*.delta,update/*.xml,update/*.html", dest: "/"],
       ], "desktop-apps/macos/build", "${s3prefix}/macos/${version}/${suffix}")
+    sh """#!/bin/bash -e
+      cd desktop-apps/macos/build/update
+      md5 *.zip *.delta > md5sums.txt
+      shasum -a 256 *.zip *.delta > sha256sums.txt
+    """
+    uploadFiles("desktop", platform, [
+        [section: "Checksums", glob: "*.txt", dest: "/"],
+      ], "desktop-apps/macos/build/update", "${s3prefix}/macos/${version}/${suffix}")
 
   } else if (platform ==~ /^linux.*/) {
+
+    if (!branding.onlyoffice)
+      makeargs += " -e BRANDING_DIR=../../../../${branding.repo}/desktop-apps/win-linux/package/linux"
+    if (platform == "linux_aarch64")
+      makeargs += " -e UNAME_M=aarch64"
+    sh "cd desktop-apps/win-linux/package/linux && \
+      make clean && \
+      make packages ${makeargs}"
+    String distPrefix = ""
+    if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
     uploadFiles("desktop", platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
         [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
         [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
         [section: "Rosa",     glob: "urpmi/**/*.rpm",   dest: "/rosa/"    ],
-        [section: "Portable", glob: "tar/**/*.tar.gz",  dest: "/linux/"   ],
+        [section: "SUSE Linux", glob: "suse-rpm/**/*.rpm", dest: "/suse/" ],
+        [section: "Portable", glob: "tar/*.tar.*",      dest: "/linux/"   ],
         // [section: "AstraLinux Signed",
         //  glob: "deb-astra/*.deb", dest: "/astralinux/"]
-      ], "desktop-apps/win-linux/package/linux", s3prefix)
+      ], "desktop-apps/win-linux/package/linux", s3prefix + distPrefix)
     uploadFiles("desktop", platform, [
         [section: "AppImage", glob: "out/*.AppImage", dest: "/appimage/"]
       ], "appimage-desktopeditors", s3prefix)
@@ -972,19 +1083,55 @@ void deployBuilder(String platform) {
   String makeargs = ""
 
   if (platform ==~ /^windows.*/) {
+
+    ArrayList targets = ['clean']
+    if (platform == 'windows_x64') targets += ['innosetup-x64', 'portable-x64']
+    if (platform == 'windows_x86') targets += ['innosetup-x86', 'portable-x86']
+    if (params.signing) targets += ['sign']
+    buildPackages("builder", platform, targets)
     uploadFiles("builder", platform, [
         [section: "Installer", glob: "exe/*.exe", dest: "/"],
         [section: "Portable",  glob: "zip/*.zip", dest: "/"]
       ], "document-builder-package", "${s3prefix}/windows/${version}/builder")
+
+  } else if (platform ==~ /^macos.*/) {
+
+    ArrayList targets = ['clean', 'builder']
+    String suffix
+    if (platform == "macos_x86_64") {
+      suffix = "x86_64"
+    } else if (platform == "macos_arm64") {
+      suffix = "arm"
+    }
+    sh """#!/bin/bash -e
+      rm -rfv document-builder-package/*.xz
+      cd build_tools/out/${platforms[platform].build}/onlyoffice/documentbuilder
+      tar --xz -cvf ../../../../../document-builder-package/onlyoffice-documentbuilder-${suffix}-${version}.tar.xz *
+    """
+    // buildPackages("builder", platform, targets)
+    uploadFiles("builder", platform, [
+        [section: "Portable",  glob: "*.xz", dest: "/"]
+      ], "document-builder-package", "${s3prefix}/macos/${version}/${suffix}")
+
   } else if (platform ==~ /^linux.*/) {
+
+    if (platform == "linux_aarch64")
+      makeargs += " -e UNAME_M=aarch64"
+    if (!branding.onlyoffice)
+      makeargs += " -e BRANDING_DIR=../${branding.repo}/document-builder-package"
+    sh "cd document-builder-package && \
+      make clean && \
+      make packages ${makeargs}"
+    String distPrefix = ""
+    if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
     uploadFiles("builder", platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",    dest: "/ubuntu/"],
         [section: "CentOS",   glob: "rpm/**/*.rpm", dest: "/centos/"],
         [section: "Portable", glob: "tar/*.tar.gz", dest: "/linux/" ]
-      ], "document-builder-package", s3prefix)
+      ], "document-builder-package", s3prefix + distPrefix)
     uploadFiles("builder", platform, [
         [section: "AppImage", glob: "out/*.AppImage", dest: "/appimage/"]
-      ], "appimage-documentbuilder", s3prefix)
+      ], "appimage-documentbuilder", s3prefix + distPrefix)
   }
 }
 
@@ -1029,21 +1176,14 @@ void deployServer(String platform, String edition='community') {
     sh "cd document-server-package && \
       make clean && \
       make packages ${makeargs}"
+    String distPrefix = ""
+    if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
     uploadFiles(product, platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
         [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
         [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
         [section: "Portable", glob: "*.tar.gz",         dest: "/linux/"   ]
-      ], "document-server-package", s3prefix)
-
-    if (platform == "linux_x86_64") {
-      makeargs = "-e PRODUCT_NAME=${productName.toLowerCase()}"
-      if (!branding.onlyoffice)
-        makeargs += " -e ONLYOFFICE_VALUE=ds"
-      sh "cd Docker-DocumentServer && \
-        make clean && \
-        make deploy ${makeargs}"
-    }
+      ], "document-server-package", s3prefix + distPrefix)
   }
 }
 
@@ -1058,24 +1198,50 @@ void deployMobile(String branch = 'master', String config = 'release') {
     ], "", s3prefix)
 }
 
+void buildPackages(String product, String platform, ArrayList targets) {
+  String args = "--product ${product}" \
+    + " --version ${env.PRODUCT_VERSION}" \
+    + " --build ${env.BUILD_NUMBER}" \
+    + " --targets ${targets.join(' ')}"
+  if (!branding.onlyoffice)
+    args += " --branding ${branding.repo}"
+  if (platforms[platform].isUnix)
+    sh "cd build_tools && ./make_package.py ${args}"
+  else
+    bat "cd build_tools && call python make_package.py ${args}"
+}
+
+void buildDocker() {
+  sh """
+    gh workflow run 4testing-build.yml \
+      --repo ONLYOFFICE/Docker-DocumentServer \
+      --ref \$BRANCH_NAME \
+      -f build=\$BUILD_NUMBER \
+      -f amd64=${params.linux_x86_64} \
+      -f arm64=${params.linux_aarch64} \
+      -f community=${params.server_ce} \
+      -f enterprise=${params.server_ee} \
+      -f developer=${params.server_de}
+  """
+}
+
+void checkDocker() {
+  sh """
+    REPO=ONLYOFFICE/Docker-DocumentServer
+    sleep 5
+    RUN_ID=\$(gh run list --repo \$REPO --workflow 4testing-build.yml \
+      --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+    gh --repo \$REPO run watch \$RUN_ID --interval 15 > /dev/null
+    gh --repo \$REPO run view \$RUN_ID --verbose --exit-status
+  """
+}
+
 // Upload
 
 void uploadFiles(String product, String platform, ArrayList items, \
                  String srcPrefix = '', String destPrefix = '') {
   String srcPath, uploadCmd = ""
   ArrayList localDeployData = []
-
-  Closure cmdMd5sum = {
-    if (platform ==~ /^windows.*/) {
-      return powershell (
-        script: "Get-FileHash ${it} -Algorithm MD5 | Select -ExpandProperty Hash",
-        returnStdout: true).trim()
-    } else if (platform ==~ /^macos.*/) {
-      return sh (script: "md5 -qs ${it}", returnStdout: true).trim()
-    } else {
-      return sh (script: "md5sum ${it} | cut -c -32", returnStdout: true).trim()
-    }
-  }
 
   dir(srcPrefix) {
     items.each { item ->
@@ -1145,6 +1311,13 @@ void generateReports() {
 void publishReport(String title, Map files) {
   files.each {
     writeFile file: it.key, text: getHtml(it.value)
+    try {
+      sh "aws s3 cp --acl public-read --no-progress ${it.key} \
+        s3://${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/"
+      echo "https://s3.${s3region}.amazonaws.com/${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.key}"
+    } catch(Exception e) {
+      echo "Caught: ${e}"
+    }
   }
   publishHTML([
     allowMissing: false,
