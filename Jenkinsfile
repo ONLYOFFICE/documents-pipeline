@@ -750,15 +750,15 @@ def getVarRepos(String branch, String platform, String branding) {
 
   ArrayList repos = []
   reposOutput.readLines().sort().each { line ->
-    ArrayList lineSplit = line.split(" ")
     Map repo = [
       owner: "ONLYOFFICE",
-      name: lineSplit[0],
+      name: line,
       branch: "master",
-      dir: (lineSplit[1] == null) ? "${lineSplit[0]}" : "${lineSplit[1]}/${lineSplit[0]}",
-      tag: (!lineSplit[0].startsWith("plugin-") && lineSplit[0] != "onlyoffice.github.io")
+      dir: line,
+      tag: (line != "onlyoffice.github.io")
     ]
-    if (branch != 'master') repo.branch = resolveScm(
+    if (branch != 'master') {
+      repo.branch = resolveScm(
         source: [
           $class: 'GitSCMSource',
           remote: "git@github.com:${repo.owner}/${repo.name}.git",
@@ -766,6 +766,7 @@ def getVarRepos(String branch, String platform, String branding) {
         ],
         targets: [branch, 'master']
       ).branches[0].name
+    }
 
     repos.add(repo)
   }
