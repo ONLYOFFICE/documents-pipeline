@@ -252,33 +252,12 @@ pipeline {
             beforeAgent true
           }
           steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "windows_x64"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
-              checkoutRepos(varRepos)
-
-              if (params.core || params.builder || params.server_ce) {
-                buildArtifacts(platform, "opensource")
-                buildPackages(platform, "opensource")
-              }
-
-              if (params.desktop || params.server_ee || params.server_de) {
-                buildArtifacts(platform, "commercial")
-                buildPackages(platform, "commercial")
-              }
-            }
+            initializeWindows("windows_x64")
           }
           post {
-            success  { script { stageStats[STAGE_NAME] = 0 } }
-            unstable { script { stageStats[STAGE_NAME] = 1 } }
-            failure  { script { stageStats[STAGE_NAME] = 2 } }
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
           }
         }
         stage('Windows x86') {
@@ -296,33 +275,12 @@ pipeline {
             UNAME_M = 'i686'
           }
           steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "windows_x86"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
-              checkoutRepos(varRepos)
-
-              if (params.core || params.builder) {
-                buildArtifacts(platform, "opensource")
-                buildPackages(platform, "opensource")
-              }
-
-              if (params.desktop) {
-                buildArtifacts(platform, "commercial")
-                buildPackages(platform, "commercial")
-              }
-            }
+            initializeWindows("windows_x86")
           }
           post {
-            success  { script { stageStats[STAGE_NAME] = 0 } }
-            unstable { script { stageStats[STAGE_NAME] = 1 } }
-            failure  { script { stageStats[STAGE_NAME] = 2 } }
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
           }
         }
         stage('Windows x64 XP') {
@@ -340,28 +298,12 @@ pipeline {
             _WIN_XP = '1'
           }
           steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "windows_x64_xp"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
-              checkoutRepos(varRepos)
-
-              if (params.desktop) {
-                buildArtifacts(platform, "commercial")
-                buildPackages(platform, "commercial")
-              }
-            }
+            initializeWindows("windows_x64_xp")
           }
           post {
-            success  { script { stageStats[STAGE_NAME] = 0 } }
-            unstable { script { stageStats[STAGE_NAME] = 1 } }
-            failure  { script { stageStats[STAGE_NAME] = 2 } }
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
           }
         }
         stage('Windows x86 XP') {
@@ -380,33 +322,21 @@ pipeline {
             UNAME_M = 'i686'
           }
           steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "windows_x86_xp"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
-              checkoutRepos(varRepos)
-
-              if (params.desktop) {
-                buildArtifacts(platform, "commercial")
-                buildPackages(platform, "commercial")
-              }
-            }
+            initializeWindows("windows_x86_xp")
           }
           post {
-            success  { script { stageStats[STAGE_NAME] = 0 } }
-            unstable { script { stageStats[STAGE_NAME] = 1 } }
-            failure  { script { stageStats[STAGE_NAME] = 2 } }
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
           }
         }
         // macOS
         stage('macOS x86_64') {
           agent { label 'macos_x86_64' }
+          when {
+            expression { params.macos_x86_64 }
+            beforeAgent true
+          }
           environment {
             FASTLANE_HIDE_TIMESTAMP = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
@@ -415,42 +345,21 @@ pipeline {
             FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
-          when {
-            expression { params.macos_x86_64 }
-            beforeAgent true
-          }
           steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "macos_x86_64"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
-              checkoutRepos(varRepos)
-
-              if (params.core || params.builder) {
-                buildArtifacts(platform, "opensource")
-                buildPackages(platform, "opensource")
-              }
-
-              if (params.desktop) {
-                buildArtifacts(platform, "commercial")
-                buildPackages(platform, "commercial")
-              }
-            }
+            initializeMacos("macos_x86_64")
           }
           post {
-            success  { script { stageStats[STAGE_NAME] = 0 } }
-            unstable { script { stageStats[STAGE_NAME] = 1 } }
-            failure  { script { stageStats[STAGE_NAME] = 2 } }
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
           }
         }
         stage('macOS x86_64 V8') {
           agent { label 'macos_x86_64_v8' }
+          when {
+            expression { params.macos_x86_64_v8 }
+            beforeAgent true
+          }
           environment {
             FASTLANE_HIDE_TIMESTAMP = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
@@ -460,37 +369,21 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
             USE_V8 = '1'
           }
-          when {
-            expression { params.macos_x86_64_v8 }
-            beforeAgent true
-          }
           steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "macos_x86_64_v8"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
-              checkoutRepos(varRepos)
-
-              if (params.desktop) {
-                buildArtifacts(platform, "commercial")
-                buildPackages(platform, "commercial")
-              }
-            }
+            initializeMacos("macos_x86_64_v8")
           }
           post {
-            success  { script { stageStats[STAGE_NAME] = 0 } }
-            unstable { script { stageStats[STAGE_NAME] = 1 } }
-            failure  { script { stageStats[STAGE_NAME] = 2 } }
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
           }
         }
         stage('macOS arm64') {
           agent { label 'macos_arm64' }
+          when {
+            expression { params.macos_arm64 }
+            beforeAgent true
+          }
           environment {
             FASTLANE_HIDE_TIMESTAMP = '1'
             FASTLANE_SKIP_UPDATE_CHECK = '1'
@@ -499,38 +392,13 @@ pipeline {
             FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
-          when {
-            expression { params.macos_arm64 }
-            beforeAgent true
-          }
           steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "macos_arm64"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
-              checkoutRepos(varRepos)
-
-              if (params.builder) {
-                buildArtifacts(platform, "opensource")
-                buildPackages(platform, "opensource")
-              }
-
-              if (params.desktop) {
-                buildArtifacts(platform, "commercial")
-                buildPackages(platform, "commercial")
-              }
-            }
+            initializeMacos("macos_arm64")
           }
           post {
-            success  { script { stageStats[STAGE_NAME] = 0 } }
-            unstable { script { stageStats[STAGE_NAME] = 1 } }
-            failure  { script { stageStats[STAGE_NAME] = 2 } }
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
           }
         }
         // Linux
@@ -545,39 +413,12 @@ pipeline {
             DISTRIB_RELEASE = '14.04'
           }
           steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "linux_x86_64_u14"
-              ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
-              ArrayList allRepos = constRepos.plus(varRepos)
-              checkoutRepos(varRepos)
-
-              if (params.core || params.builder || params.server_ce) {
-                buildArtifacts(platform)
-                // if (params.core)      buildCore(platform)
-                if (params.builder)   buildBuilder(platform)
-                if (params.server_ce) buildServer(platform)
-              }
-
-              if (params.desktop || params.server_ee || params.server_de) {
-                buildArtifacts(platform, "commercial")
-                if (params.desktop)   buildDesktop(platform)
-                if (params.server_ee) buildServer(platform, "enterprise")
-                if (params.server_de) buildServer(platform, "developer")
-              }
-            }
+            initializeLinux("linux_x86_64_u14")
           }
           post {
-            success  { script { stageStats[STAGE_NAME] = 0 } }
-            unstable { script { stageStats[STAGE_NAME] = 1 } }
-            failure  { script { stageStats[STAGE_NAME] = 2 } }
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
           }
         }
         */
@@ -592,42 +433,12 @@ pipeline {
             DISTRIB_RELEASE = '16.04'
           }
           steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "linux_x86_64_u16"
-              ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
-              ArrayList allRepos = constRepos.plus(varRepos)
-              checkoutRepos(varRepos)
-
-              if (params.core || params.builder || params.server_ce) {
-                buildArtifacts(platform, "opensource")
-                buildPackages(platform, "opensource")
-              }
-
-              if (params.desktop || params.server_ee || params.server_de) {
-                buildArtifacts(platform, "commercial")
-                buildPackages(platform, "commercial")
-              }
-
-              if (params.server_ce || params.server_ee || params.server_de) {
-                buildDocker()
-                tagRepos(allRepos, gitTag)
-              }
-
-              if (params.test) linuxTest()
-            }
+            initializeLinux("linux_x86_64_u16")
           }
           post {
-            success  { script { stageStats[STAGE_NAME] = 0 } }
-            unstable { script { stageStats[STAGE_NAME] = 1 } }
-            failure  { script { stageStats[STAGE_NAME] = 2 } }
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
           }
         }
         stage('Linux aarch64 (Ubuntu 16)') {
@@ -640,35 +451,12 @@ pipeline {
             DISTRIB_RELEASE = '16.04'
           }
           steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
-
-              String platform = "linux_aarch64"
-              ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
-              ArrayList allRepos = constRepos.plus(varRepos)
-              checkoutRepos(varRepos)
-
-              if (params.core || params.builder || params.server_ce) {
-                buildArtifacts(platform, "opensource")
-                buildPackages(platform, "opensource")
-              }
-
-              if (params.desktop || params.server_ee || params.server_de) {
-                buildArtifacts(platform, "commercial")
-                buildPackages(platform, "commercial")
-              }
-            }
+            initializeLinux("linux_aarch64")
           }
           post {
-            success  { script { stageStats[STAGE_NAME] = 0 } }
-            unstable { script { stageStats[STAGE_NAME] = 1 } }
-            failure  { script { stageStats[STAGE_NAME] = 2 } }
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
           }
         }
         // Android
@@ -679,23 +467,12 @@ pipeline {
             beforeAgent true
           }
           steps {
-            script {
-              echo "NODE_NAME=" + env.NODE_NAME
-
-              if (params.wipe) deleteDir()
-
-              String platform = "android"
-              ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, null)
-              checkoutRepos(varRepos)
-
-              buildArtifacts(platform, "opensource")
-              buildPackages(platform)
-            }
+            initializeAndroid()
           }
           post {
-            success  { script { stageStats[STAGE_NAME] = 0 } }
-            unstable { script { stageStats[STAGE_NAME] = 1 } }
-            failure  { script { stageStats[STAGE_NAME] = 2 } }
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
           }
         }
       }
@@ -713,15 +490,19 @@ pipeline {
       }
       steps {
         script {
-          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE', message: 'Docker build failure') {
+          catchError(
+            buildResult: 'SUCCESS',
+            stageResult: 'FAILURE',
+            message: 'Docker build failure'
+          ) {
             checkDocker()
           }
         }
       }
       post {
-        success  { script { stageStats[STAGE_NAME] = 0 } }
-        unstable { script { stageStats[STAGE_NAME] = 1 } }
-        failure  { script { stageStats[STAGE_NAME] = 2 } }
+        success  { setStageStats(0) }
+        unstable { setStageStats(1) }
+        failure  { setStageStats(2) }
       }
     }
   }
@@ -752,9 +533,167 @@ pipeline {
   }
 }
 
-void checkoutRepo(String repo, String branch = 'master', String dir = repo.minus(~/^.+\//)) {
+// Stages
+
+void initializeWindows(String platform) {
+  echo "NODE_NAME=" + env.NODE_NAME
+
+  if (params.wipe)
+    deleteDir()
+  else if (params.clean && params.desktop)
+    dir ('desktop-apps') { deleteDir() }
+
+  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
+  checkoutRepos(varRepos)
+
+  if (platform == "windows_x64") {
+    if (params.core || params.builder || params.server_ce) {
+      buildArtifacts(platform, "opensource")
+      buildPackages(platform, "opensource")
+    }
+    if (params.desktop || params.server_ee || params.server_de) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
+    }
+  }
+
+  if (platform == "windows_x86") {
+    if (params.core || params.builder) {
+      buildArtifacts(platform, "opensource")
+      buildPackages(platform, "opensource")
+    }
+    if (params.desktop) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
+    }
+  }
+
+  if (platform in ["windows_x64_xp", "windows_x86_xp"]) {
+    if (params.desktop) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
+    }
+  }
+}
+
+void initializeMacos(String platform) {
+  echo "NODE_NAME=" + env.NODE_NAME
+
+  if (params.wipe)
+    deleteDir()
+  else if (params.clean && params.desktop)
+    dir ('desktop-apps') { deleteDir() }
+
+  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
+  checkoutRepos(varRepos)
+
+  if (platform == "macos_x86_64") {
+    if (params.core || params.builder) {
+      buildArtifacts(platform, "opensource")
+      buildPackages(platform, "opensource")
+    }
+    if (params.desktop) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
+    }
+  }
+
+  if (platform == "macos_x86_64_v8") {
+    if (params.desktop) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
+    }
+  }
+
+  if (platform == "macos_arm64") {
+    if (params.builder) {
+      buildArtifacts(platform, "opensource")
+      buildPackages(platform, "opensource")
+    }
+    if (params.desktop) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
+    }
+  }
+}
+
+void initializeLinux(String platform) {
+  echo "NODE_NAME=" + env.NODE_NAME
+
+  if (params.wipe)
+    deleteDir()
+  else if (params.clean && params.desktop)
+    dir ('desktop-apps') { deleteDir() }
+
+  ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
+  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
+  ArrayList allRepos = constRepos.plus(varRepos)
+  checkoutRepos(varRepos)
+
+  // if (platform == "linux_x86_64") {
+  // }
+  if (platform == "linux_x86_64_u14") {
+    if (params.core || params.builder || params.server_ce) {
+      buildArtifacts(platform)
+      // if (params.core)      buildCore(platform)
+      if (params.builder)   buildBuilder(platform)
+      if (params.server_ce) buildServer(platform)
+    }
+    if (params.desktop || params.server_ee || params.server_de) {
+      buildArtifacts(platform, "commercial")
+      if (params.desktop)   buildDesktop(platform)
+      if (params.server_ee) buildServer(platform, "enterprise")
+      if (params.server_de) buildServer(platform, "developer")
+    }
+  }
+  if (platform == "linux_x86_64_u16") {
+    if (params.core || params.builder || params.server_ce) {
+      buildArtifacts(platform, "opensource")
+      buildPackages(platform, "opensource")
+    }
+    if (params.desktop || params.server_ee || params.server_de) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
+    }
+    if (params.server_ce || params.server_ee || params.server_de) {
+      buildDocker()
+      tagRepos(allRepos, gitTag)
+    }
+    if (params.test) linuxTest()
+  }
+  if (platform == "linux_aarch64") {
+    if (params.core || params.builder || params.server_ce) {
+      buildArtifacts(platform, "opensource")
+      buildPackages(platform, "opensource")
+    }
+    if (params.desktop || params.server_ee || params.server_de) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
+    }
+  }
+}
+
+void initializeAndroid(String platform = "android") {
+  echo "NODE_NAME=" + env.NODE_NAME
+
+  if (params.wipe) deleteDir()
+
+  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, null)
+  checkoutRepos(varRepos)
+
+  buildArtifacts(platform, "opensource")
+  buildPackages(platform, "opensource")
+}
+
+////////////////
+
+void checkoutRepo(
+  String repo,
+  String branch = 'master',
+  String dir = repo.minus(~/^.+\//)
+) {
   if (dir == null) dir = repo.minus(~/^.+\//)
-  def retryCount = 0
+  int retryCount = 0
   retry(3) {
     if (retryCount > 0) sleep(30)
     checkout([
@@ -1238,8 +1177,13 @@ void checkDocker() {
 
 // Upload
 
-void uploadFiles(String product, String platform, ArrayList items, \
-                 String srcPrefix = '', String destPrefix = '') {
+void uploadFiles(
+  String product,
+  String platform,
+  ArrayList items,
+  String srcPrefix = '',
+  String destPrefix = ''
+) {
   String srcPath, uploadCmd = ""
   ArrayList localDeployData = []
 
@@ -1360,7 +1304,15 @@ def getHtml(ArrayList data) {
 
 // Notifications
 
-void sendTelegramMessage(String jobStatus, String chatId = '-1001773122025', Boolean markdown = true) {
+void setStageStats(int status, String stageName = env.STAGE_NAME) {
+  stageStats[stageName] = status
+}
+
+void sendTelegramMessage(
+  String jobStatus,
+  String chatId = '-1001773122025',
+  Boolean markdown = true
+) {
   String text = "Build [" + currentBuild.fullDisplayName \
       + "](" + currentBuild.absoluteUrl + ") " + jobStatus
   ArrayList icons = ["🟢", "🟡", "🔴"]
