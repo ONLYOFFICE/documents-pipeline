@@ -433,7 +433,8 @@ pipeline {
             DISTRIB_RELEASE = '16.04'
           }
           steps {
-            initializeLinux("linux_x86_64_u16")
+            initializeLinux("linux_x86_64")
+            // initializeLinux("linux_x86_64_u16")
           }
           post {
             success  { setStageStats(0) }
@@ -646,7 +647,7 @@ void initializeLinux(String platform) {
       if (params.server_de) buildServer(platform, "developer")
     }
   }
-  if (platform == "linux_x86_64_u16") {
+  if (platform in ["linux_x86_64", "linux_x86_64_u16"]) {
     if (params.core || params.builder || params.server_ce) {
       buildArtifacts(platform, "opensource")
       buildPackages(platform, "opensource")
