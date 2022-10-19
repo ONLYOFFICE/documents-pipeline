@@ -976,7 +976,7 @@ void buildDesktop(String platform) {
                   'winsparkle-update', 'winsparkle-files',
                   'advinst-x64', 'portable-zip-x64', 'portable-evb-x64']
     } else if (platform == 'windows_x86') {
-      targets += ['innosetup-x86', 'innosetup-help-x64', 'winsparkle-update',
+      targets += ['innosetup-x86', 'innosetup-help-x86', 'winsparkle-update',
                   'advinst-x86', 'portable-zip-x86', 'portable-evb-x86']
     } else if (platform == 'windows_x64_xp') {
       targets += ['innosetup-x64-xp', 'winsparkle-update', 'portable-zip-x64-xp']      
