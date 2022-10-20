@@ -972,10 +972,11 @@ void buildDesktop(String platform) {
 
     ArrayList targets = ['clean']
     if (platform == 'windows_x64') {
-      targets += ['innosetup-x64', 'winsparkle-update', 'winsparkle-files',
+      targets += ['innosetup-x64', 'innosetup-help-x64',
+                  'winsparkle-update', 'winsparkle-files',
                   'advinst-x64', 'portable-zip-x64', 'portable-evb-x64']
     } else if (platform == 'windows_x86') {
-      targets += ['innosetup-x86', 'winsparkle-update',
+      targets += ['innosetup-x86', 'innosetup-help-x86', 'winsparkle-update',
                   'advinst-x86', 'portable-zip-x86', 'portable-evb-x86']
     } else if (platform == 'windows_x64_xp') {
       targets += ['innosetup-x64-xp', 'winsparkle-update', 'portable-zip-x64-xp']      
@@ -1001,13 +1002,13 @@ void buildDesktop(String platform) {
     ArrayList targets = ['clean']
     if (platform == "macos_x86_64_v8") {
       suffix = "v8"
-      targets = ["diskimage-x86_64-v8"]
+      targets.add("diskimage-x86_64-v8")
     } else if (platform == "macos_x86_64") {
       suffix = "x86_64"
-      targets = ["diskimage-x86_64"]
+      targets.add("diskimage-x86_64")
     } else if (platform == "macos_arm64") {
       suffix = "arm"
-      targets = ["diskimage-arm64"]
+      targets.add("diskimage-arm64")
     }
     targets.add("sparkle-updates")
 
@@ -1311,8 +1312,13 @@ void publishReport(String title, Map files) {
   files.each {
     writeFile file: it.key, text: getHtml(it.value)
     try {
-      sh "aws s3 cp --acl public-read --no-progress ${it.key} \
-        s3://${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/"
+      withCredentials([
+        string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+      ]) {
+        sh "aws s3 cp --acl public-read --no-progress ${it.key} \
+          s3://${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/"
+      }
       echo "https://s3.${s3region}.amazonaws.com/${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.key}"
     } catch(Exception e) {
         echo "Caught: ${e}"
