@@ -888,12 +888,12 @@ void buildPackages(String platform, String license = 'opensource') {
   if (!branding.onlyoffice)
     args += " --branding ${branding.repo}"
 
-  if (platforms[platform].isUnix && !pMobile)
+  if (platforms[platform].isUnix)
     sh "cd build_tools && ./make_package.py ${args}"
   else
     bat "cd build_tools && make_package.py ${args}"
 
-  if (!pMobile && fileExists('deploy.json')) {
+  if (fileExists('deploy.json')) {
     def platformDeployData = readJSON(file: 'deploy.json')
     println platformDeployData
     deployData += platformDeployData
@@ -904,11 +904,37 @@ void buildPackages(String platform, String license = 'opensource') {
   // if (params.server_ce && isOpenSource && pServer) deployServer(platform, "community")
   // if (params.server_ee && isCommercial && pServer) deployServer(platform, "enterprise")
   // if (params.server_de && isCommercial && pServer) deployServer(platform, "developer")
-  if (params.mobile && isOpenSource && pMobile)    deployMobile(env.BRANCH_NAME)
+  // if (params.mobile && isOpenSource && pMobile)    deployMobile(env.BRANCH_NAME)
+}
+
+void buildDocker() {
+  sh """
+    gh workflow run 4testing-build.yml \
+      --repo ONLYOFFICE/Docker-DocumentServer \
+      --ref \$BRANCH_NAME \
+      -f build=\$BUILD_NUMBER \
+      -f amd64=${params.linux_x86_64} \
+      -f arm64=${params.linux_aarch64} \
+      -f community=${params.server_ce} \
+      -f enterprise=${params.server_ee} \
+      -f developer=${params.server_de}
+  """
+}
+
+void checkDocker() {
+  sh """
+    REPO=ONLYOFFICE/Docker-DocumentServer
+    sleep 5
+    RUN_ID=\$(gh run list --repo \$REPO --workflow 4testing-build.yml \
+      --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+    gh --repo \$REPO run watch \$RUN_ID --interval 15 > /dev/null
+    gh --repo \$REPO run view \$RUN_ID --verbose --exit-status
+  """
 }
 
 // Deploy Packages
 
+/*
 void deployCore(String platform) {
   String branch = env.BRANCH_NAME
   String version = env.PRODUCT_VERSION
@@ -940,7 +966,7 @@ void deployCore(String platform) {
 void deployDesktop(String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
 
-  if (platform ==~ /^windows.*/) {
+  if (platform ==~ /^windows../) {
     uploadFiles("desktop", platform, [
         [section: "Installer",  glob: "*.exe", dest: "/"],
         [section: "Installer",  glob: "*.msi", dest: "/"],
@@ -952,7 +978,7 @@ void deployDesktop(String platform) {
       "desktop-apps/win-linux/package/windows",
       "${s3prefix}/windows/${version}/desktop")
 
-  } else if (platform ==~ /^macos.*/) {
+  } else if (platform ==~ /^macos../) {
 
     String suffix
     ArrayList targets = ['clean']
@@ -992,7 +1018,7 @@ void deployDesktop(String platform) {
         [section: "Checksums", glob: "*.txt", dest: "/"],
       ], "desktop-apps/macos/build/update", "${s3prefix}/macos/${version}/${suffix}")
 
-  } else if (platform ==~ /^linux.*/) {
+  } else if (platform ==~ /^linux../) {
 
     if (!branding.onlyoffice)
       makeargs += " -e BRANDING_DIR=../../../../${branding.repo}/desktop-apps/win-linux/package/linux"
@@ -1005,10 +1031,10 @@ void deployDesktop(String platform) {
     if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
     uploadFiles("desktop", platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
-        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
-        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
-        [section: "Rosa",     glob: "urpmi/**/*.rpm",   dest: "/rosa/"    ],
-        [section: "SUSE Linux", glob: "suse-rpm/**/*.rpm", dest: "/suse/" ],
+        [section: "CentOS",   glob: "rpm/*./*.rpm",     dest: "/centos/"  ],
+        [section: "AltLinux", glob: "apt-rpm/*./*.rpm", dest: "/altlinux/"],
+        [section: "Rosa",     glob: "urpmi/*./*.rpm",   dest: "/rosa/"    ],
+        [section: "SUSE Linux", glob: "suse-rpm/*./*.rpm", dest: "/suse/" ],
         [section: "Portable", glob: "tar/*.tar.*",      dest: "/linux/"   ],
         // [section: "AstraLinux Signed",
         //  glob: "deb-astra/*.deb", dest: "/astralinux/"]
@@ -1023,7 +1049,7 @@ void deployBuilder(String platform) {
   String version = "${env.PRODUCT_VERSION}-${env.BUILD_NUMBER}"
   String makeargs = ""
 
-  if (platform ==~ /^windows.*/) {
+  if (platform ==~ /^windows../) {
 
     ArrayList targets = ['clean']
     if (platform == 'windows_x64') targets += ['innosetup-x64', 'portable-x64']
@@ -1035,7 +1061,7 @@ void deployBuilder(String platform) {
         [section: "Portable",  glob: "zip/*.zip", dest: "/"]
       ], "document-builder-package", "${s3prefix}/windows/${version}/builder")
 
-  } else if (platform ==~ /^macos.*/) {
+  } else if (platform ==~ /^macos../) {
 
     ArrayList targets = ['clean', 'builder']
     String suffix
@@ -1054,7 +1080,7 @@ void deployBuilder(String platform) {
         [section: "Portable",  glob: "*.xz", dest: "/"]
       ], "document-builder-package", "${s3prefix}/macos/${version}/${suffix}")
 
-  } else if (platform ==~ /^linux.*/) {
+  } else if (platform ==~ /^linux../) {
 
     if (platform == "linux_aarch64")
       makeargs += " -e UNAME_M=aarch64"
@@ -1067,7 +1093,7 @@ void deployBuilder(String platform) {
     if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
     uploadFiles("builder", platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",    dest: "/ubuntu/"],
-        [section: "CentOS",   glob: "rpm/**/*.rpm", dest: "/centos/"],
+        [section: "CentOS",   glob: "rpm/*./*.rpm", dest: "/centos/"],
         [section: "Portable", glob: "tar/*.tar.gz", dest: "/linux/" ]
       ], "document-builder-package", s3prefix + distPrefix)
     uploadFiles("builder", platform, [
@@ -1095,7 +1121,7 @@ void deployServer(String platform, String edition='community') {
       break
   }
 
-  if (platform ==~ /^windows.*/) {
+  if (platform ==~ /^windows../) {
 
     makeargs = "-e PRODUCT_NAME=${productName}"
     if (!branding.onlyoffice)
@@ -1107,7 +1133,7 @@ void deployServer(String platform, String edition='community') {
         [section: "Installer", glob: "exe/*.exe", dest: "/"  ]
       ], "document-server-package", "${s3prefix}/windows/${version}/server")
 
-  } else if (platform ==~ /^linux.*/) {
+  } else if (platform ==~ /^linux../) {
 
     makeargs = "-e PRODUCT_NAME=${productName.toLowerCase()}"
     if (platform == "linux_aarch64")
@@ -1121,8 +1147,8 @@ void deployServer(String platform, String edition='community') {
     if (platform == "linux_x86_64_u14") distPrefix = "/ubuntu14"
     uploadFiles(product, platform, [
         [section: "Ubuntu",   glob: "deb/*.deb",        dest: "/ubuntu/"  ],
-        [section: "CentOS",   glob: "rpm/**/*.rpm",     dest: "/centos/"  ],
-        [section: "AltLinux", glob: "apt-rpm/**/*.rpm", dest: "/altlinux/"],
+        [section: "CentOS",   glob: "rpm/*./*.rpm",     dest: "/centos/"  ],
+        [section: "AltLinux", glob: "apt-rpm/*./*.rpm", dest: "/altlinux/"],
         [section: "Portable", glob: "*.tar.gz",         dest: "/linux/"   ]
       ], "document-server-package", s3prefix + distPrefix)
   }
@@ -1138,44 +1164,7 @@ void deployMobile(String branch = 'master', String config = 'release') {
       [section: "Libs", glob: "*.zip", dest: "/android/"],
     ], "", s3prefix)
 }
-
-void buildPackages(String product, String platform, ArrayList targets) {
-  String args = "--product ${product}" \
-    + " --version ${env.PRODUCT_VERSION}" \
-    + " --build ${env.BUILD_NUMBER}" \
-    + " --targets ${targets.join(' ')}"
-  if (!branding.onlyoffice)
-    args += " --branding ${branding.repo}"
-  if (platforms[platform].isUnix)
-    sh "cd build_tools && ./make_package.py ${args}"
-  else
-    bat "cd build_tools && call python make_package.py ${args}"
-}
-
-void buildDocker() {
-  sh """
-    gh workflow run 4testing-build.yml \
-      --repo ONLYOFFICE/Docker-DocumentServer \
-      --ref \$BRANCH_NAME \
-      -f build=\$BUILD_NUMBER \
-      -f amd64=${params.linux_x86_64} \
-      -f arm64=${params.linux_aarch64} \
-      -f community=${params.server_ce} \
-      -f enterprise=${params.server_ee} \
-      -f developer=${params.server_de}
-  """
-}
-
-void checkDocker() {
-  sh """
-    REPO=ONLYOFFICE/Docker-DocumentServer
-    sleep 5
-    RUN_ID=\$(gh run list --repo \$REPO --workflow 4testing-build.yml \
-      --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
-    gh --repo \$REPO run watch \$RUN_ID --interval 15 > /dev/null
-    gh --repo \$REPO run view \$RUN_ID --verbose --exit-status
-  """
-}
+*/
 
 // Upload
 
