@@ -57,18 +57,18 @@ branding = [
 ]
 
 platforms = [
-  windows_x64:     [title: "Windows x64",     build: "win_64",      isUnix: false],
-  windows_x64_xp:  [title: "Windows x64 XP",  build: "win_64_xp",   isUnix: false],
-  windows_x86:     [title: "Windows x86",     build: "win_32",      isUnix: false],
-  windows_x86_xp:  [title: "Windows x86 XP",  build: "win_32_xp",   isUnix: false],
-  macos_x86_64:    [title: "macOS x86_64",    build: "mac_64",      isUnix: true ],
-  macos_x86_64_v8: [title: "macOS x86_64 V8", build: "mac_64",      isUnix: true ],
-  macos_arm64:     [title: "macOS arm64",     build: "mac_arm64",   isUnix: true ],
-  linux_x86_64:    [title: "Linux x86_64",    build: "linux_64",    isUnix: true ],
+  windows_x64:      [title: "Windows x64",     build: "win_64",      isUnix: false],
+  windows_x64_xp:   [title: "Windows x64 XP",  build: "win_64_xp",   isUnix: false],
+  windows_x86:      [title: "Windows x86",     build: "win_32",      isUnix: false],
+  windows_x86_xp:   [title: "Windows x86 XP",  build: "win_32_xp",   isUnix: false],
+  darwin_x86_64:    [title: "macOS x86_64",    build: "mac_64",      isUnix: true ],
+  darwin_x86_64_v8: [title: "macOS x86_64 V8", build: "mac_64",      isUnix: true ],
+  darwin_arm64:     [title: "macOS arm64",     build: "mac_arm64",   isUnix: true ],
+  linux_x86_64:     [title: "Linux x86_64",    build: "linux_64",    isUnix: true ],
   linux_x86_64_u14: [title: "Linux x86_64 (Ubuntu 14)", build: "linux_64", isUnix: true ],
   linux_x86_64_u16: [title: "Linux x86_64 (Ubuntu 16)", build: "linux_64", isUnix: true ],
-  linux_aarch64:   [title: "Linux aarch64",   build: "linux_arm64", isUnix: true ],
-  android:         [title: "Android",         build: "android",     isUnix: true ]
+  linux_aarch64:    [title: "Linux aarch64",   build: "linux_arm64", isUnix: true ],
+  android:          [title: "Android",         build: "android",     isUnix: true ]
 ]
 
 pipeline {
@@ -346,7 +346,7 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
           steps {
-            initializeMacos("macos_x86_64")
+            initializeDarwin("darwin_x86_64")
           }
           post {
             success  { setStageStats(0) }
@@ -370,7 +370,7 @@ pipeline {
             USE_V8 = '1'
           }
           steps {
-            initializeMacos("macos_x86_64_v8")
+            initializeDarwin("darwin_x86_64_v8")
           }
           post {
             success  { setStageStats(0) }
@@ -393,7 +393,7 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
           steps {
-            initializeMacos("macos_arm64")
+            initializeDarwin("darwin_arm64")
           }
           post {
             success  { setStageStats(0) }
@@ -577,7 +577,7 @@ void initializeWindows(String platform) {
   }
 }
 
-void initializeMacos(String platform) {
+void initializeDarwin(String platform) {
   echo "NODE_NAME=" + env.NODE_NAME
 
   if (params.wipe)
@@ -588,7 +588,7 @@ void initializeMacos(String platform) {
   ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
   checkoutRepos(varRepos)
 
-  if (platform == "macos_x86_64") {
+  if (platform == "darwin_x86_64") {
     if (params.core || params.builder) {
       buildArtifacts(platform, "opensource")
       buildPackages(platform, "opensource")
@@ -599,14 +599,14 @@ void initializeMacos(String platform) {
     }
   }
 
-  if (platform == "macos_x86_64_v8") {
+  if (platform == "darwin_x86_64_v8") {
     if (params.desktop) {
       buildArtifacts(platform, "commercial")
       buildPackages(platform, "commercial")
     }
   }
 
-  if (platform == "macos_arm64") {
+  if (platform == "darwin_arm64") {
     if (params.builder) {
       buildArtifacts(platform, "opensource")
       buildPackages(platform, "opensource")
@@ -914,12 +914,12 @@ void deployCore(String platform) {
   String version = env.PRODUCT_VERSION
   String build = env.BUILD_NUMBER
   LinkedHashMap path = [
-    windows_x64:  [os: "windows", version: "${version}.${build}", arch: "x64"],
-    windows_x86:  [os: "windows", version: "${version}.${build}", arch: "x86"],
-    macos_x86_64: [os: "mac",     version: "${version}-${build}", arch: "x64"],
-    linux_x86_64: [os: "linux",   version: "${version}-${build}", arch: "x64"],
-    linux_x86_64_u14: [os: "linux", version: "${version}-${build}", arch: "x64"],
-    linux_x86_64_u16: [os: "linux", version: "${version}-${build}", arch: "x64"]
+    windows_x64:      [os: "windows", version: "${version}.${build}", arch: "x64"],
+    windows_x86:      [os: "windows", version: "${version}.${build}", arch: "x86"],
+    darwin_x86_64:    [os: "mac",     version: "${version}-${build}", arch: "x64"],
+    linux_x86_64:     [os: "linux",   version: "${version}-${build}", arch: "x64"],
+    linux_x86_64_u14: [os: "linux",   version: "${version}-${build}", arch: "x64"],
+    linux_x86_64_u16: [os: "linux",   version: "${version}-${build}", arch: "x64"]
   ]
   def p = path[platform]
   Closure coreDeployPath = {
@@ -956,11 +956,11 @@ void deployDesktop(String platform) {
 
     String suffix
     ArrayList targets = ['clean']
-    if (platform == "macos_x86_64_v8") {
+    if (platform == "darwin_x86_64_v8") {
       suffix = "v8"
-    } else if (platform == "macos_x86_64") {
+    } else if (platform == "darwin_x86_64") {
       suffix = "x86_64"
-    } else if (platform == "macos_arm64") {
+    } else if (platform == "darwin_arm64") {
       suffix = "arm"
     }
 
@@ -1039,9 +1039,9 @@ void deployBuilder(String platform) {
 
     ArrayList targets = ['clean', 'builder']
     String suffix
-    if (platform == "macos_x86_64") {
+    if (platform == "darwin_x86_64") {
       suffix = "x86_64"
-    } else if (platform == "macos_arm64") {
+    } else if (platform == "darwin_arm64") {
       suffix = "arm"
     }
     sh """#!/bin/bash -e
