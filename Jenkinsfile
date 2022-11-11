@@ -1247,8 +1247,13 @@ void publishReport(String title, Map files) {
   files.each {
     writeFile file: it.key, text: getHtml(it.value)
     try {
-      sh "aws s3 cp --acl public-read --no-progress ${it.key} \
-        s3://${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/"
+      withCredentials([
+        string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+      ]) {
+        sh "aws s3 cp --acl public-read --no-progress ${it.key} \
+          s3://${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/"
+      }
       echo "https://s3.${s3region}.amazonaws.com/${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.key}"
     } catch(Exception e) {
       echo "Caught: ${e}"
