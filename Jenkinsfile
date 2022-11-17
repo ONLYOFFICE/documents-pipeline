@@ -522,8 +522,9 @@ pipeline {
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
-              if (params.builder) {
+              if (params.core || params.builder) {
                 buildArtifacts(platform)
+                buildCore(platform)
                 buildBuilder(platform)
               }
 
@@ -870,7 +871,7 @@ void tagRepos(ArrayList repos, String tag) {
 def getModules(String platform, String license = "any") {
   Boolean isOpenSource = license in ["opensource", "any"]
   Boolean isCommercial = license in ["commercial", "any"]
-  Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
+  Boolean pCore = platform in ["win_64", "win_32", "mac_64", "mac_arm64", "linux_64", "linux_arm64"]
   Boolean pDesktop = platform != "linux_arm64"
   Boolean pBuilder = platform in ["win_64", "win_32", "mac_64", "mac_arm64", "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
@@ -944,6 +945,7 @@ void buildCore(String platform) {
     windows_x64:  [os: "windows", version: "${version}.${build}", arch: "x64"],
     windows_x86:  [os: "windows", version: "${version}.${build}", arch: "x86"],
     macos_x86_64: [os: "mac",     version: "${version}-${build}", arch: "x64"],
+    macos_arm64:  [os: "mac",     version: "${version}-${build}", arch: "arm"],
     linux_x86_64: [os: "linux",   version: "${version}-${build}", arch: "x64"],
     linux_x86_64_u14: [os: "linux", version: "${version}-${build}", arch: "x64"],
     linux_x86_64_u16: [os: "linux", version: "${version}-${build}", arch: "x64"]
