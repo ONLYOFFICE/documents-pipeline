@@ -600,7 +600,7 @@ void initializeDarwin(String platform) {
     }
   }
 
-  if (params.desktop) {
+  if (params.desktop && env.BRANCH_NAME != "develop") {
     buildArtifacts(platform, "commercial")
     buildPackages(platform, "commercial")
   }
