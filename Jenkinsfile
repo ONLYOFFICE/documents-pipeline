@@ -255,10 +255,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "windows_x64"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -303,10 +300,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "windows_x86"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -348,10 +342,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "windows_x64_xp"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -388,10 +379,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "windows_x86_xp"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -428,10 +416,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "macos_x86_64"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -474,10 +459,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "macos_x86_64_v8"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -513,10 +495,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "macos_arm64"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -554,10 +533,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "linux_x86_64_u14"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
@@ -600,10 +576,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "linux_x86_64_u16"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
@@ -651,10 +624,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "linux_aarch64"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
@@ -845,6 +815,13 @@ def getVarRepos(String branch, String platform, String branding) {
   }
 
   return repos
+}
+
+void cleanBuildWs() {
+  if (params.wipe)
+    deleteDir()
+  else if (params.clean && params.desktop)
+    dir ('desktop-apps') { deleteDir() }
 }
 
 void checkoutRepos(ArrayList repos) {
