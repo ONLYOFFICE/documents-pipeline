@@ -254,6 +254,7 @@ def getRepos() {
     // 'ONLYOFFICE/sdkjs-content-controls',
     // 'ONLYOFFICE/sdkjs-disable-features',
     'ONLYOFFICE/sdkjs-forms',
+    'ONLYOFFICE/sdkjs-ooxml',
     // 'ONLYOFFICE/sdkjs-sheet-views',
     'ONLYOFFICE/server',
     'ONLYOFFICE/server-license',
