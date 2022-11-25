@@ -1,5 +1,6 @@
 defaults = [
   branch:           'experimental',
+  channel:          'other',
   version:          '99.99.99',
   clean:            true,
   windows_x64:      true,
@@ -31,6 +32,7 @@ defaults = [
 if (BRANCH_NAME == 'develop') {
   defaults.putAll([
     branch:           'unstable',
+    channel:          'nightly',
     darwin_x86_64_v8: false,
     android:          false,
     server_ce:        false,
@@ -43,6 +45,7 @@ if (BRANCH_NAME == 'develop') {
 if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
   defaults.putAll([
     branch:           'testing',
+    channel:          'test',
     version:          BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
     schedule:         'H 23 * * *'
   ])
@@ -76,6 +79,7 @@ pipeline {
   environment {
     COMPANY_NAME = "ONLYOFFICE"
     RELEASE_BRANCH = "${defaults.branch}"
+    BUILD_CHANNEL = "${defaults.channel}"
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
     S3_BUCKET = "repo-doc-onlyoffice-com"
