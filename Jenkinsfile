@@ -1280,7 +1280,7 @@ def getHtml(ArrayList data) {
       text += "\n<dt>${type}</dt>\n<dd>"
       files.each {
         title = it.remote.minus(~/^.+\//)
-        url = "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/${it.remote}"
+        url = "https://s3.${it.region}.amazonaws.com/${it.bucket}/${it.key}"
         text += "\n<a href=\"${url}\">${title}</a> (${size(it.size)}B)<br>"
       }
       text += "\n</dd>"
