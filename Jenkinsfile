@@ -1280,7 +1280,7 @@ def getHtml(ArrayList data) {
     types.groupBy { it.type }.each { type, files ->
       text += "\n<dt>${type}</dt>\n<dd>"
       files.each {
-        title = it.remote.minus(~/^.+\//)
+        title = it.key.minus(~/^.+\//)
         url = "https://s3.${it.region}.amazonaws.com/${it.bucket}/${it.key}"
         text += "\n<a href=\"${url}\">${title}</a> (${size(it.size)}B)<br>"
       }
