@@ -1210,6 +1210,7 @@ void linuxTest() {
 
 void generateReports() {
   Map deploy = deployData.groupBy { it.product }
+  println deploy
 
   Boolean core = deploy.core != null
   Boolean desktop = deploy.desktop != null
