@@ -1246,10 +1246,12 @@ void publishReport(String title, Map files) {
         string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
       ]) {
-        sh "aws s3 cp --acl public-read --no-progress ${it.key} \
-          s3://repo-doc-onlyoffice-com/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/"
+        sh """
+            aws s3 cp --acl public-read --no-progress ${it.key} s3://${s3bucket}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/
+            aws s3 cp --acl public-read --no-progress ${it.key} s3://${s3bucket}/reports/${env.BRANCH_NAME}/latest/
+            echo https://s3.${s3region}.amazonaws.com/${s3bucket}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.key}
+        """
       }
-      echo "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.key}"
     } catch(Exception e) {
       echo "Caught: ${e}"
     }
