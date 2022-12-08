@@ -711,17 +711,17 @@ pipeline {
   post {
     always {
       node('built-in') { script { generateReports() } }
-      script {
-        if (params.linux_x86_64 || params.linux_aarch64)
-          build (
-            job: 'repo-manager',
-            parameters: [
-              string (name: 'company', value: branding.company_lc),
-              string (name: 'branch', value: env.RELEASE_BRANCH)
-            ],
-            wait: false
-          )
-      }
+      // script {
+      //   if (params.linux_x86_64 || params.linux_aarch64)
+      //     build (
+      //       job: 'repo-manager',
+      //       parameters: [
+      //         string (name: 'company', value: branding.company_lc),
+      //         string (name: 'branch', value: env.RELEASE_BRANCH)
+      //       ],
+      //       wait: false
+      //     )
+      // }
     }
     fixed {
       node('built-in') { script { sendTelegramMessage('fixed') } }
