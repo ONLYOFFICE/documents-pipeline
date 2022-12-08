@@ -484,7 +484,7 @@ pipeline {
       }
       when {
         expression {
-          params.linux_x86_64 && (params.server_ce || params.server_ee || params.server_de)
+          (params.linux_x86_64_u16 || params.linux_aarch64) && (params.server_ce || params.server_ee || params.server_de)
         }
         beforeAgent true
       }
@@ -878,7 +878,7 @@ void buildDocker() {
       --repo ONLYOFFICE/Docker-DocumentServer \
       --ref \$BRANCH_NAME \
       -f build=\$BUILD_NUMBER \
-      -f amd64=${params.linux_x86_64} \
+      -f amd64=${params.linux_x86_64_u16} \
       -f arm64=${params.linux_aarch64} \
       -f community=${params.server_ce} \
       -f enterprise=${params.server_ee} \
