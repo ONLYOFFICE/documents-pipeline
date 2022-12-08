@@ -137,17 +137,15 @@ pipeline {
       defaultValue: defaults.darwin_arm64
     )
     // Linux
-    /*
     booleanParam (
       name:         'linux_x86_64_u14',
       description:  'Build Linux x86-64 (Ubuntu 14) targets',
       defaultValue: defaults.linux_x86_64_u14
     )
-    */
     booleanParam (
-      name:         'linux_x86_64',
+      name:         'linux_x86_64_u16',
       description:  'Build Linux x86-64 (Ubuntu 16) targets',
-      defaultValue: defaults.linux_x86_64
+      defaultValue: defaults.linux_x86_64_u16
     )
     booleanParam (
       name:         'linux_aarch64',
@@ -410,7 +408,6 @@ pipeline {
           }
         }
         // Linux
-        /*
         stage('Linux x86_64 (Ubuntu 14)') {
           agent { label 'linux_x86_64_u14' }
           when {
@@ -419,7 +416,6 @@ pipeline {
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
-            DISTRIB_RELEASE = '14.04'
           }
           steps {
             initializeLinux("linux_x86_64_u14")
@@ -430,20 +426,17 @@ pipeline {
             failure  { setStageStats(2) }
           }
         }
-        */
         stage('Linux x86_64 (Ubuntu 16)') {
           agent { label 'linux_x86_64_u16' }
           when {
-            expression { params.linux_x86_64 }
+            expression { params.linux_x86_64_u16 }
             beforeAgent true
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
-            DISTRIB_RELEASE = '16.04'
           }
           steps {
-            initializeLinux("linux_x86_64")
-            // initializeLinux("linux_x86_64_u16")
+            initializeLinux("linux_x86_64_u16")
           }
           post {
             success  { setStageStats(0) }
@@ -456,9 +449,6 @@ pipeline {
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
-          }
-          environment {
-            DISTRIB_RELEASE = '16.04'
           }
           steps {
             initializeLinux("linux_aarch64")
@@ -623,47 +613,23 @@ void initializeLinux(String platform) {
   ArrayList allRepos = constRepos.plus(varRepos)
   checkoutRepos(varRepos)
 
-  // if (platform == "linux_x86_64") {
-  // }
-  if (platform == "linux_x86_64_u14") {
-    if (params.core || params.builder || params.server_ce) {
-      buildArtifacts(platform)
-      // if (params.core)      buildCore(platform)
-      if (params.builder)   buildBuilder(platform)
-      if (params.server_ce) buildServer(platform)
-    }
-    if (params.desktop || params.server_ee || params.server_de) {
-      buildArtifacts(platform, "commercial")
-      if (params.desktop)   buildDesktop(platform)
-      if (params.server_ee) buildServer(platform, "enterprise")
-      if (params.server_de) buildServer(platform, "developer")
-    }
+  if (params.core || params.builder || params.server_ce) {
+    buildArtifacts(platform, "opensource")
+    buildPackages(platform, "opensource")
   }
-  if (platform in ["linux_x86_64", "linux_x86_64_u16"]) {
-    if (params.core || params.builder || params.server_ce) {
-      buildArtifacts(platform, "opensource")
-      buildPackages(platform, "opensource")
-    }
-    if (params.desktop || params.server_ee || params.server_de) {
-      buildArtifacts(platform, "commercial")
-      buildPackages(platform, "commercial")
-    }
+  if (params.desktop || params.server_ee || params.server_de) {
+    buildArtifacts(platform, "commercial")
+    buildPackages(platform, "commercial")
+  }
+
+  if (platform == "linux_x86_64_u16") {
     if (params.server_ce || params.server_ee || params.server_de) {
       buildDocker()
       tagRepos(allRepos, gitTag)
     }
-    if (params.test) linuxTest()
   }
-  if (platform == "linux_aarch64") {
-    if (params.core || params.builder || params.server_ce) {
-      buildArtifacts(platform, "opensource")
-      buildPackages(platform, "opensource")
-    }
-    if (params.desktop || params.server_ee || params.server_de) {
-      buildArtifacts(platform, "commercial")
-      buildPackages(platform, "commercial")
-    }
-  }
+
+  if (params.test) linuxTest()
 }
 
 void initializeAndroid(String platform = "android") {
@@ -858,11 +824,14 @@ void buildArtifacts(String platform, String license = 'opensource') {
 void buildPackages(String platform, String license = 'opensource') {
   Boolean isOpenSource = license == "opensource"
   Boolean isCommercial = license == "commercial"
-  Boolean pCore = platform in ["windows_x64", "windows_x86", "darwin_x86_64", "darwin_arm64", "linux_x86_64"]
+  Boolean pCore = platform in ["windows_x64", "windows_x86",
+                               "darwin_x86_64", "darwin_arm64",
+                               "linux_x86_64_u16"]
   Boolean pDesktop = !(platform in ["linux_aarch64", "android"])
-  Boolean pBuilder = platform in ["windows_x64", "linux_x86_64", "linux_aarch64"]
-  Boolean pServer = platform in ["windows_x64", "linux_x86_64", "linux_aarch64"]
+  Boolean pBuilder = platform in ["windows_x64", "linux_x86_64_u14", "linux_x86_64_u16", "linux_aarch64"]
+  Boolean pServer = platform in ["windows_x64", "linux_x86_64_u14", "linux_x86_64_u16", "linux_aarch64"]
   Boolean pMobile = platform == "android"
+
   ArrayList targets = []
   if (params.core && isOpenSource && pCore)        targets.add("core")
   if (params.desktop && isCommercial && pDesktop)  targets.add("desktop")
@@ -875,10 +844,12 @@ void buildPackages(String platform, String license = 'opensource') {
   targets.add("deploy")
   if (params.signing)                              targets.add("sign")
 
-  String args = " --platform ${platform}" \
-              + " --targets ${targets.join(' ')}" \
-              + " --version ${env.PRODUCT_VERSION}" \
-              + " --build ${env.BUILD_NUMBER}"
+  String args = " --platform ${platform}"
+  if (platform.startsWith("linux_x86_64"))
+    args = " --platform linux_x86_64"
+  args += " --targets ${targets.join(' ')}" \
+        + " --version ${env.PRODUCT_VERSION}" \
+        + " --build ${env.BUILD_NUMBER}"
   if (!branding.onlyoffice)
     args += " --branding ${branding.repo}"
 
