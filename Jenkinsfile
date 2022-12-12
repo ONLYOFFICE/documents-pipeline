@@ -1,5 +1,6 @@
 defaults = [
   branch:           'experimental',
+  channel:          'other',
   version:          '99.99.99',
   clean:            true,
   windows_x64:      true,
@@ -31,6 +32,7 @@ defaults = [
 if (BRANCH_NAME == 'develop') {
   defaults.putAll([
     branch:           'unstable',
+    channel:          'nightly',
     darwin_x86_64_v8: false,
     android:          false,
     server_ce:        false,
@@ -43,6 +45,7 @@ if (BRANCH_NAME == 'develop') {
 if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
   defaults.putAll([
     branch:           'testing',
+    channel:          'test',
     version:          BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
     schedule:         'H 23 * * *'
   ])
@@ -76,6 +79,7 @@ pipeline {
   environment {
     COMPANY_NAME = "ONLYOFFICE"
     RELEASE_BRANCH = "${defaults.branch}"
+    BUILD_CHANNEL = "${defaults.channel}"
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
     S3_BUCKET = "repo-doc-onlyoffice-com"
@@ -133,17 +137,15 @@ pipeline {
       defaultValue: defaults.darwin_arm64
     )
     // Linux
-    /*
     booleanParam (
       name:         'linux_x86_64_u14',
       description:  'Build Linux x86-64 (Ubuntu 14) targets',
       defaultValue: defaults.linux_x86_64_u14
     )
-    */
     booleanParam (
-      name:         'linux_x86_64',
+      name:         'linux_x86_64_u16',
       description:  'Build Linux x86-64 (Ubuntu 16) targets',
-      defaultValue: defaults.linux_x86_64
+      defaultValue: defaults.linux_x86_64_u16
     )
     booleanParam (
       name:         'linux_aarch64',
@@ -406,7 +408,6 @@ pipeline {
           }
         }
         // Linux
-        /*
         stage('Linux x86_64 (Ubuntu 14)') {
           agent { label 'linux_x86_64_u14' }
           when {
@@ -415,7 +416,6 @@ pipeline {
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
-            DISTRIB_RELEASE = '14.04'
           }
           steps {
             initializeLinux("linux_x86_64_u14")
@@ -426,20 +426,17 @@ pipeline {
             failure  { setStageStats(2) }
           }
         }
-        */
         stage('Linux x86_64 (Ubuntu 16)') {
           agent { label 'linux_x86_64_u16' }
           when {
-            expression { params.linux_x86_64 }
+            expression { params.linux_x86_64_u16 }
             beforeAgent true
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
-            DISTRIB_RELEASE = '16.04'
           }
           steps {
-            initializeLinux("linux_x86_64")
-            // initializeLinux("linux_x86_64_u16")
+            initializeLinux("linux_x86_64_u16")
           }
           post {
             success  { setStageStats(0) }
@@ -452,9 +449,6 @@ pipeline {
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
-          }
-          environment {
-            DISTRIB_RELEASE = '16.04'
           }
           steps {
             initializeLinux("linux_aarch64")
@@ -490,7 +484,7 @@ pipeline {
       }
       when {
         expression {
-          params.linux_x86_64 && (params.server_ce || params.server_ee || params.server_de)
+          (params.linux_x86_64_u16 || params.linux_aarch64) && (params.server_ce || params.server_ee || params.server_de)
         }
         beforeAgent true
       }
@@ -515,17 +509,17 @@ pipeline {
   post {
     always {
       node('built-in') { script { generateReports() } }
-      script {
-        if (params.linux_x86_64 || params.linux_aarch64)
-          build (
-            job: 'repo-manager',
-            parameters: [
-              string (name: 'company', value: branding.company_lc),
-              string (name: 'branch', value: env.RELEASE_BRANCH)
-            ],
-            wait: false
-          )
-      }
+      // script {
+      //   if (params.linux_x86_64 || params.linux_aarch64)
+      //     build (
+      //       job: 'repo-manager',
+      //       parameters: [
+      //         string (name: 'company', value: branding.company_lc),
+      //         string (name: 'branch', value: env.RELEASE_BRANCH)
+      //       ],
+      //       wait: false
+      //     )
+      // }
     }
     fixed {
       node('built-in') { script { sendTelegramMessage('fixed') } }
@@ -619,47 +613,23 @@ void initializeLinux(String platform) {
   ArrayList allRepos = constRepos.plus(varRepos)
   checkoutRepos(varRepos)
 
-  // if (platform == "linux_x86_64") {
-  // }
-  if (platform == "linux_x86_64_u14") {
-    if (params.core || params.builder || params.server_ce) {
-      buildArtifacts(platform)
-      // if (params.core)      buildCore(platform)
-      if (params.builder)   buildBuilder(platform)
-      if (params.server_ce) buildServer(platform)
-    }
-    if (params.desktop || params.server_ee || params.server_de) {
-      buildArtifacts(platform, "commercial")
-      if (params.desktop)   buildDesktop(platform)
-      if (params.server_ee) buildServer(platform, "enterprise")
-      if (params.server_de) buildServer(platform, "developer")
-    }
+  if (params.core || params.builder || params.server_ce) {
+    buildArtifacts(platform, "opensource")
+    buildPackages(platform, "opensource")
   }
-  if (platform in ["linux_x86_64", "linux_x86_64_u16"]) {
-    if (params.core || params.builder || params.server_ce) {
-      buildArtifacts(platform, "opensource")
-      buildPackages(platform, "opensource")
-    }
-    if (params.desktop || params.server_ee || params.server_de) {
-      buildArtifacts(platform, "commercial")
-      buildPackages(platform, "commercial")
-    }
+  if (params.desktop || params.server_ee || params.server_de) {
+    buildArtifacts(platform, "commercial")
+    buildPackages(platform, "commercial")
+  }
+
+  if (platform == "linux_x86_64_u16") {
     if (params.server_ce || params.server_ee || params.server_de) {
       buildDocker()
       tagRepos(allRepos, gitTag)
     }
-    if (params.test) linuxTest()
   }
-  if (platform == "linux_aarch64") {
-    if (params.core || params.builder || params.server_ce) {
-      buildArtifacts(platform, "opensource")
-      buildPackages(platform, "opensource")
-    }
-    if (params.desktop || params.server_ee || params.server_de) {
-      buildArtifacts(platform, "commercial")
-      buildPackages(platform, "commercial")
-    }
-  }
+
+  if (params.test) linuxTest()
 }
 
 void initializeAndroid(String platform = "android") {
@@ -854,11 +824,14 @@ void buildArtifacts(String platform, String license = 'opensource') {
 void buildPackages(String platform, String license = 'opensource') {
   Boolean isOpenSource = license == "opensource"
   Boolean isCommercial = license == "commercial"
-  Boolean pCore = platform in ["windows_x64", "windows_x86", "darwin_x86_64", "darwin_arm64", "linux_x86_64"]
+  Boolean pCore = platform in ["windows_x64", "windows_x86",
+                               "darwin_x86_64", "darwin_arm64",
+                               "linux_x86_64_u16"]
   Boolean pDesktop = !(platform in ["linux_aarch64", "android"])
-  Boolean pBuilder = platform in ["windows_x64", "linux_x86_64", "linux_aarch64"]
-  Boolean pServer = platform in ["windows_x64", "linux_x86_64", "linux_aarch64"]
+  Boolean pBuilder = platform in ["windows_x64", "linux_x86_64_u14", "linux_x86_64_u16", "linux_aarch64"]
+  Boolean pServer = platform in ["windows_x64", "linux_x86_64_u14", "linux_x86_64_u16", "linux_aarch64"]
   Boolean pMobile = platform == "android"
+
   ArrayList targets = []
   if (params.core && isOpenSource && pCore)        targets.add("core")
   if (params.desktop && isCommercial && pDesktop)  targets.add("desktop")
@@ -871,10 +844,12 @@ void buildPackages(String platform, String license = 'opensource') {
   targets.add("deploy")
   if (params.signing)                              targets.add("sign")
 
-  String args = " --platform ${platform}" \
-              + " --targets ${targets.join(' ')}" \
-              + " --version ${env.PRODUCT_VERSION}" \
-              + " --build ${env.BUILD_NUMBER}"
+  String args = " --platform ${platform}"
+  if (platform.startsWith("linux_x86_64"))
+    args = " --platform linux_x86_64"
+  args += " --targets ${targets.join(' ')}" \
+        + " --version ${env.PRODUCT_VERSION}" \
+        + " --build ${env.BUILD_NUMBER}"
   if (!branding.onlyoffice)
     args += " --branding ${branding.repo}"
 
@@ -903,7 +878,7 @@ void buildDocker() {
       --repo ONLYOFFICE/Docker-DocumentServer \
       --ref \$BRANCH_NAME \
       -f build=\$BUILD_NUMBER \
-      -f amd64=${params.linux_x86_64} \
+      -f amd64=${params.linux_x86_64_u16} \
       -f arm64=${params.linux_aarch64} \
       -f community=${params.server_ce} \
       -f enterprise=${params.server_ee} \
@@ -1206,6 +1181,7 @@ void linuxTest() {
 
 void generateReports() {
   Map deploy = deployData.groupBy { it.product }
+  println deploy
 
   Boolean core = deploy.core != null
   Boolean desktop = deploy.desktop != null
@@ -1241,10 +1217,12 @@ void publishReport(String title, Map files) {
         string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
       ]) {
-        sh "aws s3 cp --acl public-read --no-progress ${it.key} \
-          s3://repo-doc-onlyoffice-com/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/"
+        sh """
+            aws s3 cp --acl public-read --no-progress ${it.key} s3://${s3bucket}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/
+            aws s3 cp --acl public-read --no-progress ${it.key} s3://${s3bucket}/reports/${env.BRANCH_NAME}/latest/
+            echo https://s3.${s3region}.amazonaws.com/${s3bucket}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.key}
+        """
       }
-      echo "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.key}"
     } catch(Exception e) {
       echo "Caught: ${e}"
     }
@@ -1275,8 +1253,8 @@ def getHtml(ArrayList data) {
     types.groupBy { it.type }.each { type, files ->
       text += "\n<dt>${type}</dt>\n<dd>"
       files.each {
-        title = it.remote.minus(~/^.+\//)
-        url = "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/${it.remote}"
+        title = it.key.minus(~/^.+\//)
+        url = "https://s3.${it.region}.amazonaws.com/${it.bucket}/${it.key}"
         text += "\n<a href=\"${url}\">${title}</a> (${size(it.size)}B)<br>"
       }
       text += "\n</dd>"
