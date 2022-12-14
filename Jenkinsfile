@@ -802,14 +802,21 @@ def getVarRepos(String branch, String platform, String branding) {
       dir: (lineSplit[1] == null) ? "${lineSplit[0]}" : "${lineSplit[1]}/${lineSplit[0]}",
       tag: (!lineSplit[0].startsWith("plugin-") && lineSplit[0] != "onlyoffice.github.io")
     ]
-    if (branch != 'master') repo.branch = resolveScm(
-        source: [
-          $class: 'GitSCMSource',
-          remote: "git@github.com:${repo.owner}/${repo.name}.git",
-          traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
-        ],
-        targets: [branch, 'master']
-      ).branches[0].name
+    if (branch != 'master') {
+      int retryCount = 0
+      retry(3) {
+        if (retryCount > 0) sleep(60)
+        retryCount++
+        repo.branch = resolveScm(
+          source: [
+            $class: 'GitSCMSource',
+            remote: "git@github.com:${repo.owner}/${repo.name}.git",
+            traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
+          ],
+          targets: [branch, 'master']
+        ).branches[0].name
+      }
+    }
 
     repos.add(repo)
   }
