@@ -414,6 +414,7 @@ pipeline {
             beforeAgent true
           }
           environment {
+            S3_BUCKET = "repo-doc-onlyoffice-com"
             GITHUB_TOKEN = credentials('github-token')
           }
           steps {
@@ -432,6 +433,7 @@ pipeline {
             beforeAgent true
           }
           environment {
+            S3_BUCKET = "repo-doc-onlyoffice-com"
             GITHUB_TOKEN = credentials('github-token')
           }
           steps {
@@ -448,6 +450,10 @@ pipeline {
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
+          }
+          environment {
+            S3_BUCKET = "repo-doc-onlyoffice-com"
+            GITHUB_TOKEN = credentials('github-token')
           }
           steps {
             initializeLinux("linux_aarch64")
