@@ -82,6 +82,8 @@ pipeline {
     BUILD_CHANNEL = "${defaults.channel}"
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
+    S3_BUCKET = "repo-doc-onlyoffice-com"
+    S3_REGION = "eu-west-1"
   }
   options {
     checkoutToSubdirectory 'documents-pipeline'
@@ -414,7 +416,6 @@ pipeline {
             beforeAgent true
           }
           environment {
-            S3_BUCKET = "repo-doc-onlyoffice-com"
             GITHUB_TOKEN = credentials('github-token')
           }
           steps {
@@ -433,7 +434,6 @@ pipeline {
             beforeAgent true
           }
           environment {
-            S3_BUCKET = "repo-doc-onlyoffice-com"
             GITHUB_TOKEN = credentials('github-token')
           }
           steps {
@@ -450,10 +450,6 @@ pipeline {
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
-          }
-          environment {
-            S3_BUCKET = "repo-doc-onlyoffice-com"
-            GITHUB_TOKEN = credentials('github-token')
           }
           steps {
             initializeLinux("linux_aarch64")
@@ -946,9 +942,11 @@ void publishReport(String title, Map files) {
         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
       ]) {
         sh """
-            aws s3 cp --acl public-read --no-progress ${it.key} s3://${s3bucket}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/
-            aws s3 cp --acl public-read --no-progress ${it.key} s3://${s3bucket}/reports/${env.BRANCH_NAME}/latest/
-            echo https://s3.${s3region}.amazonaws.com/${s3bucket}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.key}
+            aws s3 cp --no-progress --acl public-read \
+              ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
+            aws s3 cp --no-progress --acl public-read \
+              ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/latest/
+            echo "https://s3.\$(aws configure get region).amazonaws.com/\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
         """
       }
     } catch(Exception e) {
