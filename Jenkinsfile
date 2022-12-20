@@ -689,7 +689,7 @@ def getVarRepos(String branch, String platform, String branding) {
   if (platforms[platform].isUnix) {
     reposOutput = sh(
       script: "cd build_tools/scripts/develop && \
-        ./print_repositories.py ${scriptArgs}",
+        python2 print_repositories.py ${scriptArgs}",
       returnStdout: true
     )
   } else {
@@ -802,13 +802,17 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
 
 void buildArtifacts(String platform, String license = 'opensource') {
   if (platforms[platform].isUnix) {
-    sh "cd build_tools && \
-      ./configure.py ${getConfigArgs(platforms[platform].build, license)} && \
-      ./make.py"
+    sh """
+      cd build_tools
+      python2 configure.py ${getConfigArgs(platforms[platform].build, license)}
+      python2 make.py
+    """
   } else {
-    bat "cd build_tools && \
-      call python configure.py ${getConfigArgs(platforms[platform].build, license)} && \
-      call python make.py"
+    bat """
+      cd build_tools
+      python configure.py ${getConfigArgs(platforms[platform].build, license)}
+      python make.py
+    """
   }
 }
 
@@ -845,9 +849,9 @@ void buildPackages(String platform, String license = 'opensource') {
     args += " --branding ${branding.repo}"
 
   if (platforms[platform].isUnix)
-    sh "cd build_tools && ./make_package.py ${args}"
+    sh "cd build_tools && python2 make_package.py ${args}"
   else
-    bat "cd build_tools && make_package.py ${args}"
+    bat "cd build_tools && python make_package.py ${args}"
 
   if (fileExists('deploy.json')) {
     def platformDeployData = readJSON(file: 'deploy.json')
