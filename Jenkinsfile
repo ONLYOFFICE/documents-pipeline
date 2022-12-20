@@ -255,10 +255,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "windows_x64"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -303,10 +300,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "windows_x86"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -348,10 +342,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "windows_x64_xp"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -388,10 +379,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "windows_x86_xp"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -428,10 +416,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "macos_x86_64"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -474,10 +459,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "macos_x86_64_v8"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
@@ -513,17 +495,15 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "macos_arm64"
               ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
               checkoutRepos(varRepos)
 
-              if (params.builder) {
+              if (params.core || params.builder) {
                 buildArtifacts(platform)
+                buildCore(platform)
                 buildBuilder(platform)
               }
 
@@ -553,10 +533,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "linux_x86_64_u14"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
@@ -599,10 +576,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "linux_x86_64_u16"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
@@ -650,10 +624,7 @@ pipeline {
             script {
               echo "NODE_NAME=" + env.NODE_NAME
 
-              if (params.wipe)
-                deleteDir()
-              else if (params.clean && params.desktop)
-                dir ('desktop-apps') { deleteDir() }
+              cleanBuildWs()
 
               String platform = "linux_aarch64"
               ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
@@ -740,17 +711,17 @@ pipeline {
   post {
     always {
       node('built-in') { script { generateReports() } }
-      script {
-        if (params.linux_x86_64 || params.linux_aarch64)
-          build (
-            job: 'repo-manager',
-            parameters: [
-              string (name: 'company', value: branding.company_lc),
-              string (name: 'branch', value: env.RELEASE_BRANCH)
-            ],
-            wait: false
-          )
-      }
+      // script {
+      //   if (params.linux_x86_64 || params.linux_aarch64)
+      //     build (
+      //       job: 'repo-manager',
+      //       parameters: [
+      //         string (name: 'company', value: branding.company_lc),
+      //         string (name: 'branch', value: env.RELEASE_BRANCH)
+      //       ],
+      //       wait: false
+      //     )
+      // }
     }
     fixed {
       node('built-in') { script { sendTelegramMessage('fixed') } }
@@ -831,19 +802,33 @@ def getVarRepos(String branch, String platform, String branding) {
       dir: (lineSplit[1] == null) ? "${lineSplit[0]}" : "${lineSplit[1]}/${lineSplit[0]}",
       tag: (!lineSplit[0].startsWith("plugin-") && lineSplit[0] != "onlyoffice.github.io")
     ]
-    if (branch != 'master') repo.branch = resolveScm(
-        source: [
-          $class: 'GitSCMSource',
-          remote: "git@github.com:${repo.owner}/${repo.name}.git",
-          traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
-        ],
-        targets: [branch, 'master']
-      ).branches[0].name
+    if (branch != 'master') {
+      int retryCount = 0
+      retry(3) {
+        if (retryCount > 0) sleep(60)
+        retryCount++
+        repo.branch = resolveScm(
+          source: [
+            $class: 'GitSCMSource',
+            remote: "git@github.com:${repo.owner}/${repo.name}.git",
+            traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
+          ],
+          targets: [branch, 'master']
+        ).branches[0].name
+      }
+    }
 
     repos.add(repo)
   }
 
   return repos
+}
+
+void cleanBuildWs() {
+  if (params.wipe)
+    deleteDir()
+  else if (params.clean && params.desktop)
+    dir ('desktop-apps') { deleteDir() }
 }
 
 void checkoutRepos(ArrayList repos) {
@@ -870,7 +855,7 @@ void tagRepos(ArrayList repos, String tag) {
 def getModules(String platform, String license = "any") {
   Boolean isOpenSource = license in ["opensource", "any"]
   Boolean isCommercial = license in ["commercial", "any"]
-  Boolean pCore = platform in ["win_64", "win_32", "mac_64", "linux_64", "linux_arm64"]
+  Boolean pCore = platform in ["win_64", "win_32", "mac_64", "mac_arm64", "linux_64", "linux_arm64"]
   Boolean pDesktop = platform != "linux_arm64"
   Boolean pBuilder = platform in ["win_64", "win_32", "mac_64", "mac_arm64", "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
@@ -944,6 +929,7 @@ void buildCore(String platform) {
     windows_x64:  [os: "windows", version: "${version}.${build}", arch: "x64"],
     windows_x86:  [os: "windows", version: "${version}.${build}", arch: "x86"],
     macos_x86_64: [os: "mac",     version: "${version}-${build}", arch: "x64"],
+    macos_arm64:  [os: "mac",     version: "${version}-${build}", arch: "arm"],
     linux_x86_64: [os: "linux",   version: "${version}-${build}", arch: "x64"],
     linux_x86_64_u14: [os: "linux", version: "${version}-${build}", arch: "x64"],
     linux_x86_64_u16: [os: "linux", version: "${version}-${build}", arch: "x64"]
@@ -1317,11 +1303,13 @@ void publishReport(String title, Map files) {
         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
       ]) {
         sh "aws s3 cp --acl public-read --no-progress ${it.key} \
-          s3://${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/"
+              s3://${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/ \
+            && aws s3 cp --acl public-read --no-progress ${it.key} \
+              s3://${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/latest/"
       }
       echo "https://s3.${s3region}.amazonaws.com/${s3bucket}/${branding.company_lc}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.key}"
     } catch(Exception e) {
-        echo "Caught: ${e}"
+      echo "Caught: ${e}"
     }
   }
   publishHTML([
