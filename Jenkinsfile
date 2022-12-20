@@ -24,7 +24,6 @@ defaults = [
   mobile:           true,
   password:         false,
   beta:             false,
-  test:             false,
   sign:             true,
   schedule:         'H 17 * * *'
 ]
@@ -207,11 +206,6 @@ pipeline {
       name:         'beta',
       description:  'Beta (enabled anyway on develop)',
       defaultValue: defaults.beta
-    )
-    booleanParam (
-      name:         'test',
-      description:  'Run test (Only on Linux)',
-      defaultValue: defaults.test
     )
     booleanParam (
       name:         'signing',
@@ -629,8 +623,6 @@ void initializeLinux(String platform) {
       tagRepos(allRepos, gitTag)
     }
   }
-
-  if (params.test) linuxTest()
 }
 
 void initializeAndroid(String platform = "android") {
@@ -782,8 +774,6 @@ def getModules(String platform, String license = "any") {
 
 def getConfigArgs(String platform = 'native', String license = 'opensource') {
   ArrayList modules = getModules(platform, license)
-  if (platform.startsWith("win")) modules.add("tests")
-
   ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
   args.add("--platform \"${platform}\"")
@@ -889,16 +879,6 @@ void checkDocker() {
     gh --repo \$REPO run watch \$RUN_ID --interval 15 > /dev/null
     gh --repo \$REPO run view \$RUN_ID --verbose --exit-status
   """
-}
-
-// Tests
-
-void linuxTest() {
-  checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing'], 'master')
-  sh "docker rmi doc-builder-testing || true"
-  sh "cd doc-builder-testing && \
-    docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
-    docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
 }
 
 // Reports
