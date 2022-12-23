@@ -77,7 +77,6 @@ pipeline {
   agent none
   environment {
     COMPANY_NAME = "ONLYOFFICE"
-    RELEASE_BRANCH = "${defaults.branch}"
     BUILD_CHANNEL = "${defaults.channel}"
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
@@ -689,7 +688,7 @@ def getVarRepos(String branch, String platform, String branding) {
   if (platforms[platform].isUnix) {
     reposOutput = sh(
       script: "cd build_tools/scripts/develop && \
-        python2 print_repositories.py ${scriptArgs}",
+        ./print_repositories.py ${scriptArgs}",
       returnStdout: true
     )
   } else {
@@ -804,8 +803,8 @@ void buildArtifacts(String platform, String license = 'opensource') {
   if (platforms[platform].isUnix) {
     sh """
       cd build_tools
-      python2 configure.py ${getConfigArgs(platforms[platform].build, license)}
-      python2 make.py
+      ./configure.py ${getConfigArgs(platforms[platform].build, license)}
+      ./make.py
     """
   } else {
     bat """
@@ -837,7 +836,7 @@ void buildPackages(String platform, String license = 'opensource') {
   if (params.mobile && isOpenSource && pMobile)    targets.add("mobile")
   targets.add("clean")
   targets.add("deploy")
-  if (params.signing)                              targets.add("sign")
+  if (params.signing && platform.startsWith("windows")) targets.add("sign")
 
   String args = " --platform ${platform}"
   if (platform.startsWith("linux_x86_64"))
@@ -849,7 +848,7 @@ void buildPackages(String platform, String license = 'opensource') {
     args += " --branding ${branding.repo}"
 
   if (platforms[platform].isUnix)
-    sh "cd build_tools && python2 make_package.py ${args}"
+    sh "cd build_tools && ./make_package.py ${args}"
   else
     bat "cd build_tools && python make_package.py ${args}"
 
