@@ -647,6 +647,7 @@ void checkoutRepo(
   int retryCount = 0
   retry(3) {
     if (retryCount > 0) sleep(30)
+    retryCount++
     checkout([
       $class: 'GitSCM',
       branches: [[name: 'refs/heads/' + branch]],
@@ -660,7 +661,6 @@ void checkoutRepo(
       submoduleCfg: [],
       userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
     ])
-    retryCount++
   }
 }
 
@@ -709,14 +709,19 @@ def getVarRepos(String branch, String platform, String branding) {
       tag: (line != "onlyoffice.github.io")
     ]
     if (branch != 'master') {
-      repo.branch = resolveScm(
-        source: [
-          $class: 'GitSCMSource',
-          remote: "git@github.com:${repo.owner}/${repo.name}.git",
-          traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
-        ],
-        targets: [branch, 'master']
-      ).branches[0].name
+      int retryCount = 0
+      retry(3) {
+        if (retryCount > 0) sleep(60)
+        retryCount++
+        repo.branch = resolveScm(
+          source: [
+            $class: 'GitSCMSource',
+            remote: "git@github.com:${repo.owner}/${repo.name}.git",
+            traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
+          ],
+          targets: [branch, 'master']
+        ).branches[0].name
+      }
     }
 
     repos.add(repo)
