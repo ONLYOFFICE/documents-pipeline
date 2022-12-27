@@ -81,7 +81,6 @@ pipeline {
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
     S3_BUCKET = "repo-doc-onlyoffice-com"
-    S3_REGION = "eu-west-1"
   }
   options {
     checkoutToSubdirectory 'documents-pipeline'
@@ -930,11 +929,13 @@ void publishReport(String title, Map files) {
         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
       ]) {
         sh """
-            aws s3 cp --no-progress --acl public-read \
-              ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
-            aws s3 cp --no-progress --acl public-read \
-              ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/latest/
-            echo "https://s3.\$(aws configure get region).amazonaws.com/\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
+          REPORT_PATH=\$S3_BUCKET/reports/\$BRANCH_NAME
+          aws s3 cp --no-progress --acl public-read \
+            ${it.key} s3://\$REPORT_PATH/\$BUILD_NUMBER/
+          echo "https://s3.eu-west-1.amazonaws.com/\$REPORT_PATH/\$BUILD_NUMBER/${it.key}"
+          aws s3 cp --no-progress --acl public-read \
+            ${it.key} s3://\$REPORT_PATH/latest/
+          echo "https://s3.eu-west-1.amazonaws.com/\$REPORT_PATH/latest/${it.key}"
         """
       }
     } catch(Exception e) {
