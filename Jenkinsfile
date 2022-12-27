@@ -24,7 +24,6 @@ defaults = [
   mobile:           true,
   password:         false,
   beta:             false,
-  test:             false,
   sign:             true,
   schedule:         'H 17 * * *'
 ]
@@ -78,10 +77,11 @@ pipeline {
   agent none
   environment {
     COMPANY_NAME = "ONLYOFFICE"
-    RELEASE_BRANCH = "${defaults.branch}"
     BUILD_CHANNEL = "${defaults.channel}"
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
+    S3_BUCKET = "repo-doc-onlyoffice-com"
+    S3_REGION = "eu-west-1"
   }
   options {
     checkoutToSubdirectory 'documents-pipeline'
@@ -205,11 +205,6 @@ pipeline {
       name:         'beta',
       description:  'Beta (enabled anyway on develop)',
       defaultValue: defaults.beta
-    )
-    booleanParam (
-      name:         'test',
-      description:  'Run test (Only on Linux)',
-      defaultValue: defaults.test
     )
     booleanParam (
       name:         'signing',
@@ -414,7 +409,6 @@ pipeline {
             beforeAgent true
           }
           environment {
-            S3_BUCKET = "repo-doc-onlyoffice-com"
             GITHUB_TOKEN = credentials('github-token')
           }
           steps {
@@ -433,7 +427,6 @@ pipeline {
             beforeAgent true
           }
           environment {
-            S3_BUCKET = "repo-doc-onlyoffice-com"
             GITHUB_TOKEN = credentials('github-token')
           }
           steps {
@@ -450,10 +443,6 @@ pipeline {
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
-          }
-          environment {
-            S3_BUCKET = "repo-doc-onlyoffice-com"
-            GITHUB_TOKEN = credentials('github-token')
           }
           steps {
             initializeLinux("linux_aarch64")
@@ -633,8 +622,6 @@ void initializeLinux(String platform) {
       tagRepos(allRepos, gitTag)
     }
   }
-
-  if (params.test) linuxTest()
 }
 
 void initializeAndroid(String platform = "android") {
@@ -660,6 +647,7 @@ void checkoutRepo(
   int retryCount = 0
   retry(3) {
     if (retryCount > 0) sleep(30)
+    retryCount++
     checkout([
       $class: 'GitSCM',
       branches: [[name: 'refs/heads/' + branch]],
@@ -673,7 +661,6 @@ void checkoutRepo(
       submoduleCfg: [],
       userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
     ])
-    retryCount++
   }
 }
 
@@ -722,14 +709,19 @@ def getVarRepos(String branch, String platform, String branding) {
       tag: (line != "onlyoffice.github.io")
     ]
     if (branch != 'master') {
-      repo.branch = resolveScm(
-        source: [
-          $class: 'GitSCMSource',
-          remote: "git@github.com:${repo.owner}/${repo.name}.git",
-          traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
-        ],
-        targets: [branch, 'master']
-      ).branches[0].name
+      int retryCount = 0
+      retry(3) {
+        if (retryCount > 0) sleep(60)
+        retryCount++
+        repo.branch = resolveScm(
+          source: [
+            $class: 'GitSCMSource',
+            remote: "git@github.com:${repo.owner}/${repo.name}.git",
+            traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
+          ],
+          targets: [branch, 'master']
+        ).branches[0].name
+      }
     }
 
     repos.add(repo)
@@ -786,8 +778,6 @@ def getModules(String platform, String license = "any") {
 
 def getConfigArgs(String platform = 'native', String license = 'opensource') {
   ArrayList modules = getModules(platform, license)
-  if (platform.startsWith("win")) modules.add("tests")
-
   ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
   args.add("--platform \"${platform}\"")
@@ -816,13 +806,17 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
 
 void buildArtifacts(String platform, String license = 'opensource') {
   if (platforms[platform].isUnix) {
-    sh "cd build_tools && \
-      ./configure.py ${getConfigArgs(platforms[platform].build, license)} && \
-      ./make.py"
+    sh """
+      cd build_tools
+      ./configure.py ${getConfigArgs(platforms[platform].build, license)}
+      ./make.py
+    """
   } else {
-    bat "cd build_tools && \
-      call python configure.py ${getConfigArgs(platforms[platform].build, license)} && \
-      call python make.py"
+    bat """
+      cd build_tools
+      python configure.py ${getConfigArgs(platforms[platform].build, license)}
+      python make.py
+    """
   }
 }
 
@@ -847,7 +841,7 @@ void buildPackages(String platform, String license = 'opensource') {
   if (params.mobile && isOpenSource && pMobile)    targets.add("mobile")
   targets.add("clean")
   targets.add("deploy")
-  if (params.signing)                              targets.add("sign")
+  if (params.signing && platform.startsWith("windows")) targets.add("sign")
 
   String args = " --platform ${platform}"
   if (platform.startsWith("linux_x86_64"))
@@ -861,7 +855,7 @@ void buildPackages(String platform, String license = 'opensource') {
   if (platforms[platform].isUnix)
     sh "cd build_tools && ./make_package.py ${args}"
   else
-    bat "cd build_tools && make_package.py ${args}"
+    bat "cd build_tools && python make_package.py ${args}"
 
   if (fileExists('deploy.json')) {
     def platformDeployData = readJSON(file: 'deploy.json')
@@ -893,16 +887,6 @@ void checkDocker() {
     gh --repo \$REPO run watch \$RUN_ID --interval 15 > /dev/null
     gh --repo \$REPO run view \$RUN_ID --verbose --exit-status
   """
-}
-
-// Tests
-
-void linuxTest() {
-  checkoutRepo([owner: 'ONLYOFFICE', name: 'doc-builder-testing'], 'master')
-  sh "docker rmi doc-builder-testing || true"
-  sh "cd doc-builder-testing && \
-    docker build --tag doc-builder-testing -f dockerfiles/debian-develop/Dockerfile . &&\
-    docker run --rm doc-builder-testing bundle exec parallel_rspec spec -n 2"
 }
 
 // Reports
@@ -946,9 +930,11 @@ void publishReport(String title, Map files) {
         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
       ]) {
         sh """
-            aws s3 cp --acl public-read --no-progress ${it.key} s3://${s3bucket}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/
-            aws s3 cp --acl public-read --no-progress ${it.key} s3://${s3bucket}/reports/${env.BRANCH_NAME}/latest/
-            echo https://s3.${s3region}.amazonaws.com/${s3bucket}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.key}
+            aws s3 cp --no-progress --acl public-read \
+              ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
+            aws s3 cp --no-progress --acl public-read \
+              ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/latest/
+            echo "https://s3.\$(aws configure get region).amazonaws.com/\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
         """
       }
     } catch(Exception e) {
