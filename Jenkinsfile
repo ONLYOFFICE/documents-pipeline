@@ -826,8 +826,12 @@ void buildPackages(String platform, String license = 'opensource') {
                                "darwin_x86_64", "darwin_arm64",
                                "linux_x86_64_u16"]
   Boolean pDesktop = !(platform in ["linux_aarch64", "android"])
-  Boolean pBuilder = platform in ["windows_x64", "linux_x86_64_u14", "linux_x86_64_u16", "linux_aarch64"]
-  Boolean pServer = platform in ["windows_x64", "linux_x86_64_u14", "linux_x86_64_u16", "linux_aarch64"]
+  Boolean pBuilder = platform in ["windows_x64", "windows_x86",
+                                  "linux_x86_64_u14", "linux_x86_64_u16",
+                                  "linux_aarch64"]
+  Boolean pServer = platform in ["windows_x64",
+                                 "linux_x86_64_u14", "linux_x86_64_u16",
+                                 "linux_aarch64"]
   Boolean pMobile = platform == "android"
 
   ArrayList targets = []
