@@ -484,7 +484,7 @@ pipeline {
       steps {
         script {
           catchError(
-            buildResult: 'SUCCESS',
+            buildResult: 'UNSTABLE',
             stageResult: 'FAILURE',
             message: 'Docker build failure'
           ) {
