@@ -38,12 +38,12 @@ pipeline {
     )
     string (
       name:         'vesion',
-      description:  'Release version (for start_release only)',
+      description:  'Release version (for start_release/hotfix only)',
       defaultValue: defaults.version
     )
     booleanParam (
       name:         'protect_branch',
-      description:  'Protect branch (for start_release only)',
+      description:  'Protect branch (for start_release/hotfix only)',
       defaultValue: defaults.protect_branch
     )
     string (
