@@ -5,11 +5,9 @@ defaults = [
   protect_branch: false
 ]
 
+if (BRANCH_NAME == 'master')  defaults.action_type.add('start_hotfix')
+if (BRANCH_NAME == 'develop') defaults.action_type.add('start_release')
 if (BRANCH_NAME in ['master', 'develop']) {
-  defaults.action_type.add('start_release')
-  if (BRANCH_NAME == 'master')  defaults.release_type = 'hotfix'
-  if (BRANCH_NAME == 'develop') defaults.release_type = 'release'
-  defaults.action_help = " (start for '${defaults.release_type}' on current branch)"
   defaults.version = '0.0.0'
   defaults.protect_branch = true
 } else if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
@@ -35,7 +33,7 @@ pipeline {
     )
     choice (
       name:         'action_type',
-      description:  "Action type" + defaults.action_help,
+      description:  "Action type",
       choices:      defaults.action_type
     )
     string (
@@ -68,6 +66,8 @@ pipeline {
             checkout scm
           }
           currentBuild.displayName += ' - ' + params.action_type
+          if (params.action_type in ['start_hotfix', 'start_release'])
+            currentBuild.displayName += ' ' + params.version
 
           stats = [repos: [:]]
           String branch = BRANCH_NAME
@@ -85,7 +85,7 @@ pipeline {
               status.primary = (pAction) ? 'success' : 'failure'
             }
 
-          } else if (params.action_type == 'start_release') {
+          } else if (params.action_type in ['start_hotfix', 'start_release']) {
 
             branch = defaults.release_type + '/v' + params.vesion
             baseBranches = [BRANCH_NAME]
