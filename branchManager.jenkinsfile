@@ -1,19 +1,25 @@
 defaults = [
   action_type: ['print_branches'],
   action_help: '',
-  version: '',
-  protect_branch: false
+  version: '0.0.0',
+  protect_branch: true
 ]
 
-if (BRANCH_NAME == 'master')  defaults.action_type.add('start_hotfix')
-if (BRANCH_NAME == 'develop') defaults.action_type.add('start_release')
-if (BRANCH_NAME in ['master', 'develop']) {
-  defaults.version = '0.0.0'
-  defaults.protect_branch = true
-} else if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
+if (BRANCH_NAME == 'master') {
+  defaults.action_type.add('start_hotfix')
+  defaults.branch_type = 'hotfix'
+}
+if (BRANCH_NAME == 'develop') {
+  defaults.action_type.add('start_release')
+  defaults.branch_type = 'release'
+}
+if (BRANCH_NAME ==~ /^(hotfix)\/.+/) {
+  defaults.action_type.addAll(['merge_hotfix', 'finish_hotfix', 'rename_hotfix', 'unprotect_hotfix'])
+  defaults.branch_type = 'hotfix'
+}
+if (BRANCH_NAME ==~ /^(release)\/.+/) {
   defaults.action_type.addAll(['merge_release', 'finish_release', 'rename_release', 'unprotect_release'])
-    if (BRANCH_NAME ==~ /^(hotfix)\/.+/) defaults.release_type = 'hotfix'
-    if (BRANCH_NAME ==~ /^(release)\/.+/) defaults.release_type = 'release'
+  defaults.branch_type = 'release'
 }
 
 pipeline {
@@ -37,7 +43,7 @@ pipeline {
       choices:      defaults.action_type
     )
     string (
-      name:         'vesion',
+      name:         'version',
       description:  'Release version (for start_release/hotfix only)',
       defaultValue: defaults.version
     )
@@ -87,7 +93,7 @@ pipeline {
 
           } else if (params.action_type in ['start_hotfix', 'start_release']) {
 
-            branch = defaults.release_type + '/v' + params.vesion
+            branch = defaults.branch_type + '/v' + params.version
             baseBranches = [BRANCH_NAME]
 
             stats.repos.each { repo, status ->
@@ -112,7 +118,7 @@ pipeline {
               }
             }
 
-          } else if (params.action_type == 'merge_release') {
+          } else if (params.action_type in ['merge_hotfix', 'merge_release']) {
 
             baseBranches = ['master']
 
@@ -129,7 +135,7 @@ pipeline {
               }
             }
 
-          } else if (params.action_type == 'finish_release') {
+          } else if (params.action_type in ['finish_hotfix', 'finish_release']) {
 
             baseBranches = ['master', 'develop']
             if (!params.extra_branch.isEmpty())
@@ -153,8 +159,8 @@ pipeline {
               }
             }
 
-          } else if (params.action_type == 'rename_release') {
-            branch = defaults.release_type + '/v' + params.vesion
+          } else if (params.action_type in ['rename_hotfix', 'rename_release']) {
+            branch = defaults.branch_type + '/v' + params.version
             baseBranches = [BRANCH_NAME]
 
             stats.repos.each { repo, status ->
@@ -183,7 +189,7 @@ pipeline {
               }
             }
             
-          } else if (params.action_type == 'unprotect_release') {
+          } else if (params.action_type in ['unprotect_hotfix', 'unprotect_release']) {
 
             stats.repos.each { repo, status ->
               pAction = unprotectBranch(repo, branch)
@@ -403,13 +409,13 @@ def sendNotification() {
   String chatId = '-1001346473906'
   String text = ''
   switch(params.action_type) {
-    case 'start_release':
+    case ['start_hotfix', 'start_release']:
       text = "Branch `${stats.branch}` created from `${stats.baseBranches[0]}`"
       break
-    case 'merge_release':
+    case ['merge_hotfix', 'merge_release']:
       text = "Branch `${stats.branch}` merged into `${stats.baseBranches[0]}`"
       break
-    case 'finish_release':
+    case ['finish_hotfix', 'finish_release']:
       text = "Branch `${stats.branch}` merged into "
       text += stats.baseBranches.collect({"`$it`"}).join(', ')
       break
@@ -432,7 +438,9 @@ def sendNotification() {
     text += " [${repo}](https://github.com/${repo})"
   }
 
-  if (params.action_type in ['start_release', 'merge_release', 'finish_release']
+  if (params.action_type in ['start_hotfix', 'start_release',
+                             'merge_hotfix', 'merge_release',
+                             'finish_hotfix', 'finish_release']
       && params.notify && stats.success > 0) {
     sh label: "Send Telegram Message", script: "curl -X POST -s -S \
       -d chat_id=${chatId} \
