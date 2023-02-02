@@ -81,7 +81,6 @@ pipeline {
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
     S3_BUCKET = "repo-doc-onlyoffice-com"
-    S3_REGION = "eu-west-1"
   }
   options {
     checkoutToSubdirectory 'documents-pipeline'
@@ -485,7 +484,7 @@ pipeline {
       steps {
         script {
           catchError(
-            buildResult: 'SUCCESS',
+            buildResult: 'UNSTABLE',
             stageResult: 'FAILURE',
             message: 'Docker build failure'
           ) {
@@ -754,9 +753,13 @@ void tagRepos(ArrayList repos, String tag) {
 def getModules(String platform, String license = "any") {
   Boolean isOpenSource = license in ["opensource", "any"]
   Boolean isCommercial = license in ["commercial", "any"]
-  Boolean pCore = platform in ["win_64", "win_32", "mac_64", "mac_arm64", "linux_64", "linux_arm64"]
+  Boolean pCore = platform in ["win_64", "win_32",
+                               "mac_64", "mac_arm64",
+                               "linux_64", "linux_arm64"]
   Boolean pDesktop = platform != "linux_arm64"
-  Boolean pBuilder = platform in ["win_64", "win_32", "mac_64", "mac_arm64", "linux_64", "linux_arm64"]
+  Boolean pBuilder = platform in ["win_64", "win_32",
+                                  "mac_64", "mac_arm64",
+                                  "linux_64", "linux_arm64"]
   Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
   Boolean pMobile = platform == "android"
 
@@ -827,8 +830,12 @@ void buildPackages(String platform, String license = 'opensource') {
                                "darwin_x86_64", "darwin_arm64",
                                "linux_x86_64_u16"]
   Boolean pDesktop = !(platform in ["linux_aarch64", "android"])
-  Boolean pBuilder = platform in ["windows_x64", "linux_x86_64_u14", "linux_x86_64_u16", "linux_aarch64"]
-  Boolean pServer = platform in ["windows_x64", "linux_x86_64_u14", "linux_x86_64_u16", "linux_aarch64"]
+  Boolean pBuilder = platform in ["windows_x64", "windows_x86",
+                                  "linux_x86_64_u14", "linux_x86_64_u16",
+                                  "linux_aarch64"]
+  Boolean pServer = platform in ["windows_x64",
+                                 "linux_x86_64_u14", "linux_x86_64_u16",
+                                 "linux_aarch64"]
   Boolean pMobile = platform == "android"
 
   ArrayList targets = []
@@ -930,11 +937,13 @@ void publishReport(String title, Map files) {
         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
       ]) {
         sh """
-            aws s3 cp --no-progress --acl public-read \
-              ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
-            aws s3 cp --no-progress --acl public-read \
-              ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/latest/
-            echo "https://s3.\$(aws configure get region).amazonaws.com/\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
+          REPORT_PATH=\$S3_BUCKET/reports/\$BRANCH_NAME
+          aws s3 cp --no-progress --acl public-read \
+            ${it.key} s3://\$REPORT_PATH/\$BUILD_NUMBER/
+          echo "https://s3.eu-west-1.amazonaws.com/\$REPORT_PATH/\$BUILD_NUMBER/${it.key}"
+          aws s3 cp --no-progress --acl public-read \
+            ${it.key} s3://\$REPORT_PATH/latest/
+          echo "https://s3.eu-west-1.amazonaws.com/\$REPORT_PATH/latest/${it.key}"
         """
       }
     } catch(Exception e) {
