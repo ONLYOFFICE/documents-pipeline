@@ -5,19 +5,19 @@ defaults = [
   protect_branch: true
 ]
 
-if (BRANCH_NAME == 'master') {
+if (env.BRANCH_NAME == 'master') {
   defaults.action_type.add('start_hotfix')
   defaults.branch_type = 'hotfix'
 }
-if (BRANCH_NAME == 'develop') {
+if (env.BRANCH_NAME == 'develop') {
   defaults.action_type.add('start_release')
   defaults.branch_type = 'release'
 }
-if (BRANCH_NAME ==~ /^(hotfix)\/.+/) {
+if (env.BRANCH_NAME ==~ /^(hotfix)\/.+/) {
   defaults.action_type.addAll(['merge_hotfix', 'finish_hotfix', 'rename_hotfix', 'unprotect_hotfix'])
   defaults.branch_type = 'hotfix'
 }
-if (BRANCH_NAME ==~ /^(release)\/.+/) {
+if (env.BRANCH_NAME ==~ /^(release)\/.+/) {
   defaults.action_type.addAll(['merge_release', 'finish_release', 'rename_release', 'unprotect_release'])
   defaults.branch_type = 'release'
 }
@@ -76,7 +76,7 @@ pipeline {
             currentBuild.displayName += ' ' + params.version
 
           stats = [repos: [:]]
-          String branch = BRANCH_NAME
+          String branch = env.BRANCH_NAME
           ArrayList baseBranches = []
           getRepos().each {
             stats.repos.put(it, [:])
@@ -94,7 +94,7 @@ pipeline {
           } else if (params.action_type in ['start_hotfix', 'start_release']) {
 
             branch = defaults.branch_type + '/v' + params.version
-            baseBranches = [BRANCH_NAME]
+            baseBranches = [env.BRANCH_NAME]
 
             stats.repos.each { repo, status ->
               if (checkRemoteBranch(repo, branch)) {
@@ -161,7 +161,7 @@ pipeline {
 
           } else if (params.action_type in ['rename_hotfix', 'rename_release']) {
             branch = defaults.branch_type + '/v' + params.version
-            baseBranches = [BRANCH_NAME]
+            baseBranches = [env.BRANCH_NAME]
 
             stats.repos.each { repo, status ->
               if (checkRemoteBranch(repo, branch)) {
@@ -169,23 +169,18 @@ pipeline {
                 status.primary = 'skip'
               } else {
                 dir ('repos/' + repo) {
-                  checkoutRepo(repo)
-                  if (!checkRemoteBranch(repo, 'develop')
-                    && !createBranch(repo, 'develop', 'master'))
-                    error("Can't create develop branch.")
-
-                  pAction = createBranch(repo, branch, baseBranches[0])          
+                  checkoutRepo(repo, env.BRANCH_NAME)
+                  pAction = createBranch(repo, branch, env.BRANCH_NAME)          
                   status.primary = (pAction) ? 'success' : 'failure'
-                  if (pAction && !repo.contains('documents-pipeline')) {
-                    sAction = unprotectBranch(repo, baseBranches[0])
-                    sAction = deleteBranch(repo, baseBranches[0])
-                  }
                 }
-              }
-
-              if (params.protect_branch) {
-                sAction = protectBranch(repo, branch)
-                status.secondary = (sAction) ? 'lock' : ''
+                if (pAction && params.protect_branch) {
+                  sAction = protectBranch(repo, branch)
+                  status.secondary = (sAction) ? 'lock' : ''
+                }
+                if (pAction) {
+                  unprotectBranch(repo, env.BRANCH_NAME)
+                  deleteBranch(repo, env.BRANCH_NAME)
+                }
               }
             }
             
