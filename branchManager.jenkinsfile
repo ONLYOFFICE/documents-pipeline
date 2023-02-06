@@ -172,14 +172,14 @@ pipeline {
                   checkoutRepo(repo, env.BRANCH_NAME)
                   pAction = createBranch(repo, branch, env.BRANCH_NAME)          
                   status.primary = (pAction) ? 'success' : 'failure'
-                }
-                if (pAction && params.protect_branch) {
-                  sAction = protectBranch(repo, branch)
-                  status.secondary = (sAction) ? 'lock' : ''
-                }
-                if (pAction) {
-                  unprotectBranch(repo, env.BRANCH_NAME)
-                  deleteBranch(repo, env.BRANCH_NAME)
+                  if (pAction) {
+                    unprotectBranch(repo, env.BRANCH_NAME)
+                    deleteBranch(repo, env.BRANCH_NAME)
+                    if (params.protect_branch) {
+                      sAction = protectBranch(repo, branch)
+                      status.secondary = (sAction) ? 'lock' : ''
+                    }
+                  }
                 }
               }
             }
