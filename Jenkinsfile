@@ -927,6 +927,7 @@ void generateReports() {
   if (mobile)
     publishReport("Mobile", ["mobile.html": deploy.mobile])
 
+  currentBuild.description = ""
   Map links = [:]
   if (core)      links["Core"] = "core.html"
   if (desktop)   links["DesktopEditors"] = "desktop.html"
