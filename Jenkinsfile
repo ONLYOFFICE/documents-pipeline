@@ -926,6 +926,19 @@ void generateReports() {
   }
   if (mobile)
     publishReport("Mobile", ["mobile.html": deploy.mobile])
+
+  Map links = [:]
+  if (core)      links["Core"] = "core.html"
+  if (desktop)   links["DesktopEditors"] = "desktop.html"
+  if (builder)   links["DocumentBuilder"] = "builder.html"
+  if (server_ce) links["DocumentServer CE"] = "server_community.html"
+  if (server_de) links["DocumentServer DE"] = "server_developer.html"
+  if (server_ee) links["DocumentServer EE"] = "server_enterprise.html"
+  if (mobile)    links["Mobile"] = "mobile.html"
+  links.each {
+    if (!currentBuild.description.isEmpty()) currentBuild.description += "<br>"
+    currentBuild.description += "<a href=\"https://s3.eu-west-1.amazonaws.com/${env.S3_BUCKET}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.value}\" target=\"_blank\">${it.key}</a>"
+  }
 }
 
 void publishReport(String title, Map files) {
