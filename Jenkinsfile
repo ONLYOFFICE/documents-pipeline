@@ -999,8 +999,7 @@ void setStageStats(int status, String stageName = env.STAGE_NAME) {
 
 void sendTelegramMessage(
   String jobStatus,
-  String chatId = '-1001773122025',
-  Boolean markdown = true
+  String chatId = '-1001773122025'
 ) {
   String text = "Build [" + currentBuild.fullDisplayName \
       + "](" + currentBuild.absoluteUrl + ") " + jobStatus
@@ -1013,7 +1012,7 @@ void sendTelegramMessage(
     label: "Send Telegram Message",
     script: "curl -X POST -s -S \
       -d chat_id=${chatId} \
-      ${markdown ? '-d parse_mode=markdown' : ''} \
+      -d parse_mode=markdown \
       -d disable_web_page_preview=true \
       --data-urlencode text='${text}' \
       https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
