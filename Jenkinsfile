@@ -822,6 +822,7 @@ void buildArtifacts(String platform, String license = 'opensource') {
       python make.py
     """
   }
+  archiveArtifacts artifacts: 'sdkjs/build/*.js.map', allowEmptyArchive: true
 }
 
 void buildPackages(String platform, String license = 'opensource') {
