@@ -808,6 +808,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
 }
 
 void buildArtifacts(String platform, String license = 'opensource') {
+  echo "${license} ${platform} build"
   if (platforms[platform].isUnix) {
     sh """
       cd build_tools
