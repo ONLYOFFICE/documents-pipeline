@@ -964,16 +964,16 @@ void publishReport(String title, Map files) {
       echo "Caught: ${e}"
     }
   }
-  publishHTML([
-    allowMissing: false,
-    alwaysLinkToLastBuild: true,
-    includes: files.collect({ it.key }).join(','),
-    keepAll: true,
-    reportDir: '',
-    reportFiles: files.collect({ it.key }).join(','),
-    reportName: title,
-    reportTitles: ''
-  ])
+  // publishHTML([
+  //   allowMissing: false,
+  //   alwaysLinkToLastBuild: true,
+  //   includes: files.collect({ it.key }).join(','),
+  //   keepAll: true,
+  //   reportDir: '',
+  //   reportFiles: files.collect({ it.key }).join(','),
+  //   reportName: title,
+  //   reportTitles: ''
+  // ])
 }
 
 def getHtml(ArrayList data) {
