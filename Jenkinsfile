@@ -81,6 +81,7 @@ pipeline {
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
     S3_BUCKET = "repo-doc-onlyoffice-com"
+    S3_BASE_URL = "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com"
   }
   options {
     checkoutToSubdirectory 'documents-pipeline'
@@ -808,7 +809,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
 }
 
 void buildArtifacts(String platform, String license = 'opensource') {
-  echo "${license} ${platform} build"
+  echo "${platform} ${license} build"
   if (platforms[platform].isUnix) {
     sh """
       cd build_tools
@@ -855,8 +856,7 @@ void buildPackages(String platform, String license = 'opensource') {
   if (params.signing && platform.startsWith("windows")) targets.add("sign")
 
   String args = " --platform ${platform}"
-  if (platform.startsWith("linux_x86_64"))
-    args = " --platform linux_x86_64"
+  if (platform.startsWith("linux_x86_64")) args = " --platform linux_x86_64"
   args += " --targets ${targets.join(' ')}" \
         + " --version ${env.PRODUCT_VERSION}" \
         + " --build ${env.BUILD_NUMBER}"
@@ -941,13 +941,12 @@ void publishReport(String title, Map files) {
         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
       ]) {
         sh """
-          REPORT_PATH=\$S3_BUCKET/reports/\$BRANCH_NAME
           aws s3 cp --no-progress --acl public-read \
-            ${it.key} s3://\$REPORT_PATH/\$BUILD_NUMBER/
-          echo "https://s3.eu-west-1.amazonaws.com/\$REPORT_PATH/\$BUILD_NUMBER/${it.key}"
+            ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
+          echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
           aws s3 cp --no-progress --acl public-read \
-            ${it.key} s3://\$REPORT_PATH/latest/
-          echo "https://s3.eu-west-1.amazonaws.com/\$REPORT_PATH/latest/${it.key}"
+            ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/latest/
+          echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/latest/${it.key}"
         """
       }
     } catch(Exception e) {
@@ -981,7 +980,7 @@ def getHtml(ArrayList data) {
       text += "\n<dt>${type}</dt>\n<dd>"
       files.each {
         title = it.key.minus(~/^.+\//)
-        url = "https://s3.${it.region}.amazonaws.com/${it.bucket}/${it.key}"
+        url = "${env.S3_BASE_URL}/${it.key}"
         text += "\n<a href=\"${url}\">${title}</a> (${size(it.size)}B)<br>"
       }
       text += "\n</dd>"
