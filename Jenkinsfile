@@ -13,6 +13,7 @@ defaults = [
   linux_x86_64:     true,
   linux_x86_64_u14: true,
   linux_x86_64_u16: true,
+  linux_x86_64_u16_cef107: true,
   linux_aarch64:    true,
   android:          true,
   core:             true,
@@ -69,6 +70,7 @@ platforms = [
   linux_x86_64:     [title: "Linux x86_64",    build: "linux_64",    isUnix: true ],
   linux_x86_64_u14: [title: "Linux x86_64 (Ubuntu 14)", build: "linux_64", isUnix: true ],
   linux_x86_64_u16: [title: "Linux x86_64 (Ubuntu 16)", build: "linux_64", isUnix: true ],
+  linux_x86_64_u16_cef107: [title: "Linux x86_64 (Ubuntu 16, cef107)", build: "linux_64", isUnix: true ],
   linux_aarch64:    [title: "Linux aarch64",   build: "linux_arm64", isUnix: true ],
   android:          [title: "Android",         build: "android",     isUnix: true ]
 ]
@@ -136,15 +138,22 @@ pipeline {
       defaultValue: defaults.darwin_arm64
     )
     // Linux
+    /*
     booleanParam (
       name:         'linux_x86_64_u14',
       description:  'Build Linux x86-64 (Ubuntu 14) targets',
       defaultValue: defaults.linux_x86_64_u14
     )
+    */
     booleanParam (
       name:         'linux_x86_64_u16',
       description:  'Build Linux x86-64 (Ubuntu 16) targets',
       defaultValue: defaults.linux_x86_64_u16
+    )
+    booleanParam (
+      name:         'linux_x86_64_u16_cef107',
+      description:  'Build Linux x86-64 (Ubuntu 16, cef107) targets',
+      defaultValue: defaults.linux_x86_64_u16_cef107
     )
     booleanParam (
       name:         'linux_aarch64',
@@ -402,6 +411,7 @@ pipeline {
           }
         }
         // Linux
+        /*
         stage('Linux x86_64 (Ubuntu 14)') {
           agent { label 'linux_x86_64_u14' }
           when {
@@ -410,6 +420,10 @@ pipeline {
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
+            TAR_RELEASE_SUFFIX = "gcc4"
+            DEB_RELEASE_SUFFIX = "jessie"
+            RPM_RELEASE_SUFFIX = "el7"
+            SUSE_RPM_RELEASE_SUFFIX = "suse12"
           }
           steps {
             initializeLinux("linux_x86_64_u14")
@@ -420,6 +434,7 @@ pipeline {
             failure  { setStageStats(2) }
           }
         }
+        */
         stage('Linux x86_64 (Ubuntu 16)') {
           agent { label 'linux_x86_64_u16' }
           when {
@@ -428,9 +443,36 @@ pipeline {
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
+            TAR_RELEASE_SUFFIX = "gcc5"
+            DEB_RELEASE_SUFFIX = "stretch"
+            RPM_RELEASE_SUFFIX = "el8"
+            SUSE_RPM_RELEASE_SUFFIX = "suse15"
           }
           steps {
             initializeLinux("linux_x86_64_u16")
+          }
+          post {
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
+          }
+        }
+        stage('Linux x86_64 (Ubuntu 16, cef107)') {
+          agent { label 'linux_x86_64_u16_cef107' }
+          when {
+            expression { params.linux_x86_64_u16_cef107 }
+            beforeAgent true
+          }
+          environment {
+            GITHUB_TOKEN = credentials('github-token')
+            TAR_RELEASE_SUFFIX = "gcc5-cef107"
+            DEB_RELEASE_SUFFIX = "stretch-cef107"
+            RPM_RELEASE_SUFFIX = "el8.cef107"
+            SUSE_RPM_RELEASE_SUFFIX = "suse15.cef107"
+            USE_CEF107 = '1'
+          }
+          steps {
+            initializeLinux("linux_x86_64_u16_cef107")
           }
           post {
             success  { setStageStats(0) }
@@ -443,6 +485,12 @@ pipeline {
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
+          }
+          environment {
+            TAR_RELEASE_SUFFIX = "gcc5"
+            DEB_RELEASE_SUFFIX = "stretch"
+            RPM_RELEASE_SUFFIX = "el8"
+            SUSE_RPM_RELEASE_SUFFIX = "suse15"
           }
           steps {
             initializeLinux("linux_aarch64")
@@ -607,13 +655,20 @@ void initializeLinux(String platform) {
   ArrayList allRepos = constRepos.plus(varRepos)
   checkoutRepos(varRepos)
 
-  if (params.core || params.builder || params.server_ce) {
-    buildArtifacts(platform, "opensource")
-    buildPackages(platform, "opensource")
-  }
-  if (params.desktop || params.server_ee || params.server_de) {
-    buildArtifacts(platform, "commercial")
-    buildPackages(platform, "commercial")
+  if (platform != "linux_x86_64_u16_cef107") {
+    if (params.core || params.builder || params.server_ce) {
+      buildArtifacts(platform, "opensource")
+      buildPackages(platform, "opensource")
+    }
+    if (params.desktop || params.server_ee || params.server_de) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
+    }
+  } else {
+    if (params.desktop) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
+    }
   }
 
   if (platform == "linux_x86_64_u16") {
@@ -796,6 +851,8 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
     args.add("--vs-version 2019")
   if (platform == "mac_64" && env.USE_V8 == "1")
     args.add("--config use_v8")
+  if (platform == "linux_64" && env.USE_CEF107 == "1")
+    args.add("--config cef_version_107")
   if (platform == "android")
     args.add("--config release")
   // if (params.password_protection)
