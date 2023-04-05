@@ -222,9 +222,9 @@ pipeline {
       defaultValue: true
     )
   }
-  // triggers {
-  //   cron(defaults.schedule)
-  // }
+  triggers {
+    cron(defaults.schedule)
+  }
   stages {
     stage('Prepare') {
       steps {
