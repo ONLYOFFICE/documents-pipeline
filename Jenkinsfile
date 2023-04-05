@@ -1043,6 +1043,7 @@ def getHtml(ArrayList data) {
   }
 
   text = "<html>\n<head>" \
+    + "\n<title>${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</title>" \
     + "\n<link rel=\"stylesheet\" href=\"https://unpkg.com/@primer/css@20.4.1/dist/primer.css\">" \
     + "\n</head>\n<body><div class=\"container-lg px-3 my-5 markdown-body\">"
   data.groupBy { it.platform }.sort().each { platform, types ->
