@@ -11,7 +11,7 @@ defaults = [
   darwin_x86_64_v8: true,
   darwin_arm64:     true,
   linux_x86_64:     true,
-  linux_x86_64_u14: true,
+  linux_x86_64_u14: false,
   linux_x86_64_u16: true,
   linux_aarch64:    true,
   android:          true,
