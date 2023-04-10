@@ -443,9 +443,9 @@ pipeline {
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
-            TAR_RELEASE_SUFFIX = "gcc5"
-            DEB_RELEASE_SUFFIX = "stretch"
-            RPM_RELEASE_SUFFIX = "el8"
+            // TAR_RELEASE_SUFFIX = "gcc5"
+            // DEB_RELEASE_SUFFIX = "stretch"
+            RPM_RELEASE_SUFFIX = "el7"
             SUSE_RPM_RELEASE_SUFFIX = "suse15"
           }
           steps {
@@ -465,9 +465,9 @@ pipeline {
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
-            TAR_RELEASE_SUFFIX = "gcc5-cef107"
-            DEB_RELEASE_SUFFIX = "stretch-cef107"
-            RPM_RELEASE_SUFFIX = "el8.cef107"
+            TAR_RELEASE_SUFFIX = "cef107"
+            DEB_RELEASE_SUFFIX = "cef107"
+            RPM_RELEASE_SUFFIX = "el7.cef107"
             SUSE_RPM_RELEASE_SUFFIX = "suse15.cef107"
             USE_CEF107 = '1'
           }
@@ -487,9 +487,9 @@ pipeline {
             beforeAgent true
           }
           environment {
-            TAR_RELEASE_SUFFIX = "gcc5"
-            DEB_RELEASE_SUFFIX = "stretch"
-            RPM_RELEASE_SUFFIX = "el8"
+            // TAR_RELEASE_SUFFIX = "gcc5"
+            // DEB_RELEASE_SUFFIX = "stretch"
+            RPM_RELEASE_SUFFIX = "el7"
             SUSE_RPM_RELEASE_SUFFIX = "suse15"
           }
           steps {
