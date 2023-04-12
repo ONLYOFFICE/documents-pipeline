@@ -998,7 +998,7 @@ void generateReports() {
   if (server_ee) links["DocumentServer EE"] = "server_enterprise.html"
   if (mobile)    links["Mobile"] = "mobile.html"
   links.each {
-    if (!currentBuild.description.isEmpty()) currentBuild.description += "<br>"
+    if (!currentBuild.description.isEmpty()) currentBuild.description += " / "
     currentBuild.description += "<a href=\"https://s3.eu-west-1.amazonaws.com/${env.S3_BUCKET}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.value}\" target=\"_blank\">${it.key}</a>"
   }
 }
