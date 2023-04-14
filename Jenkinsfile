@@ -867,14 +867,15 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
 
 void buildArtifacts(String platform, String license = 'opensource') {
   echo "${platform} ${license} build"
+  String label = "${platform} ${license} artifacts".toUpperCase()
   if (platforms[platform].isUnix) {
-    sh """
+    sh label: label, script: """
       cd build_tools
       ./configure.py ${getConfigArgs(platforms[platform].build, license)}
       ./make.py
     """
   } else {
-    bat """
+    bat label: label, script: """
       cd build_tools
       python configure.py ${getConfigArgs(platforms[platform].build, license)}
       python make.py
@@ -920,10 +921,11 @@ void buildPackages(String platform, String license = 'opensource') {
   if (!branding.onlyoffice)
     args += " --branding ${branding.repo}"
 
+  String label = "${platform} ${license} packages".toUpperCase()
   if (platforms[platform].isUnix)
-    sh "cd build_tools && ./make_package.py ${args}"
+    sh label: label, script: "cd build_tools && ./make_package.py ${args}"
   else
-    bat "cd build_tools && python make_package.py ${args}"
+    bat label: label, script: "cd build_tools && python make_package.py ${args}"
 
   if (fileExists('deploy.json')) {
     def platformDeployData = readJSON(file: 'deploy.json')
