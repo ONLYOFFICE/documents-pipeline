@@ -867,7 +867,7 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
 
 void buildArtifacts(String platform, String license = 'opensource') {
   echo "${platform} ${license} build"
-  String label = "${platform} ${license} artifacts".toUpperCase()
+  String label = "artifacts ${license}".toUpperCase()
   if (platforms[platform].isUnix) {
     sh label: label, script: """
       cd build_tools
@@ -921,7 +921,7 @@ void buildPackages(String platform, String license = 'opensource') {
   if (!branding.onlyoffice)
     args += " --branding ${branding.repo}"
 
-  String label = "${platform} ${license} packages".toUpperCase()
+  String label = "packages ${license}".toUpperCase()
   if (platforms[platform].isUnix)
     sh label: label, script: "cd build_tools && ./make_package.py ${args}"
   else
