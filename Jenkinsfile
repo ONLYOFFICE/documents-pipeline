@@ -1001,7 +1001,7 @@ void generateReports() {
   if (mobile)    links["Mobile"] = "mobile.html"
   links.each {
     if (!currentBuild.description.isEmpty()) currentBuild.description += " / "
-    currentBuild.description += "<a href=\"https://s3.eu-west-1.amazonaws.com/${env.S3_BUCKET}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.value}\" target=\"_blank\">${it.key}</a>"
+    currentBuild.description += "<a href=\"${env.S3_BASE_URL}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.value}\" target=\"_blank\">${it.key}</a>"
   }
 }
 
