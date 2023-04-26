@@ -8,11 +8,10 @@ defaults = [
   windows_x64_xp:   true,
   windows_x86_xp:   true,
   darwin_x86_64:    true,
-  darwin_x86_64_v8: true,
   darwin_arm64:     true,
+  darwin_x86_64_v8: true,
   linux_x86_64:     true,
-  linux_x86_64_u14: false,
-  linux_x86_64_u16: true,
+  linux_x86_64_cef: true,
   linux_aarch64:    true,
   android:          true,
   core:             true,
@@ -58,21 +57,6 @@ branding = [
   repo:        "onlyoffice",
 ]
 
-platforms = [
-  windows_x64:      [title: "Windows x64",     build: "win_64",      isUnix: false],
-  windows_x64_xp:   [title: "Windows x64 XP",  build: "win_64_xp",   isUnix: false],
-  windows_x86:      [title: "Windows x86",     build: "win_32",      isUnix: false],
-  windows_x86_xp:   [title: "Windows x86 XP",  build: "win_32_xp",   isUnix: false],
-  darwin_x86_64:    [title: "macOS x86_64",    build: "mac_64",      isUnix: true ],
-  darwin_x86_64_v8: [title: "macOS x86_64 V8", build: "mac_64",      isUnix: true ],
-  darwin_arm64:     [title: "macOS arm64",     build: "mac_arm64",   isUnix: true ],
-  linux_x86_64:     [title: "Linux x86_64",    build: "linux_64",    isUnix: true ],
-  linux_x86_64_u14: [title: "Linux x86_64 (Ubuntu 14)", build: "linux_64", isUnix: true ],
-  linux_x86_64_u16: [title: "Linux x86_64 (Ubuntu 16)", build: "linux_64", isUnix: true ],
-  linux_aarch64:    [title: "Linux aarch64",   build: "linux_arm64", isUnix: true ],
-  android:          [title: "Android",         build: "android",     isUnix: true ]
-]
-
 pipeline {
   agent none
   environment {
@@ -81,6 +65,7 @@ pipeline {
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
     S3_BUCKET = "repo-doc-onlyoffice-com"
+    S3_BASE_URL = "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com"
   }
   options {
     checkoutToSubdirectory 'documents-pipeline'
@@ -125,25 +110,25 @@ pipeline {
       defaultValue: defaults.darwin_x86_64
     )
     booleanParam (
-      name:         'darwin_x86_64_v8',
-      description:  'Build macOS x86-64 V8 targets',
-      defaultValue: defaults.darwin_x86_64_v8
-    )
-    booleanParam (
       name:         'darwin_arm64',
       description:  'Build macOS arm64 targets',
       defaultValue: defaults.darwin_arm64
     )
+    booleanParam (
+      name:         'darwin_x86_64_v8',
+      description:  'Build macOS x86-64 V8 targets',
+      defaultValue: defaults.darwin_x86_64_v8
+    )
     // Linux
     booleanParam (
-      name:         'linux_x86_64_u14',
-      description:  'Build Linux x86-64 (Ubuntu 14) targets',
-      defaultValue: defaults.linux_x86_64_u14
+      name:         'linux_x86_64',
+      description:  'Build Linux x86-64 targets',
+      defaultValue: defaults.linux_x86_64
     )
     booleanParam (
-      name:         'linux_x86_64_u16',
-      description:  'Build Linux x86-64 (Ubuntu 16) targets',
-      defaultValue: defaults.linux_x86_64_u16
+      name:         'linux_x86_64_cef',
+      description:  'Build Linux x86-64 cef107 targets',
+      defaultValue: defaults.linux_x86_64_cef
     )
     booleanParam (
       name:         'linux_aarch64',
@@ -353,6 +338,29 @@ pipeline {
             failure  { setStageStats(2) }
           }
         }
+        stage('macOS arm64') {
+          agent { label 'darwin_arm64' }
+          when {
+            expression { params.darwin_arm64 }
+            beforeAgent true
+          }
+          environment {
+            FASTLANE_HIDE_TIMESTAMP = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+          }
+          steps {
+            initializeDarwin("darwin_arm64")
+          }
+          post {
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
+          }
+        }
         stage('macOS x86_64 V8') {
           agent { label 'darwin_x86_64_v8' }
           when {
@@ -377,41 +385,22 @@ pipeline {
             failure  { setStageStats(2) }
           }
         }
-        stage('macOS arm64') {
-          agent { label 'darwin_arm64' }
-          when {
-            expression { params.darwin_arm64 }
-            beforeAgent true
-          }
-          environment {
-            FASTLANE_HIDE_TIMESTAMP = '1'
-            FASTLANE_SKIP_UPDATE_CHECK = '1'
-            APPLE_ID = credentials('macos-apple-id')
-            TEAM_ID = credentials('macos-team-id')
-            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
-            CODESIGNING_IDENTITY = 'Developer ID Application'
-          }
-          steps {
-            initializeDarwin("darwin_arm64")
-          }
-          post {
-            success  { setStageStats(0) }
-            unstable { setStageStats(1) }
-            failure  { setStageStats(2) }
-          }
-        }
         // Linux
-        stage('Linux x86_64 (Ubuntu 14)') {
-          agent { label 'linux_x86_64_u14' }
+        stage('Linux x86_64') {
+          agent { label 'linux_x86_64' }
           when {
-            expression { params.linux_x86_64_u14 }
+            expression { params.linux_x86_64 }
             beforeAgent true
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
+            // TAR_RELEASE_SUFFIX = "gcc5"
+            // DEB_RELEASE_SUFFIX = "stretch"
+            RPM_RELEASE_SUFFIX = "el7"
+            SUSE_RPM_RELEASE_SUFFIX = "suse15"
           }
           steps {
-            initializeLinux("linux_x86_64_u14")
+            initializeLinux("linux_x86_64")
           }
           post {
             success  { setStageStats(0) }
@@ -419,17 +408,22 @@ pipeline {
             failure  { setStageStats(2) }
           }
         }
-        stage('Linux x86_64 (Ubuntu 16)') {
-          agent { label 'linux_x86_64_u16' }
+        stage('Linux x86_64 cef107') {
+          agent { label 'linux_x86_64_cef' }
           when {
-            expression { params.linux_x86_64_u16 }
+            expression { params.linux_x86_64_cef }
             beforeAgent true
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
+            TAR_RELEASE_SUFFIX = "cef107"
+            DEB_RELEASE_SUFFIX = "cef107"
+            RPM_RELEASE_SUFFIX = "el7.cef107"
+            SUSE_RPM_RELEASE_SUFFIX = "suse15.cef107"
+            USE_CEF107 = '1'
           }
           steps {
-            initializeLinux("linux_x86_64_u16")
+            initializeLinux("linux_x86_64_cef")
           }
           post {
             success  { setStageStats(0) }
@@ -437,11 +431,17 @@ pipeline {
             failure  { setStageStats(2) }
           }
         }
-        stage('Linux aarch64 (Ubuntu 16)') {
+        stage('Linux aarch64') {
           agent { label 'linux_aarch64' }
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
+          }
+          environment {
+            // TAR_RELEASE_SUFFIX = "gcc5"
+            // DEB_RELEASE_SUFFIX = "stretch"
+            RPM_RELEASE_SUFFIX = "el7"
+            SUSE_RPM_RELEASE_SUFFIX = "suse15"
           }
           steps {
             initializeLinux("linux_aarch64")
@@ -471,13 +471,13 @@ pipeline {
       }
     }
     stage('Docker') {
-      agent { label 'linux_x86_64 || linux_x86_64_u14 || linux_x86_64_u16 || linux_aarch64' }
+      agent { label 'linux_x86_64 || linux_aarch64' }
       environment {
         GITHUB_TOKEN = credentials('github-token')
       }
       when {
         expression {
-          (params.linux_x86_64_u16 || params.linux_aarch64) && (params.server_ce || params.server_ee || params.server_de)
+          (params.linux_x86_64 || params.linux_aarch64) && (params.server_ce || params.server_ee || params.server_de)
         }
         beforeAgent true
       }
@@ -524,6 +524,26 @@ pipeline {
       node('built-in') { script { sendTelegramMessage('failure') } }
     }
   }
+}
+
+String platformBuild(String platform) {
+  return [
+    windows_x64:      "win_64",
+    windows_x64_xp:   "win_64_xp",
+    windows_x86:      "win_32",
+    windows_x86_xp:   "win_32_xp",
+    darwin_x86_64:    "mac_64",
+    darwin_arm64:     "mac_arm64",
+    darwin_x86_64_v8: "mac_64",
+    linux_x86_64:     "linux_64",
+    linux_x86_64_cef: "linux_64",
+    linux_aarch64:    "linux_arm64",
+    android:          "android",
+  ][platform]
+}
+
+Boolean platformIsUnix(String platform) {
+  return !platform.startsWith("windows")
 }
 
 // Stages
@@ -606,19 +626,26 @@ void initializeLinux(String platform) {
   ArrayList allRepos = constRepos.plus(varRepos)
   checkoutRepos(varRepos)
 
-  if (params.core || params.builder || params.server_ce) {
-    buildArtifacts(platform, "opensource")
-    buildPackages(platform, "opensource")
-  }
-  if (params.desktop || params.server_ee || params.server_de) {
-    buildArtifacts(platform, "commercial")
-    buildPackages(platform, "commercial")
-  }
+  if (platform == "linux_x86_64") {
+    if (params.core || params.builder || params.server_ce) {
+      buildArtifacts(platform, "opensource")
+      buildPackages(platform, "opensource")
+    }
+    if (params.desktop || params.server_ee || params.server_de) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
+    }
 
-  if (platform == "linux_x86_64_u16") {
     if (params.server_ce || params.server_ee || params.server_de) {
       buildDocker()
       tagRepos(allRepos, gitTag)
+    }
+  }
+
+  if (platform == "linux_x86_64_cef") {
+    if (params.desktop) {
+      buildArtifacts(platform, "commercial")
+      buildPackages(platform, "commercial")
     }
   }
 }
@@ -677,14 +704,14 @@ def getConstRepos(String branch = 'master') {
 def getVarRepos(String branch, String platform, String branding) {
   checkoutRepos(getConstRepos(branch))
 
-  String modules = getModules(platforms[platform].build).join(' ')
+  String modules = getModules(platformBuild(platform)).join(' ')
   String scriptArgs = ""
   if (!modules.isEmpty()) scriptArgs = "--module \"${modules}\""
-  if (platform != null) scriptArgs += " --platform \"${platforms[platform].build}\""
+  if (platform != null) scriptArgs += " --platform \"${platformBuild(platform)}\""
   if (branding != null) scriptArgs += " --branding \"${branding}\""
 
   String reposOutput
-  if (platforms[platform].isUnix) {
+  if (platformIsUnix(platform)) {
     reposOutput = sh(
       script: "cd build_tools/scripts/develop && \
         ./print_repositories.py ${scriptArgs}",
@@ -795,6 +822,8 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
     args.add("--vs-version 2019")
   if (platform == "mac_64" && env.USE_V8 == "1")
     args.add("--config use_v8")
+  if (platform == "linux_64" && env.USE_CEF107 == "1")
+    args.add("--config cef_version_107")
   if (platform == "android")
     args.add("--config release")
   // if (params.password_protection)
@@ -808,16 +837,18 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
 }
 
 void buildArtifacts(String platform, String license = 'opensource') {
-  if (platforms[platform].isUnix) {
-    sh """
+  echo "${platform} ${license} build"
+  String label = "artifacts ${license}".toUpperCase()
+  if (platformIsUnix(platform)) {
+    sh label: label, script: """
       cd build_tools
-      ./configure.py ${getConfigArgs(platforms[platform].build, license)}
+      ./configure.py ${getConfigArgs(platformBuild(platform), license)}
       ./make.py
     """
   } else {
-    bat """
+    bat label: label, script: """
       cd build_tools
-      python configure.py ${getConfigArgs(platforms[platform].build, license)}
+      python configure.py ${getConfigArgs(platformBuild(platform), license)}
       python make.py
     """
   }
@@ -828,18 +859,21 @@ void buildPackages(String platform, String license = 'opensource') {
   Boolean isCommercial = license == "commercial"
   Boolean pCore = platform in ["windows_x64", "windows_x86",
                                "darwin_x86_64", "darwin_arm64",
-                               "linux_x86_64_u16"]
+                               "linux_x86_64"]
+  Boolean pClosureMaps = platform == "linux_x86_64"
   Boolean pDesktop = !(platform in ["linux_aarch64", "android"])
   Boolean pBuilder = platform in ["windows_x64", "windows_x86",
-                                  "linux_x86_64_u14", "linux_x86_64_u16",
+                                  "linux_x86_64",
                                   "linux_aarch64"]
   Boolean pServer = platform in ["windows_x64",
-                                 "linux_x86_64_u14", "linux_x86_64_u16",
+                                 "linux_x86_64",
                                  "linux_aarch64"]
   Boolean pMobile = platform == "android"
 
   ArrayList targets = []
   if (params.core && isOpenSource && pCore)        targets.add("core")
+  if (isOpenSource && pClosureMaps)                targets.add("closure-maps-os")
+  if (isCommercial && pClosureMaps)                targets.add("closure-maps-com")
   if (params.desktop && isCommercial && pDesktop)  targets.add("desktop")
   if (params.builder && isOpenSource && pBuilder)  targets.add("builder")
   if (params.server_ce && isOpenSource && pServer) targets.add("server-community")
@@ -851,18 +885,18 @@ void buildPackages(String platform, String license = 'opensource') {
   if (params.signing && platform.startsWith("windows")) targets.add("sign")
 
   String args = " --platform ${platform}"
-  if (platform.startsWith("linux_x86_64"))
-    args = " --platform linux_x86_64"
+  if (platform.startsWith("linux_x86_64")) args = " --platform linux_x86_64"
   args += " --targets ${targets.join(' ')}" \
         + " --version ${env.PRODUCT_VERSION}" \
         + " --build ${env.BUILD_NUMBER}"
   if (!branding.onlyoffice)
     args += " --branding ${branding.repo}"
 
-  if (platforms[platform].isUnix)
-    sh "cd build_tools && ./make_package.py ${args}"
+  String label = "packages ${license}".toUpperCase()
+  if (platformIsUnix(platform))
+    sh label: label, script: "cd build_tools && ./make_package.py ${args}"
   else
-    bat "cd build_tools && python make_package.py ${args}"
+    bat label: label, script: "cd build_tools && python make_package.py ${args}"
 
   if (fileExists('deploy.json')) {
     def platformDeployData = readJSON(file: 'deploy.json')
@@ -877,7 +911,7 @@ void buildDocker() {
       --repo ONLYOFFICE/Docker-DocumentServer \
       --ref \$BRANCH_NAME \
       -f build=\$BUILD_NUMBER \
-      -f amd64=${params.linux_x86_64_u16} \
+      -f amd64=${params.linux_x86_64} \
       -f arm64=${params.linux_aarch64} \
       -f community=${params.server_ce} \
       -f enterprise=${params.server_ee} \
@@ -937,8 +971,8 @@ void generateReports() {
   if (server_ee) links["DocumentServer EE"] = "server_enterprise.html"
   if (mobile)    links["Mobile"] = "mobile.html"
   links.each {
-    if (!currentBuild.description.isEmpty()) currentBuild.description += "<br>"
-    currentBuild.description += "<a href=\"https://s3.eu-west-1.amazonaws.com/${env.S3_BUCKET}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.value}\" target=\"_blank\">${it.key}</a>"
+    if (!currentBuild.description.isEmpty()) currentBuild.description += " / "
+    currentBuild.description += "<a href=\"${env.S3_BASE_URL}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.value}\" target=\"_blank\">${it.key}</a>"
   }
 }
 
@@ -951,13 +985,12 @@ void publishReport(String title, Map files) {
         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
       ]) {
         sh """
-          REPORT_PATH=\$S3_BUCKET/reports/\$BRANCH_NAME
           aws s3 cp --no-progress --acl public-read \
-            ${it.key} s3://\$REPORT_PATH/\$BUILD_NUMBER/
-          echo "https://s3.eu-west-1.amazonaws.com/\$REPORT_PATH/\$BUILD_NUMBER/${it.key}"
+            ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
+          echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
           aws s3 cp --no-progress --acl public-read \
-            ${it.key} s3://\$REPORT_PATH/latest/
-          echo "https://s3.eu-west-1.amazonaws.com/\$REPORT_PATH/latest/${it.key}"
+            ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/latest/
+          echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/latest/${it.key}"
         """
       }
     } catch(Exception e) {
@@ -983,6 +1016,7 @@ def getHtml(ArrayList data) {
   }
 
   text = "<html>\n<head>" \
+    + "\n<title>${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</title>" \
     + "\n<link rel=\"stylesheet\" href=\"https://unpkg.com/@primer/css@20.4.1/dist/primer.css\">" \
     + "\n</head>\n<body><div class=\"container-lg px-3 my-5 markdown-body\">"
   data.groupBy { it.platform }.sort().each { platform, types ->
@@ -991,7 +1025,7 @@ def getHtml(ArrayList data) {
       text += "\n<dt>${type}</dt>\n<dd>"
       files.each {
         title = it.key.minus(~/^.+\//)
-        url = "https://s3.${it.region}.amazonaws.com/${it.bucket}/${it.key}"
+        url = "${env.S3_BASE_URL}/${it.key}"
         text += "\n<a href=\"${url}\">${title}</a> (${size(it.size)}B)<br>"
       }
       text += "\n</dd>"
@@ -1011,8 +1045,7 @@ void setStageStats(int status, String stageName = env.STAGE_NAME) {
 
 void sendTelegramMessage(
   String jobStatus,
-  String chatId = '-1001773122025',
-  Boolean markdown = true
+  String chatId = '-1001773122025'
 ) {
   String text = "Build [" + currentBuild.fullDisplayName \
       + "](" + currentBuild.absoluteUrl + ") " + jobStatus
@@ -1025,7 +1058,7 @@ void sendTelegramMessage(
     label: "Send Telegram Message",
     script: "curl -X POST -s -S \
       -d chat_id=${chatId} \
-      ${markdown ? '-d parse_mode=markdown' : ''} \
+      -d parse_mode=markdown \
       -d disable_web_page_preview=true \
       --data-urlencode text='${text}' \
       https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
