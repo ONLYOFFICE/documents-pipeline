@@ -11,8 +11,8 @@ defaults = [
   darwin_arm64:     true,
   darwin_x86_64_v8: true,
   linux_x86_64:     true,
-  linux_x86_64_cef: true,
   linux_aarch64:    true,
+  linux_x86_64_cef: true,
   android:          true,
   core:             true,
   desktop:          true,
@@ -126,14 +126,14 @@ pipeline {
       defaultValue: defaults.linux_x86_64
     )
     booleanParam (
-      name:         'linux_x86_64_cef',
-      description:  'Build Linux x86-64 cef107 targets',
-      defaultValue: defaults.linux_x86_64_cef
-    )
-    booleanParam (
       name:         'linux_aarch64',
       description:  'Build Linux aarch64 targets',
       defaultValue: defaults.linux_aarch64
+    )
+    booleanParam (
+      name:         'linux_x86_64_cef',
+      description:  'Build Linux x86-64 cef107 targets',
+      defaultValue: defaults.linux_x86_64_cef
     )
     // Android
     booleanParam (
@@ -408,6 +408,27 @@ pipeline {
             failure  { setStageStats(2) }
           }
         }
+        stage('Linux aarch64') {
+          agent { label 'linux_aarch64' }
+          when {
+            expression { params.linux_aarch64 }
+            beforeAgent true
+          }
+          environment {
+            // TAR_RELEASE_SUFFIX = "gcc5"
+            // DEB_RELEASE_SUFFIX = "stretch"
+            RPM_RELEASE_SUFFIX = "el7"
+            SUSE_RPM_RELEASE_SUFFIX = "suse15"
+          }
+          steps {
+            initializeLinux("linux_aarch64")
+          }
+          post {
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
+          }
+        }
         stage('Linux x86_64 cef107') {
           agent { label 'linux_x86_64_cef' }
           when {
@@ -424,27 +445,6 @@ pipeline {
           }
           steps {
             initializeLinux("linux_x86_64_cef")
-          }
-          post {
-            success  { setStageStats(0) }
-            unstable { setStageStats(1) }
-            failure  { setStageStats(2) }
-          }
-        }
-        stage('Linux aarch64') {
-          agent { label 'linux_aarch64' }
-          when {
-            expression { params.linux_aarch64 }
-            beforeAgent true
-          }
-          environment {
-            // TAR_RELEASE_SUFFIX = "gcc5"
-            // DEB_RELEASE_SUFFIX = "stretch"
-            RPM_RELEASE_SUFFIX = "el7"
-            SUSE_RPM_RELEASE_SUFFIX = "suse15"
-          }
-          steps {
-            initializeLinux("linux_aarch64")
           }
           post {
             success  { setStageStats(0) }
@@ -536,8 +536,8 @@ String platformBuild(String platform) {
     darwin_arm64:     "mac_arm64",
     darwin_x86_64_v8: "mac_64",
     linux_x86_64:     "linux_64",
-    linux_x86_64_cef: "linux_64",
     linux_aarch64:    "linux_arm64",
+    linux_x86_64_cef: "linux_64",
     android:          "android",
   ][platform]
 }
