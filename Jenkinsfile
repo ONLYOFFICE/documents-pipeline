@@ -626,7 +626,7 @@ void initializeLinux(String platform) {
   ArrayList allRepos = constRepos.plus(varRepos)
   checkoutRepos(varRepos)
 
-  if (platform == "linux_x86_64") {
+  if (platform in ["linux_x86_64", "linux_aarch64"]) {
     if (params.core || params.builder || params.server_ce) {
       buildArtifacts(platform, "opensource")
       buildPackages(platform, "opensource")
@@ -635,17 +635,18 @@ void initializeLinux(String platform) {
       buildArtifacts(platform, "commercial")
       buildPackages(platform, "commercial")
     }
-
-    if (params.server_ce || params.server_ee || params.server_de) {
-      buildDocker()
-      tagRepos(allRepos, gitTag)
-    }
   }
-
   if (platform == "linux_x86_64_cef") {
     if (params.desktop) {
       buildArtifacts(platform, "commercial")
       buildPackages(platform, "commercial")
+    }
+  }
+
+  if (platform == "linux_x86_64") {
+    if (params.server_ce || params.server_ee || params.server_de) {
+      buildDocker()
+      tagRepos(allRepos, gitTag)
     }
   }
 }
