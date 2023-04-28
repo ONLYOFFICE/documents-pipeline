@@ -979,7 +979,7 @@ void generateReports() {
 
 void publishReport(String title, Map files) {
   files.each {
-    writeFile file: it.key, text: getHtml(it.value)
+    writeFile file: it.key, text: getHtml(title, it.value)
     try {
       withCredentials([
         string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
@@ -1010,14 +1010,15 @@ void publishReport(String title, Map files) {
   // ])
 }
 
-def getHtml(ArrayList data) {
+def getHtml(String product, ArrayList data) {
   String text, url
   Closure size = {
     return sh (script: "LANG=C numfmt --to=iec-i ${it}", returnStdout: true).trim()
   }
 
   text = "<html>\n<head>" \
-    + "\n<title>${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</title>" \
+    + "\n<title>${env.COMPANY_NAME} - ${product} - ${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</title>" \
+    + "\n<link rel=\"shortcut icon\" sizes=\"16x16\" href=\"https://static-www.onlyoffice.com/v9.5.0/images/favicons01/favicon.png\" type=\"image/png\">" \
     + "\n<link rel=\"stylesheet\" href=\"https://unpkg.com/@primer/css@20.4.1/dist/primer.css\">" \
     + "\n</head>\n<body><div class=\"container-lg px-3 my-5 markdown-body\">"
   data.groupBy { it.platform }.sort().each { platform, types ->
