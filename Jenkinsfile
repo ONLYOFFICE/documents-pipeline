@@ -394,10 +394,10 @@ pipeline {
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
-            // TAR_RELEASE_SUFFIX = "gcc5"
-            // DEB_RELEASE_SUFFIX = "stretch"
-            RPM_RELEASE_SUFFIX = "el7"
-            SUSE_RPM_RELEASE_SUFFIX = "suse15"
+            // TAR_RELEASE_SUFFIX = "-gcc5"
+            // DEB_RELEASE_SUFFIX = "~stretch"
+            RPM_RELEASE_SUFFIX = ".el7"
+            SUSE_RPM_RELEASE_SUFFIX = ".suse15"
           }
           steps {
             initializeLinux("linux_x86_64")
@@ -415,10 +415,10 @@ pipeline {
             beforeAgent true
           }
           environment {
-            // TAR_RELEASE_SUFFIX = "gcc5"
-            // DEB_RELEASE_SUFFIX = "stretch"
-            RPM_RELEASE_SUFFIX = "el7"
-            SUSE_RPM_RELEASE_SUFFIX = "suse15"
+            // TAR_RELEASE_SUFFIX = "-gcc5"
+            // DEB_RELEASE_SUFFIX = "~stretch"
+            RPM_RELEASE_SUFFIX = ".el7"
+            SUSE_RPM_RELEASE_SUFFIX = ".suse15"
           }
           steps {
             initializeLinux("linux_aarch64")
@@ -437,10 +437,10 @@ pipeline {
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
-            TAR_RELEASE_SUFFIX = "cef107"
-            DEB_RELEASE_SUFFIX = "cef107"
-            RPM_RELEASE_SUFFIX = "el7.cef107"
-            SUSE_RPM_RELEASE_SUFFIX = "suse15.cef107"
+            TAR_RELEASE_SUFFIX = "-cef107"
+            DEB_RELEASE_SUFFIX = "~cef107"
+            RPM_RELEASE_SUFFIX = "~cef107.el7"
+            SUSE_RPM_RELEASE_SUFFIX = "~cef107.suse15"
             USE_CEF107 = '1'
           }
           steps {
