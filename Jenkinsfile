@@ -374,7 +374,6 @@ pipeline {
             TEAM_ID = credentials('macos-team-id')
             FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
             CODESIGNING_IDENTITY = 'Developer ID Application'
-            USE_V8 = '1'
           }
           steps {
             initializeDarwin("darwin_x86_64_v8")
@@ -441,7 +440,6 @@ pipeline {
             DEB_RELEASE_SUFFIX = "~cef107"
             RPM_RELEASE_SUFFIX = "~cef107.el7"
             SUSE_RPM_RELEASE_SUFFIX = "~cef107.suse15"
-            USE_CEF107 = '1'
           }
           steps {
             initializeLinux("linux_x86_64_cef")
@@ -502,17 +500,6 @@ pipeline {
   post {
     always {
       node('built-in') { script { generateReports() } }
-      // script {
-      //   if (params.linux_x86_64 || params.linux_aarch64)
-      //     build (
-      //       job: 'repo-manager',
-      //       parameters: [
-      //         string (name: 'company', value: branding.company_lc),
-      //         string (name: 'branch', value: env.RELEASE_BRANCH)
-      //       ],
-      //       wait: false
-      //     )
-      // }
     }
     fixed {
       node('built-in') { script { sendTelegramMessage('fixed') } }
@@ -544,6 +531,117 @@ String platformBuild(String platform) {
 
 Boolean platformIsUnix(String platform) {
   return !platform.startsWith("windows")
+}
+
+void checkoutRepo(
+  String repo,
+  String branch = 'master',
+  String dir = repo.minus(~/^.+\//)
+) {
+  if (dir == null) dir = repo.minus(~/^.+\//)
+  int retryCount = 0
+  retry(3) {
+    if (retryCount > 0) sleep(30)
+    retryCount++
+    checkout([
+      $class: 'GitSCM',
+      branches: [[name: 'refs/heads/' + branch]],
+      doGenerateSubmoduleConfigurations: false,
+      extensions: [
+        [$class: 'AuthorInChangelog'],
+        [$class: 'RelativeTargetDirectory', relativeTargetDir: dir],
+        [$class: 'ScmName', name: "${repo}"],
+        [$class: 'SubmoduleOption', recursiveSubmodules: true]
+      ],
+      submoduleCfg: [],
+      userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
+    ])
+  }
+}
+
+def getConstRepos(String branch = 'master') {
+  return [
+    [owner: "ONLYOFFICE",   name: "build_tools"],
+    [owner: branding.owner, name: branding.repo]
+  ].each {
+    it.branch = branch
+    it.dir = it.name
+    it.tag = true
+  }
+}
+
+def getVarRepos(String branch, String platform, String branding) {
+  checkoutRepos(getConstRepos(branch))
+
+  String modules = getModules(platform).join(' ')
+  String scriptArgs = ""
+  if (!modules.isEmpty()) scriptArgs = "--module \"${modules}\""
+  if (platform != null) scriptArgs += " --platform \"${platformBuild(platform)}\""
+  if (branding != null) scriptArgs += " --branding \"${branding}\""
+
+  String reposOutput
+  if (platformIsUnix(platform)) {
+    reposOutput = sh(
+      script: "cd build_tools/scripts/develop && \
+        ./print_repositories.py ${scriptArgs}",
+      returnStdout: true
+    )
+  } else {
+    reposOutput = powershell(
+      script: "cd build_tools\\scripts\\develop; \
+        python print_repositories.py ${scriptArgs}",
+      returnStdout: true
+    )
+  }
+
+  ArrayList repos = []
+  reposOutput.readLines().sort().each { line ->
+    Map repo = [
+      owner: "ONLYOFFICE",
+      name: line,
+      branch: "master",
+      dir: line,
+      tag: (line != "onlyoffice.github.io")
+    ]
+    if (branch != 'master') {
+      int retryCount = 0
+      retry(3) {
+        if (retryCount > 0) sleep(60)
+        retryCount++
+        repo.branch = resolveScm(
+          source: [
+            $class: 'GitSCMSource',
+            remote: "git@github.com:${repo.owner}/${repo.name}.git",
+            traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
+          ],
+          targets: [branch, 'master']
+        ).branches[0].name
+      }
+    }
+
+    repos.add(repo)
+  }
+
+  return repos
+}
+
+void checkoutRepos(ArrayList repos) {
+  echo repos.collect({"${it.owner}/${it.name} (${it.branch})"}).join("\n")
+  repos.each {
+    checkoutRepo(it.owner + "/" + it.name, it.branch, it.dir)
+  }
+}
+
+void tagRepos(ArrayList repos, String tag) {
+  repos.findAll { it.tag }.each {
+    sh """
+      cd ${it.dir}
+      git tag -l | xargs git tag -d
+      git fetch --tags
+      git tag ${tag}
+      git push origin --tags
+    """
+  }
 }
 
 // Stages
@@ -663,132 +761,25 @@ void initializeAndroid(String platform = "android") {
   buildPackages(platform, "opensource")
 }
 
-////////////////
-
-void checkoutRepo(
-  String repo,
-  String branch = 'master',
-  String dir = repo.minus(~/^.+\//)
-) {
-  if (dir == null) dir = repo.minus(~/^.+\//)
-  int retryCount = 0
-  retry(3) {
-    if (retryCount > 0) sleep(30)
-    retryCount++
-    checkout([
-      $class: 'GitSCM',
-      branches: [[name: 'refs/heads/' + branch]],
-      doGenerateSubmoduleConfigurations: false,
-      extensions: [
-        [$class: 'AuthorInChangelog'],
-        [$class: 'RelativeTargetDirectory', relativeTargetDir: dir],
-        [$class: 'ScmName', name: "${repo}"],
-        [$class: 'SubmoduleOption', recursiveSubmodules: true]
-      ],
-      submoduleCfg: [],
-      userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
-    ])
-  }
-}
-
-def getConstRepos(String branch = 'master') {
-  return [
-    [owner: "ONLYOFFICE",   name: "build_tools"],
-    [owner: branding.owner, name: branding.repo]
-  ].each {
-    it.branch = branch
-    it.dir = it.name
-    it.tag = true
-  }
-}
-
-def getVarRepos(String branch, String platform, String branding) {
-  checkoutRepos(getConstRepos(branch))
-
-  String modules = getModules(platformBuild(platform)).join(' ')
-  String scriptArgs = ""
-  if (!modules.isEmpty()) scriptArgs = "--module \"${modules}\""
-  if (platform != null) scriptArgs += " --platform \"${platformBuild(platform)}\""
-  if (branding != null) scriptArgs += " --branding \"${branding}\""
-
-  String reposOutput
-  if (platformIsUnix(platform)) {
-    reposOutput = sh(
-      script: "cd build_tools/scripts/develop && \
-        ./print_repositories.py ${scriptArgs}",
-      returnStdout: true
-    )
-  } else {
-    reposOutput = powershell(
-      script: "cd build_tools\\scripts\\develop; \
-        python print_repositories.py ${scriptArgs}",
-      returnStdout: true
-    )
-  }
-
-  ArrayList repos = []
-  reposOutput.readLines().sort().each { line ->
-    Map repo = [
-      owner: "ONLYOFFICE",
-      name: line,
-      branch: "master",
-      dir: line,
-      tag: (line != "onlyoffice.github.io")
-    ]
-    if (branch != 'master') {
-      int retryCount = 0
-      retry(3) {
-        if (retryCount > 0) sleep(60)
-        retryCount++
-        repo.branch = resolveScm(
-          source: [
-            $class: 'GitSCMSource',
-            remote: "git@github.com:${repo.owner}/${repo.name}.git",
-            traits: [[$class: 'jenkins.plugins.git.traits.BranchDiscoveryTrait']]
-          ],
-          targets: [branch, 'master']
-        ).branches[0].name
-      }
-    }
-
-    repos.add(repo)
-  }
-
-  return repos
-}
-
-void checkoutRepos(ArrayList repos) {
-  echo repos.collect({"${it.owner}/${it.name} (${it.branch})"}).join("\n")
-  repos.each {
-    checkoutRepo(it.owner + "/" + it.name, it.branch, it.dir)
-  }
-}
-
-void tagRepos(ArrayList repos, String tag) {
-  repos.findAll { it.tag }.each {
-    sh """
-      cd ${it.dir}
-      git tag -l | xargs git tag -d
-      git fetch --tags
-      git tag ${tag}
-      git push origin --tags
-    """
-  }
-}
-
 // Build
 
 def getModules(String platform, String license = "any") {
   Boolean isOpenSource = license in ["opensource", "any"]
   Boolean isCommercial = license in ["commercial", "any"]
-  Boolean pCore = platform in ["win_64", "win_32",
-                               "mac_64", "mac_arm64",
-                               "linux_64", "linux_arm64"]
-  Boolean pDesktop = platform != "linux_arm64"
-  Boolean pBuilder = platform in ["win_64", "win_32",
-                                  "mac_64", "mac_arm64",
-                                  "linux_64", "linux_arm64"]
-  Boolean pServer = platform in ["win_64", "linux_64", "linux_arm64"]
+  Boolean pCore = platform in [
+    "windows_x64", "windows_x86",
+    "darwin_x86_64", "darwin_arm64",
+    "linux_x86_64"
+  ]
+  Boolean pDesktop = !(platform in ["linux_aarch64", "android"])
+  Boolean pBuilder = platform in [
+    "windows_x64", "windows_x64",
+    "linux_x86_64", "linux_aarch64"
+  ]
+  Boolean pServer = platform in [
+    "windows_x64",
+    "linux_x86_64", "linux_aarch64"
+  ]
   Boolean pMobile = platform == "android"
 
   ArrayList modules = []
@@ -807,23 +798,22 @@ def getModules(String platform, String license = "any") {
   return modules
 }
 
-def getConfigArgs(String platform = 'native', String license = 'opensource') {
-  ArrayList modules = getModules(platform, license)
+void buildArtifacts(String platform, String license = 'opensource') {
   ArrayList args = []
-  args.add("--module \"${modules.join(' ')}\"")
-  args.add("--platform \"${platform}\"")
+  args.add("--module \"${getModules(platform, license).join(' ')}\"")
+  args.add("--platform ${platformBuild(platform)}")
   args.add("--update false")
   args.add("--clean ${params.clean.toString()}")
   args.add("--qt-dir ${env.QT_PATH}")
-  if (platform in ["win_64_xp", "win_32_xp"])
+  if (platform in ["windows_x64_xp", "windows_x86_xp"])
     args.add("--qt-dir-xp ${env.QT56_PATH}")
   if (license == "commercial")
     args.add("--branding ${branding.repo}")
-  if (platform in ["win_64", "win_32"])
+  if (platform in ["windows_x64", "windows_x86"])
     args.add("--vs-version 2019")
-  if (platform == "mac_64" && env.USE_V8 == "1")
+  if (platform == "darwin_x86_64_v8")
     args.add("--config use_v8")
-  if (platform == "linux_64" && env.USE_CEF107 == "1")
+  if (platform == "linux_x86_64_cef")
     args.add("--config cef_version_107")
   if (platform == "android")
     args.add("--config release")
@@ -834,22 +824,18 @@ def getConfigArgs(String platform = 'native', String license = 'opensource') {
   if (!params.extra_args.isEmpty())
     args.add(params.extra_args)
 
-  return args.join(' ')
-}
-
-void buildArtifacts(String platform, String license = 'opensource') {
   echo "${platform} ${license} build"
   String label = "artifacts ${license}".toUpperCase()
   if (platformIsUnix(platform)) {
     sh label: label, script: """
       cd build_tools
-      ./configure.py ${getConfigArgs(platformBuild(platform), license)}
+      ./configure.py ${args.join(' ')}
       ./make.py
     """
   } else {
     bat label: label, script: """
       cd build_tools
-      python configure.py ${getConfigArgs(platformBuild(platform), license)}
+      python configure.py ${args.join(' ')}
       python make.py
     """
   }
@@ -858,17 +844,21 @@ void buildArtifacts(String platform, String license = 'opensource') {
 void buildPackages(String platform, String license = 'opensource') {
   Boolean isOpenSource = license == "opensource"
   Boolean isCommercial = license == "commercial"
-  Boolean pCore = platform in ["windows_x64", "windows_x86",
-                               "darwin_x86_64", "darwin_arm64",
-                               "linux_x86_64"]
+  Boolean pCore = platform in [
+    "windows_x64", "windows_x86",
+    "darwin_x86_64", "darwin_arm64",
+    "linux_x86_64"
+  ]
   Boolean pClosureMaps = platform == "linux_x86_64"
   Boolean pDesktop = !(platform in ["linux_aarch64", "android"])
-  Boolean pBuilder = platform in ["windows_x64", "windows_x86",
-                                  "linux_x86_64",
-                                  "linux_aarch64"]
-  Boolean pServer = platform in ["windows_x64",
-                                 "linux_x86_64",
-                                 "linux_aarch64"]
+  Boolean pBuilder = platform in [
+    "windows_x64", "windows_x86",
+    "linux_x86_64", "linux_aarch64"
+  ]
+  Boolean pServer = platform in [
+    "windows_x64",
+    "linux_x86_64", "linux_aarch64"
+  ]
   Boolean pMobile = platform == "android"
 
   ArrayList targets = []
@@ -998,16 +988,6 @@ void publishReport(String title, Map files) {
       echo "Caught: ${e}"
     }
   }
-  // publishHTML([
-  //   allowMissing: false,
-  //   alwaysLinkToLastBuild: true,
-  //   includes: files.collect({ it.key }).join(','),
-  //   keepAll: true,
-  //   reportDir: '',
-  //   reportFiles: files.collect({ it.key }).join(','),
-  //   reportName: title,
-  //   reportTitles: ''
-  // ])
 }
 
 def getHtml(String product, ArrayList data) {
@@ -1017,8 +997,8 @@ def getHtml(String product, ArrayList data) {
   }
 
   text = "<html>\n<head>" \
-    + "\n<title>${env.COMPANY_NAME} - ${product} - ${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</title>" \
-    + "\n<link rel=\"shortcut icon\" sizes=\"16x16\" href=\"https://static-www.onlyoffice.com/v9.5.0/images/favicons01/favicon.png\" type=\"image/png\">" \
+    + "\n<title>${env.COMPANY_NAME} ${product} - ${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</title>" \
+    + '\n<link rel="shortcut icon" sizes="16x16" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAq1BMVEUAAABgv9+Pv0Cfv0D/cEBgv+f/cEBdwuv/bT1cv+f/cDz/bj18v3yprzleweqDwXOUwTiWwTj/bjtav+dtv61wv62Svzi3pTiVwTevrTr/bjxev+eTvziVvzj/cD5dweiWwTldwOmVwDj/bz3/bz1cwOiUwDiVwDj/bz1cwOiVwDldwOhewOiVwDiWwDj/bz3/bz5dwOlewOmUwDeVwDf/bz1dwOiVwDj/bz375yNXAAAANnRSTlMAEBAQECAgPz9AQE9QUF9fX19fYGBgYGBvf3+AgICAj4+fn5+vv7+/v8/P39/f39/f7+/v7++96DlEAAAAj0lEQVR42lXJA5ZEQRBE0Wh73Pi2zar9r2xKg75H+SKhHA74Z2H081y+LP4nV3oblhtHpcCmYn6SAZ/RX0Y7AKvH1VP59b4CrJEQ/+x1nfOaEFKbuFWEiR83loQMD4BPSv62ZH0MPzTxjS92cARSSmkT3F3/Yk/sTLENKBeyBxPsATUxk76GtNVblX9Oe5XfxIMfXH9c3hQAAAAASUVORK5CYII=" type="image/png">' \
     + "\n<link rel=\"stylesheet\" href=\"https://unpkg.com/@primer/css@20.4.1/dist/primer.css\">" \
     + "\n</head>\n<body><div class=\"container-lg px-3 my-5 markdown-body\">"
   data.groupBy { it.platform }.sort().each { platform, types ->
