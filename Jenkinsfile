@@ -499,7 +499,17 @@ pipeline {
   }
   post {
     always {
-      node('built-in') { script { generateReports() } }
+      node('built-in') {
+        script {
+          try {
+            checkout scm
+            if (params.windows_x64 && params.desktop) buildAppcast()
+          } catch (err) {
+            echo "Caught: ${err}"
+          }
+          generateReports()
+        }
+      }
     }
     fixed {
       node('built-in') { script { sendTelegramMessage('fixed') } }
@@ -919,6 +929,20 @@ void checkDocker() {
     gh --repo \$REPO run watch \$RUN_ID --interval 15 > /dev/null
     gh --repo \$REPO run view \$RUN_ID --verbose --exit-status
   """
+}
+
+void buildAppcast() {
+  withCredentials([
+    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+  ]) {
+    sh label: "APPCAST", script: "./appcast.sh -a \$PRODUCT_VERSION -b \$BUILD_NUMBER -r \$BRANCH_NAME"
+  }
+  if (fileExists('deploy.json')) {
+    def platformDeployData = readJSON(file: 'deploy.json')
+    println platformDeployData
+    deployData += platformDeployData
+  }
 }
 
 // Reports
