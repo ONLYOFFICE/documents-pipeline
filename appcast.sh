@@ -99,13 +99,13 @@ cat > update/appcast.json << EOF
       "iss": {
         "url": "$BASE_URL/$EXE_64_KEY",
         "md5": "$(s3_md5 $EXE_64_KEY)",
-        "installArguments": "/silent /update",
+        "arguments": "/silent /update",
         "maxVersion": "7.3.3"
       },
       "msi": {
         "url": "$BASE_URL/$MSI_64_KEY",
         "md5": "$(s3_md5 $MSI_64_KEY)",
-        "installArguments": "/qn /norestart",
+        "arguments": "/qn /norestart",
         "maxVersion": "7.3.3"
       }
     },
@@ -119,13 +119,13 @@ cat > update/appcast.json << EOF
       "iss": {
         "url": "$BASE_URL/$EXE_32_KEY",
         "md5": "$(s3_md5 $EXE_32_KEY)",
-        "installArguments": "/silent /update",
+        "arguments": "/silent /update",
         "maxVersion": "7.3.3"
       },
       "msi": {
         "url": "$BASE_URL/$MSI_32_KEY",
         "md5": "$(s3_md5 $MSI_32_KEY)",
-        "installArguments": "/qn /norestart",
+        "arguments": "/qn /norestart",
         "maxVersion": "7.3.3"
       }
     }
@@ -151,14 +151,14 @@ cat > deploy.json << EOF
     "key": "desktop/win/update/$VERSION/$BUILD/changes.html",
     "platform": "Windows x64",
     "product": "desktop",
-    "size": $(stat -c %s update/changes.json || echo 0),
+    "size": $(stat -c %s update/changes.html || echo 0),
     "type": "Update"
   },
   {
     "key": "desktop/win/update/$VERSION/$BUILD/changes_ru.html",
     "platform": "Windows x64",
     "product": "desktop",
-    "size": $(stat -c %s update/changes_ru.json || echo 0),
+    "size": $(stat -c %s update/changes_ru.html || echo 0),
     "type": "Update"
   }
 ]
