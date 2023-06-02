@@ -51,10 +51,10 @@ if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
 
 branding = [
   onlyoffice:  true,
-  company:     "ONLYOFFICE",
-  company_lc:  "onlyoffice",
-  owner:       "ONLYOFFICE",
-  repo:        "onlyoffice",
+  company:     'ONLYOFFICE',
+  company_lc:  'onlyoffice',
+  owner:       'ONLYOFFICE',
+  repo:        'onlyoffice',
 ]
 
 pipeline {
@@ -236,7 +236,7 @@ pipeline {
             beforeAgent true
           }
           steps {
-            initializeWindows("windows_x64")
+            initializeWindows('windows_x64')
           }
           post {
             success  { setStageStats(0) }
@@ -259,7 +259,7 @@ pipeline {
             UNAME_M = 'i686'
           }
           steps {
-            initializeWindows("windows_x86")
+            initializeWindows('windows_x86')
           }
           post {
             success  { setStageStats(0) }
@@ -282,7 +282,7 @@ pipeline {
             _WIN_XP = '1'
           }
           steps {
-            initializeWindows("windows_x64_xp")
+            initializeWindows('windows_x64_xp')
           }
           post {
             success  { setStageStats(0) }
@@ -306,7 +306,7 @@ pipeline {
             UNAME_M = 'i686'
           }
           steps {
-            initializeWindows("windows_x86_xp")
+            initializeWindows('windows_x86_xp')
           }
           post {
             success  { setStageStats(0) }
@@ -330,7 +330,7 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
           steps {
-            initializeDarwin("darwin_x86_64")
+            initializeDarwin('darwin_x86_64')
           }
           post {
             success  { setStageStats(0) }
@@ -353,7 +353,7 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
           steps {
-            initializeDarwin("darwin_arm64")
+            initializeDarwin('darwin_arm64')
           }
           post {
             success  { setStageStats(0) }
@@ -376,7 +376,7 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
           steps {
-            initializeDarwin("darwin_x86_64_v8")
+            initializeDarwin('darwin_x86_64_v8')
           }
           post {
             success  { setStageStats(0) }
@@ -393,13 +393,13 @@ pipeline {
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
-            // TAR_RELEASE_SUFFIX = "-gcc5"
-            // DEB_RELEASE_SUFFIX = "~stretch"
-            RPM_RELEASE_SUFFIX = ".el7"
-            SUSE_RPM_RELEASE_SUFFIX = ".suse15"
+            // TAR_RELEASE_SUFFIX = '-gcc5'
+            // DEB_RELEASE_SUFFIX = '~stretch'
+            RPM_RELEASE_SUFFIX = '.el7'
+            SUSE_RPM_RELEASE_SUFFIX = '.suse15'
           }
           steps {
-            initializeLinux("linux_x86_64")
+            initializeLinux('linux_x86_64')
           }
           post {
             success  { setStageStats(0) }
@@ -414,13 +414,13 @@ pipeline {
             beforeAgent true
           }
           environment {
-            // TAR_RELEASE_SUFFIX = "-gcc5"
-            // DEB_RELEASE_SUFFIX = "~stretch"
-            RPM_RELEASE_SUFFIX = ".el7"
-            SUSE_RPM_RELEASE_SUFFIX = ".suse15"
+            // TAR_RELEASE_SUFFIX = '-gcc5'
+            // DEB_RELEASE_SUFFIX = '~stretch'
+            RPM_RELEASE_SUFFIX = '.el7'
+            SUSE_RPM_RELEASE_SUFFIX = '.suse15'
           }
           steps {
-            initializeLinux("linux_aarch64")
+            initializeLinux('linux_aarch64')
           }
           post {
             success  { setStageStats(0) }
@@ -436,13 +436,13 @@ pipeline {
           }
           environment {
             GITHUB_TOKEN = credentials('github-token')
-            TAR_RELEASE_SUFFIX = "-cef107"
-            DEB_RELEASE_SUFFIX = "~cef107"
-            RPM_RELEASE_SUFFIX = "~cef107.el7"
-            SUSE_RPM_RELEASE_SUFFIX = "~cef107.suse15"
+            TAR_RELEASE_SUFFIX = '-cef107'
+            DEB_RELEASE_SUFFIX = '~cef107'
+            RPM_RELEASE_SUFFIX = '~cef107.el7'
+            SUSE_RPM_RELEASE_SUFFIX = '~cef107.suse15'
           }
           steps {
-            initializeLinux("linux_x86_64_cef")
+            initializeLinux('linux_x86_64_cef')
           }
           post {
             success  { setStageStats(0) }
@@ -525,22 +525,22 @@ pipeline {
 
 String platformBuild(String platform) {
   return [
-    windows_x64:      "win_64",
-    windows_x64_xp:   "win_64_xp",
-    windows_x86:      "win_32",
-    windows_x86_xp:   "win_32_xp",
-    darwin_x86_64:    "mac_64",
-    darwin_arm64:     "mac_arm64",
-    darwin_x86_64_v8: "mac_64",
-    linux_x86_64:     "linux_64",
-    linux_aarch64:    "linux_arm64",
-    linux_x86_64_cef: "linux_64",
-    android:          "android",
+    windows_x64:      'win_64',
+    windows_x86:      'win_32',
+    windows_x64_xp:   'win_64_xp',
+    windows_x86_xp:   'win_32_xp',
+    darwin_x86_64:    'mac_64',
+    darwin_arm64:     'mac_arm64',
+    darwin_x86_64_v8: 'mac_64',
+    linux_x86_64:     'linux_64',
+    linux_aarch64:    'linux_arm64',
+    linux_x86_64_cef: 'linux_64',
+    android:          'android',
   ][platform]
 }
 
 Boolean platformIsUnix(String platform) {
-  return !platform.startsWith("windows")
+  return !platform.startsWith('windows')
 }
 
 void checkoutRepo(
@@ -571,7 +571,7 @@ void checkoutRepo(
 
 def getConstRepos(String branch = 'master') {
   return [
-    [owner: "ONLYOFFICE",   name: "build_tools"],
+    [owner: 'ONLYOFFICE',   name: 'build_tools'],
     [owner: branding.owner, name: branding.repo]
   ].each {
     it.branch = branch
@@ -667,32 +667,32 @@ void initializeWindows(String platform) {
   ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
   checkoutRepos(varRepos)
 
-  if (platform == "windows_x64") {
+  if (platform == 'windows_x64') {
     if (params.core || params.builder || params.server_ce) {
-      buildArtifacts(platform, "opensource")
-      buildPackages(platform, "opensource")
+      buildArtifacts(platform, 'opensource')
+      buildPackages(platform, 'opensource')
     }
     if (params.desktop || params.server_ee || params.server_de) {
-      buildArtifacts(platform, "commercial")
-      buildPackages(platform, "commercial")
+      buildArtifacts(platform, 'commercial')
+      buildPackages(platform, 'commercial')
     }
   }
 
-  if (platform == "windows_x86") {
+  if (platform == 'windows_x86') {
     if (params.core || params.builder) {
-      buildArtifacts(platform, "opensource")
-      buildPackages(platform, "opensource")
+      buildArtifacts(platform, 'opensource')
+      buildPackages(platform, 'opensource')
     }
     if (params.desktop) {
-      buildArtifacts(platform, "commercial")
-      buildPackages(platform, "commercial")
+      buildArtifacts(platform, 'commercial')
+      buildPackages(platform, 'commercial')
     }
   }
 
-  if (platform in ["windows_x64_xp", "windows_x86_xp"]) {
+  if (platform in ['windows_x64_xp', 'windows_x86_xp']) {
     if (params.desktop) {
-      buildArtifacts(platform, "commercial")
-      buildPackages(platform, "commercial")
+      buildArtifacts(platform, 'commercial')
+      buildPackages(platform, 'commercial')
     }
   }
 }
@@ -708,16 +708,16 @@ void initializeDarwin(String platform) {
   ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
   checkoutRepos(varRepos)
 
-  if (platform in ["darwin_x86_64", "darwin_arm64"]) {
+  if (platform in ['darwin_x86_64', 'darwin_arm64']) {
     if (params.core || params.builder) {
-      buildArtifacts(platform, "opensource")
-      buildPackages(platform, "opensource")
+      buildArtifacts(platform, 'opensource')
+      buildPackages(platform, 'opensource')
     }
   }
 
-  if (params.desktop && env.BRANCH_NAME != "develop") {
-    buildArtifacts(platform, "commercial")
-    buildPackages(platform, "commercial")
+  if (params.desktop && env.BRANCH_NAME != 'develop') {
+    buildArtifacts(platform, 'commercial')
+    buildPackages(platform, 'commercial')
   }
 }
 
@@ -734,24 +734,24 @@ void initializeLinux(String platform) {
   ArrayList allRepos = constRepos.plus(varRepos)
   checkoutRepos(varRepos)
 
-  if (platform in ["linux_x86_64", "linux_aarch64"]) {
+  if (platform in ['linux_x86_64', 'linux_aarch64']) {
     if (params.core || params.builder || params.server_ce) {
-      buildArtifacts(platform, "opensource")
-      buildPackages(platform, "opensource")
+      buildArtifacts(platform, 'opensource')
+      buildPackages(platform, 'opensource')
     }
     if (params.desktop || params.server_ee || params.server_de) {
-      buildArtifacts(platform, "commercial")
-      buildPackages(platform, "commercial")
+      buildArtifacts(platform, 'commercial')
+      buildPackages(platform, 'commercial')
     }
   }
-  if (platform == "linux_x86_64_cef") {
+  if (platform == 'linux_x86_64_cef') {
     if (params.desktop) {
-      buildArtifacts(platform, "commercial")
-      buildPackages(platform, "commercial")
+      buildArtifacts(platform, 'commercial')
+      buildPackages(platform, 'commercial')
     }
   }
 
-  if (platform == "linux_x86_64") {
+  if (platform == 'linux_x86_64') {
     if (params.server_ce || params.server_ee || params.server_de) {
       buildDocker()
       tagRepos(allRepos, gitTag)
@@ -759,7 +759,7 @@ void initializeLinux(String platform) {
   }
 }
 
-void initializeAndroid(String platform = "android") {
+void initializeAndroid(String platform = 'android') {
   echo "PLATFORM=" + platform + "\nNODE_NAME=" + env.NODE_NAME
 
   if (params.wipe) deleteDir()
@@ -767,8 +767,8 @@ void initializeAndroid(String platform = "android") {
   ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, null)
   checkoutRepos(varRepos)
 
-  buildArtifacts(platform, "opensource")
-  buildPackages(platform, "opensource")
+  buildArtifacts(platform, 'opensource')
+  buildPackages(platform, 'opensource')
 }
 
 // Build
@@ -961,32 +961,32 @@ void generateReports() {
 
   deleteDir()
   if (core)
-    publishReport("Core", ["core.html": deploy.core])
+    publishReport('Core', ['core.html': deploy.core])
   if (desktop)
-    publishReport("DesktopEditors", ["desktop.html": deploy.desktop])
+    publishReport('DesktopEditors', ['desktop.html': deploy.desktop])
   if (builder)
-    publishReport("DocumentBuilder", ["builder.html": deploy.builder])
+    publishReport('DocumentBuilder', ['builder.html': deploy.builder])
   if (server_ce || server_ee || server_de) {
     Map serverReports = [:]
-    if (server_ce) serverReports."server_community.html" = deploy.server_community
-    if (server_ee) serverReports."server_enterprise.html" = deploy.server_enterprise
-    if (server_de) serverReports."server_developer.html" = deploy.server_developer
-    publishReport("DocumentServer", serverReports)
+    if (server_ce) serverReports.'server_community.html' = deploy.server_community
+    if (server_ee) serverReports.'server_enterprise.html' = deploy.server_enterprise
+    if (server_de) serverReports.'server_developer.html' = deploy.server_developer
+    publishReport('DocumentServer', serverReports)
   }
   if (mobile)
-    publishReport("Mobile", ["mobile.html": deploy.mobile])
+    publishReport('Mobile', ['mobile.html': deploy.mobile])
 
-  currentBuild.description = ""
+  currentBuild.description = ''
   Map links = [:]
-  if (core)      links["Core"] = "core.html"
-  if (desktop)   links["DesktopEditors"] = "desktop.html"
-  if (builder)   links["DocumentBuilder"] = "builder.html"
-  if (server_ce) links["DocumentServer CE"] = "server_community.html"
-  if (server_de) links["DocumentServer DE"] = "server_developer.html"
-  if (server_ee) links["DocumentServer EE"] = "server_enterprise.html"
-  if (mobile)    links["Mobile"] = "mobile.html"
+  if (core)      links['Core'] = 'core.html'
+  if (desktop)   links['DesktopEditors'] = 'desktop.html'
+  if (builder)   links['DocumentBuilder'] = 'builder.html'
+  if (server_ce) links['DocumentServer CE'] = 'server_community.html'
+  if (server_de) links['DocumentServer DE'] = 'server_developer.html'
+  if (server_ee) links['DocumentServer EE'] = 'server_enterprise.html'
+  if (mobile)    links['Mobile'] = 'mobile.html'
   links.each {
-    if (!currentBuild.description.isEmpty()) currentBuild.description += " / "
+    if (!currentBuild.description.isEmpty()) currentBuild.description += ' / '
     currentBuild.description += "<a href=\"${env.S3_BASE_URL}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.value}\" target=\"_blank\">${it.key}</a>"
   }
 }
