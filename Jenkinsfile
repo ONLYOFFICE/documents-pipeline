@@ -1,7 +1,6 @@
 defaults = [
-  branch:           'experimental',
   channel:          'other',
-  version:          '99.99.99',
+  version:          '0.0.0',
   clean:            true,
   windows_x64:      true,
   windows_x86:      true,
@@ -27,9 +26,8 @@ defaults = [
   schedule:         'H 17 * * *'
 ]
 
-if (BRANCH_NAME == 'develop') {
+if (env.BRANCH_NAME == 'develop') {
   defaults.putAll([
-    branch:           'unstable',
     channel:          'nightly',
     darwin_x86_64_v8: false,
     android:          false,
@@ -40,22 +38,15 @@ if (BRANCH_NAME == 'develop') {
   ])
 }
 
-if (BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
+if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
   defaults.putAll([
-    branch:           'testing',
     channel:          'test',
-    version:          BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
+    version:          env.BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
     schedule:         'H 23 * * *'
   ])
 }
 
-branding = [
-  onlyoffice:  true,
-  company:     'ONLYOFFICE',
-  company_lc:  'onlyoffice',
-  owner:       'ONLYOFFICE',
-  repo:        'onlyoffice',
-]
+brandingRepo = [owner: 'ONLYOFFICE', name: 'onlyoffice']
 
 pipeline {
   agent none
@@ -501,12 +492,8 @@ pipeline {
     always {
       node('built-in') {
         script {
-          try {
-            checkout scm
-            if (params.windows_x64 && params.desktop) buildAppcast()
-          } catch (err) {
-            echo "Caught: ${err}"
-          }
+          checkout scm
+          buildAppcast()
           generateReports()
         }
       }
@@ -572,7 +559,7 @@ void checkoutRepo(
 def getConstRepos(String branch = 'master') {
   return [
     [owner: 'ONLYOFFICE',   name: 'build_tools'],
-    [owner: branding.owner, name: branding.repo]
+    [owner: brandingRepo.owner, name: brandingRepo.name]
   ].each {
     it.branch = branch
     it.dir = it.name
@@ -664,7 +651,7 @@ void initializeWindows(String platform) {
   else if (params.clean && params.desktop)
     dir ('desktop-apps') { deleteDir() }
 
-  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
+  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, brandingRepo.name)
   checkoutRepos(varRepos)
 
   if (platform == 'windows_x64') {
@@ -705,7 +692,7 @@ void initializeDarwin(String platform) {
   else if (params.clean && params.desktop)
     dir ('desktop-apps') { deleteDir() }
 
-  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
+  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, brandingRepo.name)
   checkoutRepos(varRepos)
 
   if (platform in ['darwin_x86_64', 'darwin_arm64']) {
@@ -730,7 +717,7 @@ void initializeLinux(String platform) {
     dir ('desktop-apps') { deleteDir() }
 
   ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, branding.repo)
+  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, brandingRepo.name)
   ArrayList allRepos = constRepos.plus(varRepos)
   checkoutRepos(varRepos)
 
@@ -818,7 +805,7 @@ void buildArtifacts(String platform, String license = 'opensource') {
   if (platform in ["windows_x64_xp", "windows_x86_xp"])
     args.add("--qt-dir-xp ${env.QT56_PATH}")
   if (license == "commercial")
-    args.add("--branding ${branding.repo}")
+    args.add("--branding ${brandingRepo.name}")
   if (platform in ["windows_x64", "windows_x86"])
     args.add("--vs-version 2019")
   if (platform == "darwin_x86_64_v8")
@@ -834,7 +821,6 @@ void buildArtifacts(String platform, String license = 'opensource') {
   if (!params.extra_args.isEmpty())
     args.add(params.extra_args)
 
-  echo "${platform} ${license} build"
   String label = "artifacts ${license}".toUpperCase()
   if (platformIsUnix(platform)) {
     sh label: label, script: """
@@ -890,8 +876,8 @@ void buildPackages(String platform, String license = 'opensource') {
   args += " --targets ${targets.join(' ')}" \
         + " --version ${env.PRODUCT_VERSION}" \
         + " --build ${env.BUILD_NUMBER}"
-  if (!branding.onlyoffice)
-    args += " --branding ${branding.repo}"
+  if (env.COMPANY_NAME != 'ONLYOFFICE')
+    args += " --branding ${brandingRepo.name}"
 
   String label = "packages ${license}".toUpperCase()
   if (platformIsUnix(platform))
@@ -899,15 +885,11 @@ void buildPackages(String platform, String license = 'opensource') {
   else
     bat label: label, script: "cd build_tools && python make_package.py ${args}"
 
-  if (fileExists('deploy.json')) {
-    def platformDeployData = readJSON(file: 'deploy.json')
-    println platformDeployData
-    deployData += platformDeployData
-  }
+  if (fileExists('deploy.json')) deployData += readJSON(file: 'deploy.json')
 }
 
 void buildDocker() {
-  sh """
+  sh label: "DOCKER RUN", script: """
     gh workflow run 4testing-build.yml \
       --repo ONLYOFFICE/Docker-DocumentServer \
       --ref \$BRANCH_NAME \
@@ -921,7 +903,7 @@ void buildDocker() {
 }
 
 void checkDocker() {
-  sh """
+  sh label: "DOCKER CHECK", script: """
     REPO=ONLYOFFICE/Docker-DocumentServer
     sleep 5
     RUN_ID=\$(gh run list --repo \$REPO --workflow 4testing-build.yml \
@@ -932,17 +914,14 @@ void checkDocker() {
 }
 
 void buildAppcast() {
+  if (!(params.desktop && (params.windows_x64 || params.windows_x86))) return
   withCredentials([
     string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
   ]) {
     sh label: "APPCAST", script: "./appcast.sh -a \$PRODUCT_VERSION -b \$BUILD_NUMBER -r \$BRANCH_NAME"
   }
-  if (fileExists('deploy.json')) {
-    def platformDeployData = readJSON(file: 'deploy.json')
-    println platformDeployData
-    deployData += platformDeployData
-  }
+  if (fileExists('deploy.json')) deployData += readJSON(file: 'deploy.json')
 }
 
 // Reports
@@ -999,7 +978,7 @@ void publishReport(String title, Map files) {
         string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
       ]) {
-        sh """
+        sh label: "REPORTS UPLOAD", script: """
           aws s3 cp --no-progress --acl public-read \
             ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
           echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
@@ -1061,12 +1040,13 @@ void sendTelegramMessage(
   }
 
   if (params.notify) sh(
-    label: "Send Telegram Message",
-    script: "curl -X POST -s -S \
-      -d chat_id=${chatId} \
-      -d parse_mode=markdown \
-      -d disable_web_page_preview=true \
-      --data-urlencode text='${text}' \
-      https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
+    label: "TELEGRAM MESSAGE SEND", script: """
+      curl -X POST -s -S \
+        -d chat_id=${chatId} \
+        -d parse_mode=markdown \
+        -d disable_web_page_preview=true \
+        --data-urlencode text='${text}' \
+        https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage
+    """
     )
 }
