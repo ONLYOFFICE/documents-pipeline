@@ -387,7 +387,7 @@ pipeline {
             // TAR_RELEASE_SUFFIX = '-gcc5'
             // DEB_RELEASE_SUFFIX = '~stretch'
             RPM_RELEASE_SUFFIX = '.el7'
-            SUSE_RPM_RELEASE_SUFFIX = '.suse15'
+            SUSE_RPM_RELEASE_SUFFIX = '.suse12'
           }
           steps {
             initializeLinux('linux_x86_64')
@@ -408,7 +408,7 @@ pipeline {
             // TAR_RELEASE_SUFFIX = '-gcc5'
             // DEB_RELEASE_SUFFIX = '~stretch'
             RPM_RELEASE_SUFFIX = '.el7'
-            SUSE_RPM_RELEASE_SUFFIX = '.suse15'
+            SUSE_RPM_RELEASE_SUFFIX = '.suse12'
           }
           steps {
             initializeLinux('linux_aarch64')
@@ -430,7 +430,7 @@ pipeline {
             TAR_RELEASE_SUFFIX = '-cef107'
             DEB_RELEASE_SUFFIX = '~cef107'
             RPM_RELEASE_SUFFIX = '~cef107.el7'
-            SUSE_RPM_RELEASE_SUFFIX = '~cef107.suse15'
+            SUSE_RPM_RELEASE_SUFFIX = '~cef107.suse12'
           }
           steps {
             initializeLinux('linux_x86_64_cef')
