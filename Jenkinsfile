@@ -872,7 +872,6 @@ void buildPackages(String platform, String license = 'opensource') {
   if (params.signing && platform.startsWith("windows")) targets.add("sign")
 
   String args = " --platform ${platform}"
-  if (platform.startsWith("linux_x86_64")) args = " --platform linux_x86_64"
   args += " --targets ${targets.join(' ')}" \
         + " --version ${env.PRODUCT_VERSION}" \
         + " --build ${env.BUILD_NUMBER}"
