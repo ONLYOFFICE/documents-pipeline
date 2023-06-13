@@ -1,6 +1,6 @@
 defaults = [
   channel:          'other',
-  version:          '0.0.0',
+  version:          '99.99.99',
   clean:            true,
   windows_x64:      true,
   windows_x86:      true,
