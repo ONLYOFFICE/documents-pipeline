@@ -72,7 +72,7 @@ popd
 
 msg "Make appcast"
 BASE_URL=https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com
-UPDATES_URL=$BASE_URL/desktop/win/update/$VERSION/$BUILD
+UPDATES_URL=$BASE_URL/desktop/win/inno/$VERSION/$BUILD
 CHANGES_URL=$BASE_URL/desktop/win/update/$VERSION/$BUILD
 ZIP_64_KEY=desktop/win/generic/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x64.zip
 ZIP_32_KEY=desktop/win/generic/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x86.zip
