@@ -553,21 +553,21 @@ void checkoutRepo(String repo, String branch = 'master') {
 
 def getConstRepos(String branch = env.BRANCH_NAME) {
   return [
-    [owner: 'ONLYOFFICE',   name: 'build_tools'],
+    [owner: 'ONLYOFFICE',       name: 'build_tools'],
     [owner: brandingRepo.owner, name: brandingRepo.name]
   ].each {
     it.branch = branch
   }
 }
 
-def getVarRepos(String platform, String branding, String branch = env.BRANCH_NAME) {
+def getVarRepos(String platform, String branding = '', String branch = env.BRANCH_NAME) {
   checkoutRepos(getConstRepos())
 
   ArrayList modules = getModuleList(platform)
   ArrayList args = []
-  if (modules)          args.add("--module \"${modules.join(' ')}\"")
-  if (platform != null) args.add("--platform \"${platformBuild(platform)}\"")
-  if (branding != null) args.add("--branding \"${branding}\"")
+  if (modules)             args.add("--module \"${modules.join(' ')}\"")
+  if (!platform.isEmpty()) args.add("--platform ${platformBuild(platform)}")
+  if (!branding.isEmpty()) args.add("--branding ${branding}")
 
   String reposOutput
   if (platformIsUnix(platform)) {
@@ -618,16 +618,16 @@ void checkoutRepos(ArrayList repos) {
   }
 }
 
-void tagRepos(ArrayList repos, String tag) {
+void tagRepos(ArrayList repos, String tag = gitTag) {
   repos.each {
-    if (it.name == "onlyoffice.github.io") continue
-    sh label: "REPO TAG: ${it.name}", script: """
-      cd ${it.name}
-      git tag -l | xargs git tag -d
-      git fetch --tags
-      git tag ${gitTag}
-      git push origin --tags
-    """
+    if (it.name != "onlyoffice.github.io")
+      sh label: "REPO TAG: ${it.name}", script: """
+        cd ${it.name}
+        git tag -l | xargs git tag -d
+        git fetch --tags
+        git tag ${tag}
+        git push origin --tags
+      """
   }
 }
 
@@ -644,7 +644,7 @@ void start(String platform) {
   if (platform.startsWith('windows')) startWindows(platform)
   if (platform.startsWith('darwin'))  startDarwin(platform)
   if (platform.startsWith('linux'))   startLinux(platform)
-  if (platform.startsWith('android')) startAndroid(platform)
+  if (platform == 'android')          startAndroid(platform)
 }
 
 void startWindows(String platform) {
@@ -761,9 +761,10 @@ ArrayList getModuleList(String platform, String license = 'any') {
 }
 
 void buildArtifacts(String platform, String license = 'opensource') {
-  ArrayList args = []
   ArrayList modules = getModuleList(platform, license)
   if (!modules) return
+
+  ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
   args.add("--platform ${platformBuild(platform)}")
   args.add("--update false")
@@ -874,18 +875,18 @@ def getTargetList(String platform, String license = 'any') {
 }
 
 void buildPackages(String platform, String license = 'opensource') {
-  ArrayList targets = []
-  if (targets) return
+  ArrayList targets = getTargetList(platform, license)
+  if (!targets) return
   targets.addAll(['clean', 'deploy'])
   if (params.signing && platform.startsWith('windows'))
     targets.add('sign')
 
-  ArrayList args = "--platform ${platform}"
-  args.addAll([
+  ArrayList args = [
+    "--platform ${platform}",
     "--targets ${targets.join(' ')}",
     "--version ${env.PRODUCT_VERSION}",
     "--build ${env.BUILD_NUMBER}",
-  ])
+  ]
   if (env.COMPANY_NAME != 'ONLYOFFICE')
     args.add("--branding ${brandingRepo.name}")
 
