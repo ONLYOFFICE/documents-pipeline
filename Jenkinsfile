@@ -1012,6 +1012,7 @@ void publishReport(String title, Map files) {
 
 def getHtml(String product, ArrayList data) {
   String text, url
+  String now = new Date().format("yyyy-MM-dd HH:mm")
   Closure size = {
     return sh (script: "LANG=C numfmt --to=iec-i ${it}", returnStdout: true).trim()
   }
@@ -1021,7 +1022,8 @@ def getHtml(String product, ArrayList data) {
     + '\n<link rel="shortcut icon" sizes="16x16" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAq1BMVEUAAABgv9+Pv0Cfv0D/cEBgv+f/cEBdwuv/bT1cv+f/cDz/bj18v3yprzleweqDwXOUwTiWwTj/bjtav+dtv61wv62Svzi3pTiVwTevrTr/bjxev+eTvziVvzj/cD5dweiWwTldwOmVwDj/bz3/bz1cwOiUwDiVwDj/bz1cwOiVwDldwOhewOiVwDiWwDj/bz3/bz5dwOlewOmUwDeVwDf/bz1dwOiVwDj/bz375yNXAAAANnRSTlMAEBAQECAgPz9AQE9QUF9fX19fYGBgYGBvf3+AgICAj4+fn5+vv7+/v8/P39/f39/f7+/v7++96DlEAAAAj0lEQVR42lXJA5ZEQRBE0Wh73Pi2zar9r2xKg75H+SKhHA74Z2H081y+LP4nV3oblhtHpcCmYn6SAZ/RX0Y7AKvH1VP59b4CrJEQ/+x1nfOaEFKbuFWEiR83loQMD4BPSv62ZH0MPzTxjS92cARSSmkT3F3/Yk/sTLENKBeyBxPsATUxk76GtNVblX9Oe5XfxIMfXH9c3hQAAAAASUVORK5CYII=" type="image/png">' \
     + "\n<link rel=\"stylesheet\" href=\"https://unpkg.com/@primer/css@20.4.1/dist/primer.css\">" \
     + "\n</head>\n<body><div class=\"container-lg px-3 my-5 markdown-body\">" \
-    + "\n<h1>${env.COMPANY_NAME} ${product} - ${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</h1>"
+    + "\n<h1>${env.COMPANY_NAME} ${product} - ${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</h1>" \
+    + "\n<p class =\"color-fg-muted\">${now}</p>"
   data.groupBy { it.platform }.sort().each { platform, types ->
     text += "\n<h2>${platform}</h2>\n<dl>"
     types.groupBy { it.type }.each { type, files ->
