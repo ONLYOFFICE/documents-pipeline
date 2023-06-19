@@ -971,6 +971,8 @@ void generateReports() {
   }
   if (mobile)
     publishReport('Mobile', ['mobile.html': deploy.mobile])
+  writeJSON file: 'deploy.json', json: deployData
+  archiveArtifacts '*.html, *.json'
 
   currentBuild.description = ''
   Map links = [:]
@@ -982,7 +984,7 @@ void generateReports() {
   if (server_ee) links['DocumentServer EE'] = 'server_enterprise.html'
   if (mobile)    links['Mobile'] = 'mobile.html'
   links.each {
-    if (!currentBuild.description.isEmpty()) currentBuild.description += ' / '
+    if (!currentBuild.description.isEmpty()) currentBuild.description += '<br>'
     currentBuild.description += "<a href=\"${env.S3_BASE_URL}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.value}\" target=\"_blank\">${it.key}</a>"
   }
 }
@@ -990,22 +992,18 @@ void generateReports() {
 void publishReport(String title, Map files) {
   files.each {
     writeFile file: it.key, text: getHtml(title, it.value)
-    try {
-      withCredentials([
-        string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-      ]) {
-        sh label: "REPORTS UPLOAD", script: """
-          aws s3 cp --no-progress --acl public-read \
-            ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
-          echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
-          aws s3 cp --no-progress --acl public-read \
-            ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/latest/
-          echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/latest/${it.key}"
-        """
-      }
-    } catch(Exception e) {
-      echo "Caught: ${e}"
+    withCredentials([
+      string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+      string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+    ]) {
+      sh label: 'REPORTS UPLOAD', returnStatus: true, script: """
+        aws s3 cp --no-progress --acl public-read \
+          ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
+        echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
+        aws s3 cp --no-progress --acl public-read \
+          ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/latest/
+        echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/latest/${it.key}"
+      """
     }
   }
 }
