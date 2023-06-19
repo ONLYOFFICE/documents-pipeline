@@ -49,37 +49,36 @@ parse_params() {
 }
 
 s3_md5() {
-  aws s3api head-object --bucket $S3_BUCKET --key $1 --query 'Metadata.md5' --output text \
+  $aws s3api head-object --bucket $S3_BUCKET --key $1 \
+    --query 'Metadata.md5' --output text \
     2> /dev/null || true
 }
 
 parse_params "$@"
 
 S3_BUCKET=repo-doc-onlyoffice-com
-COMPANY_NAME=ONLYOFFICE
-PRODUCT_NAME=DesktopEditors
+PACKAGE_NAME=ONLYOFFICE-DesktopEditors
 DATE=$(LANG=C date -u "+%b %d %H:%M UTC %Y")
 aws="aws"
 
-rm -rfv update
+rm -rfv update repo
 mkdir -pv update
 
 msg "Download changelog"
-pushd update
-wget -nv https://raw.githubusercontent.com/ONLYOFFICE/desktop-apps/$BRANCH_NAME/win-linux/package/windows/update/changes/$VERSION/changes.html
-wget -nv https://raw.githubusercontent.com/ONLYOFFICE/desktop-apps/$BRANCH_NAME/win-linux/package/windows/update/changes/$VERSION/changes_ru.html
-popd
+git clone -b $BRANCH_NAME -n --depth=1 git@github.com:ONLYOFFICE/desktop-apps.git repo
+git -C repo checkout HEAD win-linux/package/windows/update/changes
+cp -fv repo/win-linux/package/windows/update/changes/$VERSION/*.html update/
 
 msg "Make appcast"
 BASE_URL=https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com
 UPDATES_URL=$BASE_URL/desktop/win/inno/$VERSION/$BUILD
 CHANGES_URL=$BASE_URL/desktop/win/update/$VERSION/$BUILD
-ZIP_64_KEY=desktop/win/generic/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x64.zip
-ZIP_32_KEY=desktop/win/generic/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x86.zip
-EXE_64_KEY=desktop/win/inno/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x64.exe
-EXE_32_KEY=desktop/win/inno/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x86.exe
-MSI_64_KEY=desktop/win/advinst/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x64.msi
-MSI_32_KEY=desktop/win/advinst/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x86.msi
+ZIP_64_KEY=desktop/win/generic/$PACKAGE_NAME-$VERSION.$BUILD-x64.zip
+ZIP_32_KEY=desktop/win/generic/$PACKAGE_NAME-$VERSION.$BUILD-x86.zip
+EXE_64_KEY=desktop/win/inno/$PACKAGE_NAME-$VERSION.$BUILD-x64.exe
+EXE_32_KEY=desktop/win/inno/$PACKAGE_NAME-$VERSION.$BUILD-x86.exe
+MSI_64_KEY=desktop/win/advinst/$PACKAGE_NAME-$VERSION.$BUILD-x64.msi
+MSI_32_KEY=desktop/win/advinst/$PACKAGE_NAME-$VERSION.$BUILD-x86.msi
 cat > update/appcast.json << EOF
 {
   "version": "$VERSION.$BUILD",

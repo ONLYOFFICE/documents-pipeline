@@ -936,7 +936,8 @@ void buildAppcast() {
     string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
   ]) {
-    sh label: "APPCAST", script: "./appcast.sh -a \$PRODUCT_VERSION -b \$BUILD_NUMBER -r \$BRANCH_NAME"
+    sh label: "APPCAST", returnStatus: true,
+      script: "./appcast.sh -a \$PRODUCT_VERSION -b \$BUILD_NUMBER -r \$BRANCH_NAME"
   }
   if (fileExists('deploy.json')) deployData += readJSON(file: 'deploy.json')
 }
