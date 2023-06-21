@@ -52,8 +52,8 @@ pipeline {
   agent none
   environment {
     COMPANY_NAME = 'ONLYOFFICE'
-    BUILD_CHANNEL = defaults.channel
-    PRODUCT_VERSION = defaults.version
+    BUILD_CHANNEL = "${defaults.channel}"
+    PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
     S3_BUCKET = 'repo-doc-onlyoffice-com'
     S3_BASE_URL = 'https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com'
