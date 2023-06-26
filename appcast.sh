@@ -90,10 +90,7 @@ cat update/appcast.json
 
 cat > update/appcast.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
-<rss
-    version="2.0"
-    xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
-    xmlns:dc="http://purl.org/dc/elements/1.1/">
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
   <channel>
     <title>$PACKAGE_NAME Changelog</title>
     <description>Most recent changes with links to updates.</description>
@@ -101,36 +98,16 @@ cat > update/appcast.xml << EOF
     <item>
       <title>Version $PRODUCT_VERSION.$BUILD_NUMBER</title>
       <pubDate>$DATE_XML</pubDate>
-      <sparkle:releaseNotesLink>
-        $CHANGES_URL/changes.html
-      </sparkle:releaseNotesLink>
-      <sparkle:releaseNotesLink xml:lang="ru-RU">
-        $CHANGES_URL/changes_ru.html
-      </sparkle:releaseNotesLink>
-      <enclosure url="$UPDATES_URL/editors_update_x64.exe"
-                 sparkle:os="windows-x64"
-                 sparkle:version="$PRODUCT_VERSION.$BUILD_NUMBER"
-                 sparkle:shortVersionString="$PRODUCT_VERSION.$BUILD_NUMBER"
-                 sparkle:installerArguments="/silent /update"
-                 length="0"
-                 type="application/octet-stream" />
+      <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
+      <enclosure url="$UPDATES_URL/editors_update_x64.exe" sparkle:os="windows-x64" sparkle:version="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
     </item>
     <item>
       <title>Version $PRODUCT_VERSION.$BUILD_NUMBER</title>
       <pubDate>$DATE_XML</pubDate>
-      <sparkle:releaseNotesLink>
-        $CHANGES_URL/changes.html
-      </sparkle:releaseNotesLink>
-      <sparkle:releaseNotesLink xml:lang="ru-RU">
-        $CHANGES_URL/changes_ru.html
-      </sparkle:releaseNotesLink>
-      <enclosure url="$UPDATES_URL/editors_update_x86.exe"
-                 sparkle:os="windows-x86"
-                 sparkle:version="$PRODUCT_VERSION.$BUILD_NUMBER"
-                 sparkle:shortVersionString="$PRODUCT_VERSION.$BUILD_NUMBER"
-                 sparkle:installerArguments="/silent /update"
-                 length="0"
-                 type="application/octet-stream" />
+      <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
+      <enclosure url="$UPDATES_URL/editors_update_x86.exe" sparkle:os="windows-x86" sparkle:version="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
     </item>
   </channel>
 </rss>
