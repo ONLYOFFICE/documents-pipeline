@@ -1,6 +1,6 @@
 defaults = [
   channel:          'other',
-  version:          '0.0.0',
+  version:          '99.99.99',
   clean:            true,
   windows_x64:      true,
   windows_x86:      true,
@@ -23,40 +23,40 @@ defaults = [
   password:         false,
   beta:             false,
   sign:             true,
-  schedule:         'H 17 * * *'
+  schedule:         'H 17 * * *',
+  repo_owner:       'ONLYOFFICE',
+  repo_name:        'onlyoffice',
 ]
 
 if (env.BRANCH_NAME == 'develop') {
   defaults.putAll([
     channel:          'nightly',
     darwin_x86_64_v8: false,
+    linux_x86_64_cef: false,
     android:          false,
     server_ce:        false,
     server_de:        false,
     mobile:           false,
-    beta:             true
+    beta:             true,
   ])
 }
-
 if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
   defaults.putAll([
     channel:          'test',
     version:          env.BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
-    schedule:         'H 23 * * *'
+    schedule:         'H 23 * * *',
   ])
 }
-
-brandingRepo = [owner: 'ONLYOFFICE', name: 'onlyoffice']
 
 pipeline {
   agent none
   environment {
-    COMPANY_NAME = "ONLYOFFICE"
+    COMPANY_NAME = 'ONLYOFFICE'
     BUILD_CHANNEL = "${defaults.channel}"
     PRODUCT_VERSION = "${defaults.version}"
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
-    S3_BUCKET = "repo-doc-onlyoffice-com"
-    S3_BASE_URL = "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com"
+    S3_BUCKET = 'repo-doc-onlyoffice-com'
+    S3_BASE_URL = 'https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com'
   }
   options {
     checkoutToSubdirectory 'documents-pipeline'
@@ -227,7 +227,7 @@ pipeline {
             beforeAgent true
           }
           steps {
-            initializeWindows('windows_x64')
+            start('windows_x64')
           }
           post {
             success  { setStageStats(0) }
@@ -250,7 +250,7 @@ pipeline {
             UNAME_M = 'i686'
           }
           steps {
-            initializeWindows('windows_x86')
+            start('windows_x86')
           }
           post {
             success  { setStageStats(0) }
@@ -273,7 +273,7 @@ pipeline {
             _WIN_XP = '1'
           }
           steps {
-            initializeWindows('windows_x64_xp')
+            start('windows_x64_xp')
           }
           post {
             success  { setStageStats(0) }
@@ -297,7 +297,7 @@ pipeline {
             UNAME_M = 'i686'
           }
           steps {
-            initializeWindows('windows_x86_xp')
+            start('windows_x86_xp')
           }
           post {
             success  { setStageStats(0) }
@@ -321,7 +321,7 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
           steps {
-            initializeDarwin('darwin_x86_64')
+            start('darwin_x86_64')
           }
           post {
             success  { setStageStats(0) }
@@ -344,7 +344,7 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
           steps {
-            initializeDarwin('darwin_arm64')
+            start('darwin_arm64')
           }
           post {
             success  { setStageStats(0) }
@@ -367,7 +367,7 @@ pipeline {
             CODESIGNING_IDENTITY = 'Developer ID Application'
           }
           steps {
-            initializeDarwin('darwin_x86_64_v8')
+            start('darwin_x86_64_v8')
           }
           post {
             success  { setStageStats(0) }
@@ -390,7 +390,7 @@ pipeline {
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
           }
           steps {
-            initializeLinux('linux_x86_64')
+            start('linux_x86_64')
           }
           post {
             success  { setStageStats(0) }
@@ -411,7 +411,7 @@ pipeline {
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
           }
           steps {
-            initializeLinux('linux_aarch64')
+            start('linux_aarch64')
           }
           post {
             success  { setStageStats(0) }
@@ -419,7 +419,7 @@ pipeline {
             failure  { setStageStats(2) }
           }
         }
-        stage('Linux x86_64 cef107') {
+        stage('Linux x86_64 CEF 107') {
           agent { label 'linux_x86_64_cef' }
           when {
             expression { params.linux_x86_64_cef }
@@ -433,7 +433,7 @@ pipeline {
             SUSE_RPM_RELEASE_SUFFIX = '~cef107.suse12'
           }
           steps {
-            initializeLinux('linux_x86_64_cef')
+            start('linux_x86_64_cef')
           }
           post {
             success  { setStageStats(0) }
@@ -449,7 +449,7 @@ pipeline {
             beforeAgent true
           }
           steps {
-            initializeAndroid()
+            start('android')
           }
           post {
             success  { setStageStats(0) }
@@ -510,7 +510,296 @@ pipeline {
   }
 }
 
-String platformBuild(String platform) {
+// Stages
+
+void start(String platform) {
+  echo 'PLATFORM=' + platform + '\nNODE_NAME=' + env.NODE_NAME
+
+  if (params.wipe)
+    deleteDir()
+  else if (params.clean && params.desktop && platform != 'android')
+    dir ('desktop-apps') { deleteDir() }
+
+  if (platform.startsWith('windows')) startWindows(platform)
+  if (platform.startsWith('darwin'))  startDarwin(platform)
+  if (platform.startsWith('linux'))   startLinux(platform)
+  if (platform == 'android')          startAndroid(platform)
+}
+
+void startWindows(String platform) {
+  ArrayList varRepos = getVarRepos(platform, defaults.repo_name)
+  checkoutRepos(varRepos)
+
+  buildArtifacts(platform, 'opensource')
+  buildPackages(platform, 'opensource')
+
+  buildArtifacts(platform, 'commercial')
+  buildPackages(platform, 'commercial')
+}
+
+void startDarwin(String platform) {
+  ArrayList varRepos = getVarRepos(platform, defaults.repo_name)
+  checkoutRepos(varRepos)
+
+  buildArtifacts(platform, 'opensource')
+  buildPackages(platform, 'opensource')
+
+  if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
+    buildArtifacts(platform, 'commercial')
+    buildPackages(platform, 'commercial')
+  }
+}
+
+void startLinux(String platform) {
+  ArrayList constRepos = getConstRepos()
+  ArrayList varRepos = getVarRepos(platform, defaults.repo_name)
+  ArrayList allRepos = constRepos.plus(varRepos)
+  checkoutRepos(varRepos)
+
+  buildArtifacts(platform, 'opensource')
+  buildPackages(platform, 'opensource')
+
+  buildArtifacts(platform, 'commercial')
+  buildPackages(platform, 'commercial')
+
+  if ((platform == 'linux_x86_64') && (params.server_ce || params.server_ee || params.server_de)) {
+    if (env.COMPANY_NAME == 'ONLYOFFICE') {
+      buildDocker()
+      tagRepos(allRepos)
+    } else {
+      ArrayList buildDockerServer = []
+      if (params.server_ee) buildDockerServer.add('-ee')
+      if (params.server_de) buildDockerServer.add('-de')
+      buildDockerServer.each {
+        sh label: 'DOCKER DOCUMENTSERVER' + it.toUpperCase(), script: """
+          cd Docker-DocumentServer
+          make clean
+          make deploy -e PRODUCT_EDITION=${it} -e ONLYOFFICE_VALUE=ds \
+            -e PACKAGE_VERSION=\$PRODUCT_VERSION-\$BUILD_NUMBER \
+            -e PACKAGE_BASEURL=\$S3_BASE_URL/server/linux/debian
+        """
+      }
+    }
+  }
+}
+
+void startAndroid(String platform = 'android') {
+  ArrayList varRepos = getVarRepos(platform)
+  checkoutRepos(varRepos)
+
+  buildArtifacts(platform, 'opensource')
+  buildPackages(platform, 'opensource')
+}
+
+// Build
+
+void buildArtifacts(String platform, String license = 'opensource') {
+  ArrayList modules = getModuleList(platform, license)
+  if (!modules) return
+
+  ArrayList args = []
+  args.add("--module \"${modules.join(' ')}\"")
+  args.add("--platform ${getPrefix(platform)}")
+  args.add("--update false")
+  args.add("--clean ${params.clean.toString()}")
+  args.add("--qt-dir ${env.QT_PATH}")
+  if (platform in ["windows_x64_xp", "windows_x86_xp"])
+    args.add("--qt-dir-xp ${env.QT56_PATH}")
+  if (license == "commercial")
+    args.add("--branding ${defaults.repo_name}")
+  if (platform in ["windows_x64", "windows_x86"])
+    args.add("--vs-version 2019")
+  if (platform == "darwin_x86_64_v8")
+    args.add("--config use_v8")
+  if (platform == "linux_x86_64_cef")
+    args.add("--config cef_version_107")
+  if (platform == "android")
+    args.add("--config release")
+  // if (params.password_protection)
+  //   args.add("--features \"enable_protection disable_signatures\"")
+  if (params.beta)
+    args.add("--beta 1")
+  if (!params.extra_args.isEmpty())
+    args.add(params.extra_args)
+
+  String label = "artifacts ${license}".toUpperCase()
+  if (!platform.startsWith('windows')) {
+    sh label: label, script: """
+      cd build_tools
+      ./configure.py ${args.join(' ')}
+      ./make.py
+    """
+  } else {
+    powershell label: label, script: """
+      cd build_tools
+      python configure.py ${args.join(' ')}
+      python make.py
+    """
+  }
+}
+
+void buildPackages(String platform, String license = 'opensource') {
+  ArrayList targets = getTargetList(platform, license)
+  if (!targets) return
+  targets.addAll(['clean', 'deploy'])
+  if (params.signing && platform.startsWith('windows'))
+    targets.add('sign')
+
+  ArrayList args = [
+    "--platform ${platform}",
+    "--targets ${targets.join(' ')}",
+    "--version ${env.PRODUCT_VERSION}",
+    "--build ${env.BUILD_NUMBER}",
+  ]
+  if (env.COMPANY_NAME != 'ONLYOFFICE')
+    args.add("--branding ${defaults.repo_name}")
+
+  String label = "packages ${license}".toUpperCase()
+  if (!platform.startsWith('windows'))
+    sh label: label, script: """
+      cd build_tools
+      ./make_package.py ${args.join(' ')}
+    """
+  else
+    powershell label: label, script: """
+      cd build_tools
+      python make_package.py ${args.join(' ')}
+    """
+
+  if (fileExists('deploy.json')) deployData += readJSON(file: 'deploy.json')
+}
+
+ArrayList getModuleList(String platform, String license = 'any') {
+  def p = params
+  LinkedHashMap l = [
+    os: license in ['opensource', 'any'],
+    com: license in ['commercial', 'any'],
+  ]
+  LinkedHashMap map = [
+    windows_x64: [
+      core: p.core && l.os,
+      desktop: p.desktop && l.com,
+      builder: p.builder && l.os,
+      server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
+    ],
+    windows_x86: [
+      core: p.core && l.os,
+      desktop: p.desktop && l.com,
+      builder: p.builder && l.os,
+    ],
+    windows_x64_xp: [
+      desktop: p.desktop && l.com,
+    ],
+    windows_x86_xp: [
+      desktop: p.desktop && l.com,
+    ],
+    darwin_x86_64: [
+      core: p.core && l.os,
+      desktop: p.desktop && l.com,
+    ],
+    darwin_arm64: [
+      core: p.core && l.os,
+      desktop: p.desktop && l.com,
+    ],
+    darwin_x86_64_v8: [
+      desktop: p.desktop && l.com,
+    ],
+    linux_x86_64: [
+      core: p.core && l.os,
+      desktop: p.desktop && l.com,
+      builder: p.builder && l.os,
+      server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
+    ],
+    linux_aarch64: [
+      builder: p.builder && l.os,
+      server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
+    ],
+    linux_x86_64_cef: [
+      desktop: p.desktop && l.com,
+    ],
+    android: [
+      mobile: p.mobile && l.os,
+    ],
+  ]
+  ArrayList modules = []
+
+  map[platform].each {
+    if (it.value) modules.add(it.key)
+  }
+
+  return modules
+}
+
+ArrayList getTargetList(String platform, String license = 'any') {
+  def p = params
+  LinkedHashMap l = [
+    os: license in ['opensource', 'any'],
+    com: license in ['commercial', 'any'],
+  ]
+  LinkedHashMap map = [
+    windows_x64: [
+      'core': p.core && l.os,
+      'desktop': p.desktop && l.com,
+      'builder': p.builder && l.os,
+      'server-community': p.server_ce && l.os,
+      'server-developer': p.server_de && l.com,
+      'server-enterprise': p.server_ee && l.com,
+    ],
+    windows_x86: [
+      'core': p.core && l.os,
+      'desktop': p.desktop && l.com,
+      'builder': p.builder && l.os,
+    ],
+    windows_x64_xp: [
+      'desktop': p.desktop && l.com,
+    ],
+    windows_x86_xp: [
+      'desktop': p.desktop && l.com,
+    ],
+    darwin_x86_64: [
+      'core': p.core && l.os,
+      'desktop': p.desktop && l.com,
+    ],
+    darwin_arm64: [
+      'core': p.core && l.os,
+      'desktop': p.desktop && l.com,
+    ],
+    darwin_x86_64_v8: [
+      'desktop': p.desktop && l.com,
+    ],
+    linux_x86_64: [
+      'core': p.core && l.os,
+      'closure-maps-os': l.os,
+      'closure-maps-com': l.com,
+      'desktop': p.desktop && l.com,
+      'builder': p.builder && l.os,
+      'server-community': p.server_ce && l.os,
+      'server-developer': p.server_de && l.com,
+      'server-enterprise': p.server_ee && l.com,
+    ],
+    linux_aarch64: [
+      'builder': p.builder && l.os,
+      'server-community': p.server_ce && l.os,
+      'server-developer': p.server_de && l.com,
+      'server-enterprise': p.server_ee && l.com,
+    ],
+    linux_x86_64_cef: [
+      'desktop': p.desktop && l.com,
+    ],
+    android: [
+      'mobile': p.mobile && l.os,
+    ],
+  ]
+  ArrayList targets = []
+
+  map[platform].each {
+    if (it.value) targets.add(it.key)
+  }
+
+  return targets
+}
+
+String getPrefix(String platform) {
   return [
     windows_x64:      'win_64',
     windows_x86:      'win_32',
@@ -526,79 +815,72 @@ String platformBuild(String platform) {
   ][platform]
 }
 
-Boolean platformIsUnix(String platform) {
-  return !platform.startsWith('windows')
+// Docker
+
+void buildDocker() {
+  sh label: 'DOCKER RUN', script: """
+    gh workflow run 4testing-build.yml \
+      --repo ONLYOFFICE/Docker-DocumentServer \
+      --ref \$BRANCH_NAME \
+      -f build=\$BUILD_NUMBER \
+      -f amd64=${params.linux_x86_64} \
+      -f arm64=${params.linux_aarch64} \
+      -f community=${params.server_ce} \
+      -f enterprise=${params.server_ee} \
+      -f developer=${params.server_de}
+  """
 }
 
-void checkoutRepo(
-  String repo,
-  String branch = 'master',
-  String dir = repo.minus(~/^.+\//)
-) {
-  if (dir == null) dir = repo.minus(~/^.+\//)
-  int retryCount = 0
-  retry(3) {
-    if (retryCount > 0) sleep(30)
-    retryCount++
-    checkout([
-      $class: 'GitSCM',
-      branches: [[name: 'refs/heads/' + branch]],
-      doGenerateSubmoduleConfigurations: false,
-      extensions: [
-        [$class: 'AuthorInChangelog'],
-        [$class: 'RelativeTargetDirectory', relativeTargetDir: dir],
-        [$class: 'ScmName', name: "${repo}"],
-        [$class: 'SubmoduleOption', recursiveSubmodules: true]
-      ],
-      submoduleCfg: [],
-      userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
-    ])
-  }
+void checkDocker() {
+  sh label: 'DOCKER CHECK', script: """
+    REPO=ONLYOFFICE/Docker-DocumentServer
+    sleep 5
+    RUN_ID=\$(gh run list --repo \$REPO --workflow 4testing-build.yml \
+      --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+    gh --repo \$REPO run watch \$RUN_ID --interval 15 > /dev/null
+    gh --repo \$REPO run view \$RUN_ID --verbose --exit-status
+  """
 }
 
-def getConstRepos(String branch = 'master') {
+// Repos
+
+def getConstRepos(String branch = env.BRANCH_NAME) {
   return [
-    [owner: 'ONLYOFFICE',   name: 'build_tools'],
-    [owner: brandingRepo.owner, name: brandingRepo.name]
+    [owner: 'ONLYOFFICE',        name: 'build_tools'],
+    [owner: defaults.repo_owner, name: defaults.repo_name]
   ].each {
     it.branch = branch
-    it.dir = it.name
-    it.tag = true
   }
 }
 
-def getVarRepos(String branch, String platform, String branding) {
-  checkoutRepos(getConstRepos(branch))
+def getVarRepos(String platform, String branding = '', String branch = env.BRANCH_NAME) {
+  checkoutRepos(getConstRepos())
 
-  String modules = getModules(platform).join(' ')
-  String scriptArgs = ""
-  if (!modules.isEmpty()) scriptArgs = "--module \"${modules}\""
-  if (platform != null) scriptArgs += " --platform \"${platformBuild(platform)}\""
-  if (branding != null) scriptArgs += " --branding \"${branding}\""
+  ArrayList modules = getModuleList(platform)
+  ArrayList args = []
+  if (modules)             args.add("--module \"${modules.join(' ')}\"")
+  if (!platform.isEmpty()) args.add("--platform ${getPrefix(platform)}")
+  if (!branding.isEmpty()) args.add("--branding ${branding}")
 
   String reposOutput
-  if (platformIsUnix(platform)) {
-    reposOutput = sh(
-      script: "cd build_tools/scripts/develop && \
-        ./print_repositories.py ${scriptArgs}",
-      returnStdout: true
-    )
+  if (!platform.startsWith('windows')) {
+    reposOutput = sh label: "REPOS PRINT", returnStdout: true, script: """
+      cd build_tools/scripts/develop
+      ./print_repositories.py ${args.join(' ')}
+    """
   } else {
-    reposOutput = powershell(
-      script: "cd build_tools\\scripts\\develop; \
-        python print_repositories.py ${scriptArgs}",
-      returnStdout: true
-    )
+    reposOutput = powershell label: "REPOS PRINT", returnStdout: true, script: """
+      cd build_tools\\scripts\\develop
+      python print_repositories.py ${args.join(' ')}
+    """
   }
 
   ArrayList repos = []
   reposOutput.readLines().sort().each { line ->
     Map repo = [
-      owner: "ONLYOFFICE",
+      owner: 'ONLYOFFICE',
       name: line,
-      branch: "master",
-      dir: line,
-      tag: (line != "onlyoffice.github.io")
+      branch: 'master'
     ]
     if (branch != 'master') {
       int retryCount = 0
@@ -622,296 +904,48 @@ def getVarRepos(String branch, String platform, String branding) {
   return repos
 }
 
+void checkoutRepo(String repo, String branch = 'master') {
+  int retryCount = 0
+  retry(3) {
+    if (retryCount > 0) sleep(30)
+    retryCount++
+    checkout([
+      $class: 'GitSCM',
+      branches: [[name: 'refs/heads/' + branch]],
+      doGenerateSubmoduleConfigurations: false,
+      extensions: [
+        [$class: 'AuthorInChangelog'],
+        [$class: 'RelativeTargetDirectory', relativeTargetDir: repo.minus(~/^.+\//)],
+        [$class: 'ScmName', name: repo],
+        [$class: 'SubmoduleOption', recursiveSubmodules: true]
+      ],
+      submoduleCfg: [],
+      userRemoteConfigs: [[url: "git@github.com:${repo}.git"]]
+    ])
+  }
+}
+
 void checkoutRepos(ArrayList repos) {
-  echo repos.collect({"${it.owner}/${it.name} (${it.branch})"}).join("\n")
+  echo repos.collect({"${it.owner}/${it.name} (${it.branch})"}).join('\n')
   repos.each {
-    checkoutRepo(it.owner + "/" + it.name, it.branch, it.dir)
+    checkoutRepo(it.owner + '/' + it.name, it.branch)
   }
 }
 
-void tagRepos(ArrayList repos, String tag) {
-  repos.findAll { it.tag }.each {
-    sh """
-      cd ${it.dir}
-      git tag -l | xargs git tag -d
-      git fetch --tags
-      git tag ${tag}
-      git push origin --tags
-    """
+void tagRepos(ArrayList repos, String tag = gitTag) {
+  repos.each {
+    if (it.name != 'onlyoffice.github.io')
+      sh label: "REPO TAG: ${it.name}", script: """
+        cd ${it.name}
+        git tag -l | xargs git tag -d
+        git fetch --tags
+        git tag ${tag}
+        git push origin --tags
+      """
   }
 }
 
-// Stages
-
-void initializeWindows(String platform) {
-  echo "PLATFORM=" + platform + "\nNODE_NAME=" + env.NODE_NAME
-
-  if (params.wipe)
-    deleteDir()
-  else if (params.clean && params.desktop)
-    dir ('desktop-apps') { deleteDir() }
-
-  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, brandingRepo.name)
-  checkoutRepos(varRepos)
-
-  if (platform == 'windows_x64') {
-    if (params.core || params.builder || params.server_ce) {
-      buildArtifacts(platform, 'opensource')
-      buildPackages(platform, 'opensource')
-    }
-    if (params.desktop || params.server_ee || params.server_de) {
-      buildArtifacts(platform, 'commercial')
-      buildPackages(platform, 'commercial')
-    }
-  }
-
-  if (platform == 'windows_x86') {
-    if (params.core || params.builder) {
-      buildArtifacts(platform, 'opensource')
-      buildPackages(platform, 'opensource')
-    }
-    if (params.desktop) {
-      buildArtifacts(platform, 'commercial')
-      buildPackages(platform, 'commercial')
-    }
-  }
-
-  if (platform in ['windows_x64_xp', 'windows_x86_xp']) {
-    if (params.desktop) {
-      buildArtifacts(platform, 'commercial')
-      buildPackages(platform, 'commercial')
-    }
-  }
-}
-
-void initializeDarwin(String platform) {
-  echo "PLATFORM=" + platform + "\nNODE_NAME=" + env.NODE_NAME
-
-  if (params.wipe)
-    deleteDir()
-  else if (params.clean && params.desktop)
-    dir ('desktop-apps') { deleteDir() }
-
-  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, brandingRepo.name)
-  checkoutRepos(varRepos)
-
-  if (platform in ['darwin_x86_64', 'darwin_arm64']) {
-    if (params.core || params.builder) {
-      buildArtifacts(platform, 'opensource')
-      buildPackages(platform, 'opensource')
-    }
-  }
-
-  if (params.desktop && env.BRANCH_NAME != 'develop') {
-    buildArtifacts(platform, 'commercial')
-    buildPackages(platform, 'commercial')
-  }
-}
-
-void initializeLinux(String platform) {
-  echo "PLATFORM=" + platform + "\nNODE_NAME=" + env.NODE_NAME
-
-  if (params.wipe)
-    deleteDir()
-  else if (params.clean && params.desktop)
-    dir ('desktop-apps') { deleteDir() }
-
-  ArrayList constRepos = getConstRepos(env.BRANCH_NAME)
-  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, brandingRepo.name)
-  ArrayList allRepos = constRepos.plus(varRepos)
-  checkoutRepos(varRepos)
-
-  if (platform in ['linux_x86_64', 'linux_aarch64']) {
-    if (params.core || params.builder || params.server_ce) {
-      buildArtifacts(platform, 'opensource')
-      buildPackages(platform, 'opensource')
-    }
-    if (params.desktop || params.server_ee || params.server_de) {
-      buildArtifacts(platform, 'commercial')
-      buildPackages(platform, 'commercial')
-    }
-  }
-  if (platform == 'linux_x86_64_cef') {
-    if (params.desktop) {
-      buildArtifacts(platform, 'commercial')
-      buildPackages(platform, 'commercial')
-    }
-  }
-
-  if (platform == 'linux_x86_64') {
-    if (params.server_ce || params.server_ee || params.server_de) {
-      buildDocker()
-      tagRepos(allRepos, gitTag)
-    }
-  }
-}
-
-void initializeAndroid(String platform = 'android') {
-  echo "PLATFORM=" + platform + "\nNODE_NAME=" + env.NODE_NAME
-
-  if (params.wipe) deleteDir()
-
-  ArrayList varRepos = getVarRepos(env.BRANCH_NAME, platform, null)
-  checkoutRepos(varRepos)
-
-  buildArtifacts(platform, 'opensource')
-  buildPackages(platform, 'opensource')
-}
-
-// Build
-
-def getModules(String platform, String license = "any") {
-  Boolean isOpenSource = license in ["opensource", "any"]
-  Boolean isCommercial = license in ["commercial", "any"]
-  Boolean pCore = platform in [
-    "windows_x64", "windows_x86",
-    "darwin_x86_64", "darwin_arm64",
-    "linux_x86_64"
-  ]
-  Boolean pDesktop = !(platform in ["linux_aarch64", "android"])
-  Boolean pBuilder = platform in [
-    "windows_x64", "windows_x64",
-    "linux_x86_64", "linux_aarch64"
-  ]
-  Boolean pServer = platform in [
-    "windows_x64",
-    "linux_x86_64", "linux_aarch64"
-  ]
-  Boolean pMobile = platform == "android"
-
-  ArrayList modules = []
-  if (params.core && isOpenSource && pCore)
-    modules.add("core")
-  if (params.desktop && isCommercial && pDesktop)
-    modules.add("desktop")
-  if (params.builder && isOpenSource && pBuilder)
-    modules.add("builder")
-  if ((((params.server_de || params.server_ee) && isCommercial) \
-    || (params.server_ce && isOpenSource)) && pServer)
-    modules.add("server")
-  if (params.mobile && isOpenSource && pMobile)
-    modules.add("mobile")
-
-  return modules
-}
-
-void buildArtifacts(String platform, String license = 'opensource') {
-  ArrayList args = []
-  args.add("--module \"${getModules(platform, license).join(' ')}\"")
-  args.add("--platform ${platformBuild(platform)}")
-  args.add("--update false")
-  args.add("--clean ${params.clean.toString()}")
-  args.add("--qt-dir ${env.QT_PATH}")
-  if (platform in ["windows_x64_xp", "windows_x86_xp"])
-    args.add("--qt-dir-xp ${env.QT56_PATH}")
-  if (license == "commercial")
-    args.add("--branding ${brandingRepo.name}")
-  if (platform in ["windows_x64", "windows_x86"])
-    args.add("--vs-version 2019")
-  if (platform == "darwin_x86_64_v8")
-    args.add("--config use_v8")
-  if (platform == "linux_x86_64_cef")
-    args.add("--config cef_version_107")
-  if (platform == "android")
-    args.add("--config release")
-  // if (params.password_protection)
-  //   args.add("--features \"enable_protection disable_signatures\"")
-  if (params.beta)
-    args.add("--beta 1")
-  if (!params.extra_args.isEmpty())
-    args.add(params.extra_args)
-
-  String label = "artifacts ${license}".toUpperCase()
-  if (platformIsUnix(platform)) {
-    sh label: label, script: """
-      cd build_tools
-      ./configure.py ${args.join(' ')}
-      ./make.py
-    """
-  } else {
-    bat label: label, script: """
-      cd build_tools
-      python configure.py ${args.join(' ')}
-      python make.py
-    """
-  }
-}
-
-void buildPackages(String platform, String license = 'opensource') {
-  Boolean isOpenSource = license == "opensource"
-  Boolean isCommercial = license == "commercial"
-  Boolean pCore = platform in [
-    "windows_x64", "windows_x86",
-    "darwin_x86_64", "darwin_arm64",
-    "linux_x86_64"
-  ]
-  Boolean pClosureMaps = platform == "linux_x86_64"
-  Boolean pDesktop = !(platform in ["linux_aarch64", "android"])
-  Boolean pBuilder = platform in [
-    "windows_x64", "windows_x86",
-    "linux_x86_64", "linux_aarch64"
-  ]
-  Boolean pServer = platform in [
-    "windows_x64",
-    "linux_x86_64", "linux_aarch64"
-  ]
-  Boolean pMobile = platform == "android"
-
-  ArrayList targets = []
-  if (params.core && isOpenSource && pCore)        targets.add("core")
-  if (isOpenSource && pClosureMaps)                targets.add("closure-maps-os")
-  if (isCommercial && pClosureMaps)                targets.add("closure-maps-com")
-  if (params.desktop && isCommercial && pDesktop)  targets.add("desktop")
-  if (params.builder && isOpenSource && pBuilder)  targets.add("builder")
-  if (params.server_ce && isOpenSource && pServer) targets.add("server-community")
-  if (params.server_ee && isCommercial && pServer) targets.add("server-enterprise")
-  if (params.server_de && isCommercial && pServer) targets.add("server-developer")
-  if (params.mobile && isOpenSource && pMobile)    targets.add("mobile")
-  targets.add("clean")
-  targets.add("deploy")
-  if (params.signing && platform.startsWith("windows")) targets.add("sign")
-
-  String args = " --platform ${platform}"
-  if (platform.startsWith("linux_x86_64")) args = " --platform linux_x86_64"
-  args += " --targets ${targets.join(' ')}" \
-        + " --version ${env.PRODUCT_VERSION}" \
-        + " --build ${env.BUILD_NUMBER}"
-  if (env.COMPANY_NAME != 'ONLYOFFICE')
-    args += " --branding ${brandingRepo.name}"
-
-  String label = "packages ${license}".toUpperCase()
-  if (platformIsUnix(platform))
-    sh label: label, script: "cd build_tools && ./make_package.py ${args}"
-  else
-    bat label: label, script: "cd build_tools && python make_package.py ${args}"
-
-  if (fileExists('deploy.json')) deployData += readJSON(file: 'deploy.json')
-}
-
-void buildDocker() {
-  sh label: "DOCKER RUN", script: """
-    gh workflow run 4testing-build.yml \
-      --repo ONLYOFFICE/Docker-DocumentServer \
-      --ref \$BRANCH_NAME \
-      -f build=\$BUILD_NUMBER \
-      -f amd64=${params.linux_x86_64} \
-      -f arm64=${params.linux_aarch64} \
-      -f community=${params.server_ce} \
-      -f enterprise=${params.server_ee} \
-      -f developer=${params.server_de}
-  """
-}
-
-void checkDocker() {
-  sh label: "DOCKER CHECK", script: """
-    REPO=ONLYOFFICE/Docker-DocumentServer
-    sleep 5
-    RUN_ID=\$(gh run list --repo \$REPO --workflow 4testing-build.yml \
-      --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
-    gh --repo \$REPO run watch \$RUN_ID --interval 15 > /dev/null
-    gh --repo \$REPO run view \$RUN_ID --verbose --exit-status
-  """
-}
+// Post Actions
 
 void buildAppcast() {
   if (!(params.desktop && (params.windows_x64 || params.windows_x86))) return
@@ -919,12 +953,11 @@ void buildAppcast() {
     string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
   ]) {
-    sh label: "APPCAST", script: "./appcast.sh -a \$PRODUCT_VERSION -b \$BUILD_NUMBER -r \$BRANCH_NAME"
+    sh label: 'APPCAST', returnStatus: true,
+      script: './appcast.sh'
   }
   if (fileExists('deploy.json')) deployData += readJSON(file: 'deploy.json')
 }
-
-// Reports
 
 void generateReports() {
   Map deploy = deployData.groupBy { it.product }
@@ -954,6 +987,8 @@ void generateReports() {
   }
   if (mobile)
     publishReport('Mobile', ['mobile.html': deploy.mobile])
+  writeJSON file: 'deploy.json', json: deployData
+  archiveArtifacts '*.html, *.json'
 
   currentBuild.description = ''
   Map links = [:]
@@ -965,7 +1000,7 @@ void generateReports() {
   if (server_ee) links['DocumentServer EE'] = 'server_enterprise.html'
   if (mobile)    links['Mobile'] = 'mobile.html'
   links.each {
-    if (!currentBuild.description.isEmpty()) currentBuild.description += ' / '
+    if (!currentBuild.description.isEmpty()) currentBuild.description += '<br>'
     currentBuild.description += "<a href=\"${env.S3_BASE_URL}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.value}\" target=\"_blank\">${it.key}</a>"
   }
 }
@@ -973,28 +1008,25 @@ void generateReports() {
 void publishReport(String title, Map files) {
   files.each {
     writeFile file: it.key, text: getHtml(title, it.value)
-    try {
-      withCredentials([
-        string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-      ]) {
-        sh label: "REPORTS UPLOAD", script: """
-          aws s3 cp --no-progress --acl public-read \
-            ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
-          echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
-          aws s3 cp --no-progress --acl public-read \
-            ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/latest/
-          echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/latest/${it.key}"
-        """
-      }
-    } catch(Exception e) {
-      echo "Caught: ${e}"
+    withCredentials([
+      string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+      string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+    ]) {
+      sh label: 'REPORTS UPLOAD', returnStatus: true, script: """
+        aws s3 cp --no-progress --acl public-read \
+          ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
+        echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
+        aws s3 cp --no-progress --acl public-read \
+          ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/latest/
+        echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/latest/${it.key}"
+      """
     }
   }
 }
 
 def getHtml(String product, ArrayList data) {
   String text, url
+  String now = new Date().format('yyyy-MM-dd HH:mm', TimeZone.getTimeZone('Europe/Moscow'))
   Closure size = {
     return sh (script: "LANG=C numfmt --to=iec-i ${it}", returnStdout: true).trim()
   }
@@ -1002,8 +1034,10 @@ def getHtml(String product, ArrayList data) {
   text = "<html>\n<head>" \
     + "\n<title>${env.COMPANY_NAME} ${product} - ${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</title>" \
     + '\n<link rel="shortcut icon" sizes="16x16" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAq1BMVEUAAABgv9+Pv0Cfv0D/cEBgv+f/cEBdwuv/bT1cv+f/cDz/bj18v3yprzleweqDwXOUwTiWwTj/bjtav+dtv61wv62Svzi3pTiVwTevrTr/bjxev+eTvziVvzj/cD5dweiWwTldwOmVwDj/bz3/bz1cwOiUwDiVwDj/bz1cwOiVwDldwOhewOiVwDiWwDj/bz3/bz5dwOlewOmUwDeVwDf/bz1dwOiVwDj/bz375yNXAAAANnRSTlMAEBAQECAgPz9AQE9QUF9fX19fYGBgYGBvf3+AgICAj4+fn5+vv7+/v8/P39/f39/f7+/v7++96DlEAAAAj0lEQVR42lXJA5ZEQRBE0Wh73Pi2zar9r2xKg75H+SKhHA74Z2H081y+LP4nV3oblhtHpcCmYn6SAZ/RX0Y7AKvH1VP59b4CrJEQ/+x1nfOaEFKbuFWEiR83loQMD4BPSv62ZH0MPzTxjS92cARSSmkT3F3/Yk/sTLENKBeyBxPsATUxk76GtNVblX9Oe5XfxIMfXH9c3hQAAAAASUVORK5CYII=" type="image/png">' \
-    + "\n<link rel=\"stylesheet\" href=\"https://unpkg.com/@primer/css@20.4.1/dist/primer.css\">" \
-    + "\n</head>\n<body><div class=\"container-lg px-3 my-5 markdown-body\">"
+    + "\n<link rel=\"stylesheet\" href=\"https://unpkg.com/@primer/css@20.8.3/dist/primer.css\">" \
+    + "\n</head>\n<body><div class=\"container-lg px-3 my-5 markdown-body\">" \
+    + "\n<h1>${env.COMPANY_NAME} ${product} - ${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</h1>" \
+    + "\n<p class =\"color-fg-muted\">${now} MSK</p>"
   data.groupBy { it.platform }.sort().each { platform, types ->
     text += "\n<h2>${platform}</h2>\n<dl>"
     types.groupBy { it.type }.each { type, files ->
@@ -1022,31 +1056,25 @@ def getHtml(String product, ArrayList data) {
   return text
 }
 
-// Notifications
-
 void setStageStats(int status, String stageName = env.STAGE_NAME) {
   stageStats[stageName] = status
 }
 
-void sendTelegramMessage(
-  String jobStatus,
-  String chatId = '-1001773122025'
-) {
-  String text = "Build [" + currentBuild.fullDisplayName \
-      + "](" + currentBuild.absoluteUrl + ") " + jobStatus
-  ArrayList icons = ["🟢", "🟡", "🔴"]
+void sendTelegramMessage(String jobStatus, String chatId = '-1001773122025') {
+  if (!params.notify) return
+  String text = 'Build [' + currentBuild.fullDisplayName \
+      + '](' + currentBuild.absoluteUrl + ') ' + jobStatus
+  ArrayList icons = ['🟢', '🟡', '🔴']
   stageStats.sort().each { stage, code ->
-    text += "\n" + icons[code] + " " + stage.replaceAll('_','\\\\_')
+    text += '\n' + icons[code] + ' ' + stage.replaceAll('_','\\\\_')
   }
 
-  if (params.notify) sh(
-    label: "TELEGRAM MESSAGE SEND", script: """
-      curl -X POST -s -S \
-        -d chat_id=${chatId} \
-        -d parse_mode=markdown \
-        -d disable_web_page_preview=true \
-        --data-urlencode text='${text}' \
-        https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage
-    """
-    )
+  sh label: 'TELEGRAM MESSAGE SEND', script: """
+    curl -X POST -s -S \
+      -d chat_id=${chatId} \
+      -d parse_mode=markdown \
+      -d disable_web_page_preview=true \
+      --data-urlencode text='${text}' \
+      https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage
+  """
 }
