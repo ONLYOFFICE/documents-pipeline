@@ -1,0 +1,36 @@
+pipeline {
+  agent { label 'appcastdev' }
+  environment {
+    AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
+    AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+  }
+  parameters {
+    string (
+      name:         'build',
+      description:  'Appcast build number for appcastdev.json',
+      defaultValue: ''
+    )
+  }
+  stages {
+    stage('Appcast') {
+      steps {
+        script {
+          if (params.build.isEmpty()) error("build is not defined")
+          String version
+          if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
+            version = env.BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,'')
+          } else if (env.BRANCH_NAME == 'develop') {
+            version = '99.99.99'
+          } else {
+            error("version is not defined")
+          }
+          sh """
+            aws s3 cp --no-progress --acl public-read \
+              s3://repo-doc-onlyoffice-com/desktop/win/update/${version}/${params.build}/appcast.json \
+              s3://static.teamlab.com/install/desktop/editors/windows/onlyoffice/appcastdev.json
+          """
+        }
+      }
+    }
+  }
+}
