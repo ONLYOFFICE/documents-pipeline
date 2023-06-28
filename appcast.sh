@@ -3,87 +3,41 @@
 set -Eeuo pipefail
 cd "${0%/*}"
 
-usage() {
-  cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] -r VERSION -b BUILD
-
-Available options:
-
--h, --help                Print this help and exit
--v, --verbose             Print script debug info
--r, --version             0.0.0
--b, --build               0
-EOF
-  exit
-}
-
-msg() {
-  echo >&2 -e "${1-}"
-}
-
-die() {
-  local msg=$1
-  local code=${2-1}
-  msg "$msg"
-  exit "$code"
-}
-
-parse_params() {
-  while :; do
-    case "${1-}" in
-      -h | --help) usage ;;
-      -v | --verbose) set -x ;;
-      -a | --version) VERSION="${2-}"; shift;;
-      -b | --build) BUILD="${2-}"; shift;;
-      -r | --branch) BRANCH_NAME="${2-}"; shift;;
-      -?*) die "Unknown option: $1" ;;
-      *) break ;;
-    esac
-    shift
-  done
-
-  [[ -z "${VERSION-}"     ]] && die "Missing required parameter: VERSION"
-  [[ -z "${BUILD-}"       ]] && die "Missing required parameter: BUILD"
-  [[ -z "${BRANCH_NAME-}" ]] && die "Missing required parameter: BRANCH_NAME"
-  return 0
-}
-
 s3_md5() {
-  aws s3api head-object --bucket $S3_BUCKET --key $1 --query 'Metadata.md5' --output text \
+  $aws s3api head-object --bucket $S3_BUCKET --key $1 \
+    --query 'Metadata.md5' --output text \
     2> /dev/null || true
 }
 
-parse_params "$@"
+set -x
 
-S3_BUCKET=repo-doc-onlyoffice-com
-COMPANY_NAME=ONLYOFFICE
-PRODUCT_NAME=DesktopEditors
-DATE=$(LANG=C date -u "+%b %d %H:%M UTC %Y")
+# PRODUCT_VERSION=0.0.0
+# BUILD_NUMBER=0
+# S3_BUCKET=repo-doc-onlyoffice-com
+# S3_BASE_URL=https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com
+
+PACKAGE_NAME="ONLYOFFICE-DesktopEditors"
+DATE_JSON=$(LANG=C date -u "+%b %d %H:%M UTC %Y")
+DATE_XML=$(LANG=C date -u "+%a, %d %b %Y %H:%M:%S +0000")
+UPDATES_URL="$S3_BASE_URL/desktop/win/inno/$PRODUCT_VERSION/$BUILD_NUMBER"
+CHANGES_URL="$S3_BASE_URL/desktop/win/update/$PRODUCT_VERSION/$BUILD_NUMBER"
+ZIP_64_KEY="desktop/win/generic/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x64.zip"
+ZIP_32_KEY="desktop/win/generic/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x86.zip"
+EXE_64_KEY="desktop/win/inno/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x64.exe"
+EXE_32_KEY="desktop/win/inno/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x86.exe"
+MSI_64_KEY="desktop/win/advinst/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x64.msi"
+MSI_32_KEY="desktop/win/advinst/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x86.msi"
 aws="aws"
 
-rm -rfv update
+rm -rfv update repo
 mkdir -pv update
 
-msg "Download changelog"
-pushd update
-wget -nv https://raw.githubusercontent.com/ONLYOFFICE/desktop-apps/$BRANCH_NAME/win-linux/package/windows/update/changes/$VERSION/changes.html
-wget -nv https://raw.githubusercontent.com/ONLYOFFICE/desktop-apps/$BRANCH_NAME/win-linux/package/windows/update/changes/$VERSION/changes_ru.html
-popd
+echo "Make appcast"
 
-msg "Make appcast"
-BASE_URL=https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com
-UPDATES_URL=$BASE_URL/desktop/win/update/$VERSION/$BUILD
-CHANGES_URL=$BASE_URL/desktop/win/update/$VERSION/$BUILD
-ZIP_64_KEY=desktop/win/generic/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x64.zip
-ZIP_32_KEY=desktop/win/generic/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x86.zip
-EXE_64_KEY=desktop/win/inno/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x64.exe
-EXE_32_KEY=desktop/win/inno/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x86.exe
-MSI_64_KEY=desktop/win/advinst/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x64.msi
-MSI_32_KEY=desktop/win/advinst/$COMPANY_NAME-$PRODUCT_NAME-$VERSION.$BUILD-x86.msi
 cat > update/appcast.json << EOF
 {
-  "version": "$VERSION.$BUILD",
-  "date": "$DATE",
+  "version": "$PRODUCT_VERSION.$BUILD_NUMBER",
+  "date": "$DATE_JSON",
   "releaseNotes": {
     "en-EN": "$CHANGES_URL/changes.html",
     "ru-RU": "$CHANGES_URL/changes_ru.html"
@@ -93,17 +47,17 @@ cat > update/appcast.json << EOF
       "url": "$UPDATES_URL/editors_update_x64.exe",
       "installArguments": "/silent /update",
       "archive": {
-        "url": "$BASE_URL/$ZIP_64_KEY",
+        "url": "$S3_BASE_URL/$ZIP_64_KEY",
         "md5": "$(s3_md5 $ZIP_64_KEY)"
       },
       "iss": {
-        "url": "$BASE_URL/$EXE_64_KEY",
+        "url": "$S3_BASE_URL/$EXE_64_KEY",
         "md5": "$(s3_md5 $EXE_64_KEY)",
         "arguments": "/silent /update",
         "maxVersion": "7.3.3"
       },
       "msi": {
-        "url": "$BASE_URL/$MSI_64_KEY",
+        "url": "$S3_BASE_URL/$MSI_64_KEY",
         "md5": "$(s3_md5 $MSI_64_KEY)",
         "arguments": "/qn /norestart",
         "maxVersion": "7.3.3"
@@ -113,17 +67,17 @@ cat > update/appcast.json << EOF
       "url": "$UPDATES_URL/editors_update_x86.exe",
       "installArguments": "/silent /update",
       "archive": {
-        "url": "$BASE_URL/$ZIP_32_KEY",
+        "url": "$S3_BASE_URL/$ZIP_32_KEY",
         "md5": "$(s3_md5 $ZIP_32_KEY)"
       },
       "iss": {
-        "url": "$BASE_URL/$EXE_32_KEY",
+        "url": "$S3_BASE_URL/$EXE_32_KEY",
         "md5": "$(s3_md5 $EXE_32_KEY)",
         "arguments": "/silent /update",
         "maxVersion": "7.3.3"
       },
       "msi": {
-        "url": "$BASE_URL/$MSI_32_KEY",
+        "url": "$S3_BASE_URL/$MSI_32_KEY",
         "md5": "$(s3_md5 $MSI_32_KEY)",
         "arguments": "/qn /norestart",
         "maxVersion": "7.3.3"
@@ -132,33 +86,53 @@ cat > update/appcast.json << EOF
   }
 }
 EOF
+cat update/appcast.json
 
-msg "Upload"
-aws s3 sync --no-progress --acl public-read update \
-  s3://$S3_BUCKET/desktop/win/update/$VERSION/$BUILD
+cat > update/appcast.xml << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
+  <channel>
+    <title>$PACKAGE_NAME Changelog</title>
+    <description>Most recent changes with links to updates.</description>
+    <language>en</language>
+    <item>
+      <title>Version $PRODUCT_VERSION.$BUILD_NUMBER</title>
+      <pubDate>$DATE_XML</pubDate>
+      <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
+      <enclosure url="$UPDATES_URL/editors_update_x64.exe" sparkle:os="windows-x64" sparkle:version="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
+    </item>
+    <item>
+      <title>Version $PRODUCT_VERSION.$BUILD_NUMBER</title>
+      <pubDate>$DATE_XML</pubDate>
+      <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
+      <enclosure url="$UPDATES_URL/editors_update_x86.exe" sparkle:os="windows-x86" sparkle:version="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
+    </item>
+  </channel>
+</rss>
+EOF
+cat update/appcast.xml
 
-msg "Make deploy.json"
+echo "Upload"
+$aws s3 sync --no-progress --acl public-read update \
+  s3://$S3_BUCKET/desktop/win/update/$PRODUCT_VERSION/$BUILD_NUMBER
+
+echo "Make deploy.json"
 cat > deploy.json << EOF
 [
   {
-    "key": "desktop/win/update/$VERSION/$BUILD/appcast.json",
+    "key": "desktop/win/update/$PRODUCT_VERSION/$BUILD_NUMBER/appcast.json",
     "platform": "Windows x64",
     "product": "desktop",
     "size": $(stat -c %s update/appcast.json || echo 0),
     "type": "Update"
   },
   {
-    "key": "desktop/win/update/$VERSION/$BUILD/changes.html",
+    "key": "desktop/win/update/$PRODUCT_VERSION/$BUILD_NUMBER/appcast.xml",
     "platform": "Windows x64",
     "product": "desktop",
-    "size": $(stat -c %s update/changes.html || echo 0),
-    "type": "Update"
-  },
-  {
-    "key": "desktop/win/update/$VERSION/$BUILD/changes_ru.html",
-    "platform": "Windows x64",
-    "product": "desktop",
-    "size": $(stat -c %s update/changes_ru.html || echo 0),
+    "size": $(stat -c %s update/appcast.xml || echo 0),
     "type": "Update"
   }
 ]
