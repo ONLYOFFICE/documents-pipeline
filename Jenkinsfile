@@ -695,10 +695,12 @@ ArrayList getModuleList(String platform, String license = 'any') {
     ],
     darwin_x86_64: [
       core: p.core && l.os,
+      builder: p.builder && l.os,
       desktop: p.desktop && l.com,
     ],
     darwin_arm64: [
       core: p.core && l.os,
+      builder: p.builder && l.os,
       desktop: p.desktop && l.com,
     ],
     darwin_x86_64_v8: [
@@ -759,10 +761,12 @@ ArrayList getTargetList(String platform, String license = 'any') {
     darwin_x86_64: [
       'core': p.core && l.os,
       'desktop': p.desktop && l.com,
+      'builder': p.builder && l.os,
     ],
     darwin_arm64: [
       'core': p.core && l.os,
       'desktop': p.desktop && l.com,
+      'builder': p.builder && l.os,
     ],
     darwin_x86_64_v8: [
       'desktop': p.desktop && l.com,
