@@ -630,7 +630,7 @@ void buildArtifacts(String platform, String license = 'opensource') {
       ./make.py
     """
   } else {
-    powershell label: label, script: """
+    bat label: label, script: """
       cd build_tools
       python configure.py ${args.join(' ')}
       python make.py
@@ -661,7 +661,7 @@ void buildPackages(String platform, String license = 'opensource') {
       ./make_package.py ${args.join(' ')}
     """
   else
-    powershell label: label, script: """
+    bat label: label, script: """
       cd build_tools
       python make_package.py ${args.join(' ')}
     """
@@ -873,14 +873,15 @@ def getVarRepos(String platform, String branding = '', String branch = env.BRANC
       ./print_repositories.py ${args.join(' ')}
     """
   } else {
-    reposOutput = powershell label: "REPOS PRINT", returnStdout: true, script: """
+    reposOutput = bat label: "REPOS PRINT", returnStdout: true, script: """
+      @echo off
       cd build_tools\\scripts\\develop
       python print_repositories.py ${args.join(' ')}
     """
   }
 
   ArrayList repos = []
-  reposOutput.readLines().sort().each { line ->
+  reposOutput.trim().readLines().sort().each { line ->
     Map repo = [
       owner: 'ONLYOFFICE',
       name: line,
