@@ -53,10 +53,10 @@ pipeline {
   environment {
     COMPANY_NAME = 'ONLYOFFICE'
     BUILD_CHANNEL = "${defaults.channel}"
+    BUILD_VERSION = "${defaults.version}"
     PRODUCT_VERSION = "${defaults.version}"
-    TELEGRAM_TOKEN = credentials('telegram-bot-token')
-    S3_BUCKET = 'repo-doc-onlyoffice-com'
     S3_BASE_URL = 'https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com'
+    S3_BUCKET = 'repo-doc-onlyoffice-com'
   }
   options {
     checkoutToSubdirectory 'documents-pipeline'
@@ -206,7 +206,7 @@ pipeline {
         script {
           if (params.signing) env.ENABLE_SIGNING=1
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
-          gitTag = "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}"
+          gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
           deployData = []
           stageStats = [:]
         }
@@ -575,7 +575,7 @@ void startLinux(String platform) {
           cd Docker-DocumentServer
           make clean
           make deploy -e PRODUCT_EDITION=${it} -e ONLYOFFICE_VALUE=ds \
-            -e PACKAGE_VERSION=\$PRODUCT_VERSION-\$BUILD_NUMBER \
+            -e PACKAGE_VERSION=\$BUILD_VERSION-\$BUILD_NUMBER \
             -e PACKAGE_BASEURL=\$S3_BASE_URL/server/linux/debian
         """
       }
@@ -648,7 +648,7 @@ void buildPackages(String platform, String license = 'opensource') {
   ArrayList args = [
     "--platform ${platform}",
     "--targets ${targets.join(' ')}",
-    "--version ${env.PRODUCT_VERSION}",
+    "--version ${env.BUILD_VERSION}",
     "--build ${env.BUILD_NUMBER}",
   ]
   if (env.COMPANY_NAME != 'ONLYOFFICE')
@@ -1074,12 +1074,16 @@ void sendTelegramMessage(String jobStatus, String chatId = '-1001773122025') {
     text += '\n' + icons[code] + ' ' + stage.replaceAll('_','\\\\_')
   }
 
-  sh label: 'TELEGRAM MESSAGE SEND', script: """
-    curl -X POST -s -S \
-      -d chat_id=${chatId} \
-      -d parse_mode=markdown \
-      -d disable_web_page_preview=true \
-      --data-urlencode text='${text}' \
-      https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage
-  """
+  withCredentials([
+    string(credentialsId: 'telegram-bot-token', variable: 'TELEGRAM_TOKEN')
+  ]) {
+    sh label: 'TELEGRAM MESSAGE SEND', script: """
+      curl -X POST -s -S \
+        -d chat_id=${chatId} \
+        -d parse_mode=markdown \
+        -d disable_web_page_preview=true \
+        --data-urlencode text='${text}' \
+        https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage
+    """
+  }
 }
