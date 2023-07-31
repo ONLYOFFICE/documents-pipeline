@@ -53,10 +53,10 @@ pipeline {
   environment {
     COMPANY_NAME = 'ONLYOFFICE'
     BUILD_CHANNEL = "${defaults.channel}"
+    BUILD_VERSION = "${defaults.version}"
     PRODUCT_VERSION = "${defaults.version}"
-    TELEGRAM_TOKEN = credentials('telegram-bot-token')
-    S3_BUCKET = 'repo-doc-onlyoffice-com'
     S3_BASE_URL = 'https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com'
+    S3_BUCKET = 'repo-doc-onlyoffice-com'
   }
   options {
     checkoutToSubdirectory 'documents-pipeline'
@@ -206,7 +206,7 @@ pipeline {
         script {
           if (params.signing) env.ENABLE_SIGNING=1
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
-          gitTag = "v${env.PRODUCT_VERSION}.${env.BUILD_NUMBER}"
+          gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
           deployData = []
           stageStats = [:]
         }
@@ -575,7 +575,7 @@ void startLinux(String platform) {
           cd Docker-DocumentServer
           make clean
           make deploy -e PRODUCT_EDITION=${it} -e ONLYOFFICE_VALUE=ds \
-            -e PACKAGE_VERSION=\$PRODUCT_VERSION-\$BUILD_NUMBER \
+            -e PACKAGE_VERSION=\$BUILD_VERSION-\$BUILD_NUMBER \
             -e PACKAGE_BASEURL=\$S3_BASE_URL/server/linux/debian
         """
       }
@@ -630,7 +630,7 @@ void buildArtifacts(String platform, String license = 'opensource') {
       ./make.py
     """
   } else {
-    powershell label: label, script: """
+    bat label: label, script: """
       cd build_tools
       python configure.py ${args.join(' ')}
       python make.py
@@ -648,7 +648,7 @@ void buildPackages(String platform, String license = 'opensource') {
   ArrayList args = [
     "--platform ${platform}",
     "--targets ${targets.join(' ')}",
-    "--version ${env.PRODUCT_VERSION}",
+    "--version ${env.BUILD_VERSION}",
     "--build ${env.BUILD_NUMBER}",
   ]
   if (env.COMPANY_NAME != 'ONLYOFFICE')
@@ -661,7 +661,7 @@ void buildPackages(String platform, String license = 'opensource') {
       ./make_package.py ${args.join(' ')}
     """
   else
-    powershell label: label, script: """
+    bat label: label, script: """
       cd build_tools
       python make_package.py ${args.join(' ')}
     """
@@ -695,10 +695,12 @@ ArrayList getModuleList(String platform, String license = 'any') {
     ],
     darwin_x86_64: [
       core: p.core && l.os,
+      builder: p.builder && l.os,
       desktop: p.desktop && l.com,
     ],
     darwin_arm64: [
       core: p.core && l.os,
+      builder: p.builder && l.os,
       desktop: p.desktop && l.com,
     ],
     darwin_x86_64_v8: [
@@ -759,10 +761,12 @@ ArrayList getTargetList(String platform, String license = 'any') {
     darwin_x86_64: [
       'core': p.core && l.os,
       'desktop': p.desktop && l.com,
+      'builder': p.builder && l.os,
     ],
     darwin_arm64: [
       'core': p.core && l.os,
       'desktop': p.desktop && l.com,
+      'builder': p.builder && l.os,
     ],
     darwin_x86_64_v8: [
       'desktop': p.desktop && l.com,
@@ -869,14 +873,15 @@ def getVarRepos(String platform, String branding = '', String branch = env.BRANC
       ./print_repositories.py ${args.join(' ')}
     """
   } else {
-    reposOutput = powershell label: "REPOS PRINT", returnStdout: true, script: """
+    reposOutput = bat label: "REPOS PRINT", returnStdout: true, script: """
+      @echo off
       cd build_tools\\scripts\\develop
       python print_repositories.py ${args.join(' ')}
     """
   }
 
   ArrayList repos = []
-  reposOutput.readLines().sort().each { line ->
+  reposOutput.trim().readLines().sort().each { line ->
     Map repo = [
       owner: 'ONLYOFFICE',
       name: line,
@@ -1069,12 +1074,16 @@ void sendTelegramMessage(String jobStatus, String chatId = '-1001773122025') {
     text += '\n' + icons[code] + ' ' + stage.replaceAll('_','\\\\_')
   }
 
-  sh label: 'TELEGRAM MESSAGE SEND', script: """
-    curl -X POST -s -S \
-      -d chat_id=${chatId} \
-      -d parse_mode=markdown \
-      -d disable_web_page_preview=true \
-      --data-urlencode text='${text}' \
-      https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage
-  """
+  withCredentials([
+    string(credentialsId: 'telegram-bot-token', variable: 'TELEGRAM_TOKEN')
+  ]) {
+    sh label: 'TELEGRAM MESSAGE SEND', script: """
+      curl -X POST -s -S \
+        -d chat_id=${chatId} \
+        -d parse_mode=markdown \
+        -d disable_web_page_preview=true \
+        --data-urlencode text='${text}' \
+        https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage
+    """
+  }
 }
