@@ -59,8 +59,8 @@ cat > update/appcast.json << EOF
       "msi": {
         "url": "$S3_BASE_URL/$MSI_64_KEY",
         "md5": "$(s3_md5 $MSI_64_KEY)",
-        "arguments": "/qn /norestart",
-        "maxVersion": "7.3.3"
+        "arguments": "/qr /norestart",
+        "maxVersion": "7.5.0"
       }
     },
     "win_32": {
@@ -79,8 +79,8 @@ cat > update/appcast.json << EOF
       "msi": {
         "url": "$S3_BASE_URL/$MSI_32_KEY",
         "md5": "$(s3_md5 $MSI_32_KEY)",
-        "arguments": "/qn /norestart",
-        "maxVersion": "7.3.3"
+        "arguments": "/qr /norestart",
+        "maxVersion": "7.5.0"
       }
     }
   }
