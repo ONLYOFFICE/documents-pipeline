@@ -492,9 +492,10 @@ pipeline {
     always {
       node('built-in') {
         script {
+          deleteDir()
           checkout scm
           buildAppcast()
-          generateReports()
+          buildReports()
         }
       }
     }
@@ -964,101 +965,26 @@ void buildAppcast() {
   if (fileExists('deploy.json')) deployData += readJSON(file: 'deploy.json')
 }
 
-void generateReports() {
-  Map deploy = deployData.groupBy { it.product }
-  println deploy
-
-  Boolean core = deploy.core != null
-  Boolean desktop = deploy.desktop != null
-  Boolean builder = deploy.builder != null
-  Boolean server_ce = deploy.server_community != null
-  Boolean server_ee = deploy.server_enterprise != null
-  Boolean server_de = deploy.server_developer != null
-  Boolean mobile = deploy.mobile != null
-
-  deleteDir()
-  if (core)
-    publishReport('Core', ['core.html': deploy.core])
-  if (desktop)
-    publishReport('DesktopEditors', ['desktop.html': deploy.desktop])
-  if (builder)
-    publishReport('DocumentBuilder', ['builder.html': deploy.builder])
-  if (server_ce || server_ee || server_de) {
-    Map serverReports = [:]
-    if (server_ce) serverReports.'server_community.html' = deploy.server_community
-    if (server_ee) serverReports.'server_enterprise.html' = deploy.server_enterprise
-    if (server_de) serverReports.'server_developer.html' = deploy.server_developer
-    publishReport('DocumentServer', serverReports)
-  }
-  if (mobile)
-    publishReport('Mobile', ['mobile.html': deploy.mobile])
-  writeJSON file: 'deploy.json', json: deployData
-  archiveArtifacts '*.html, *.json'
-
-  currentBuild.description = ''
-  Map links = [:]
-  if (core)      links['Core'] = 'core.html'
-  if (desktop)   links['DesktopEditors'] = 'desktop.html'
-  if (builder)   links['DocumentBuilder'] = 'builder.html'
-  if (server_ce) links['DocumentServer CE'] = 'server_community.html'
-  if (server_de) links['DocumentServer DE'] = 'server_developer.html'
-  if (server_ee) links['DocumentServer EE'] = 'server_enterprise.html'
-  if (mobile)    links['Mobile'] = 'mobile.html'
-  links.each {
-    if (!currentBuild.description.isEmpty()) currentBuild.description += '<br>'
-    currentBuild.description += "<a href=\"${env.S3_BASE_URL}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it.value}\" target=\"_blank\">${it.key}</a>"
-  }
-}
-
-void publishReport(String title, Map files) {
-  files.each {
-    writeFile file: it.key, text: getHtml(title, it.value)
-    withCredentials([
-      string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-      string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-    ]) {
-      sh label: 'REPORTS UPLOAD', returnStatus: true, script: """
-        aws s3 cp --no-progress --acl public-read \
-          ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/\$BUILD_NUMBER/
-        echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/\$BUILD_NUMBER/${it.key}"
-        aws s3 cp --no-progress --acl public-read \
-          ${it.key} s3://\$S3_BUCKET/reports/\$BRANCH_NAME/latest/
-        echo "\$S3_BASE_URL/reports/\$BRANCH_NAME/latest/${it.key}"
-      """
-    }
-  }
-}
-
-def getHtml(String product, ArrayList data) {
-  String text, url
-  String now = new Date().format('yyyy-MM-dd HH:mm', TimeZone.getTimeZone('Europe/Moscow'))
-  Closure size = {
-    return sh (script: "LANG=C numfmt --to=iec-i ${it}", returnStdout: true).trim()
+void buildReports() {
+  writeJSON json: deployData, file: 'deploy.json', pretty: true
+  withCredentials([
+    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+  ]) {
+    def ret = sh label: 'REPORTS', returnStatus: true,
+      script: './reports.sh deploy.json'
+    echo ret
   }
 
-  text = "<html>\n<head>" \
-    + "\n<title>${env.COMPANY_NAME} ${product} - ${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</title>" \
-    + '\n<link rel="shortcut icon" sizes="16x16" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAq1BMVEUAAABgv9+Pv0Cfv0D/cEBgv+f/cEBdwuv/bT1cv+f/cDz/bj18v3yprzleweqDwXOUwTiWwTj/bjtav+dtv61wv62Svzi3pTiVwTevrTr/bjxev+eTvziVvzj/cD5dweiWwTldwOmVwDj/bz3/bz1cwOiUwDiVwDj/bz1cwOiVwDldwOhewOiVwDiWwDj/bz3/bz5dwOlewOmUwDeVwDf/bz1dwOiVwDj/bz375yNXAAAANnRSTlMAEBAQECAgPz9AQE9QUF9fX19fYGBgYGBvf3+AgICAj4+fn5+vv7+/v8/P39/f39/f7+/v7++96DlEAAAAj0lEQVR42lXJA5ZEQRBE0Wh73Pi2zar9r2xKg75H+SKhHA74Z2H081y+LP4nV3oblhtHpcCmYn6SAZ/RX0Y7AKvH1VP59b4CrJEQ/+x1nfOaEFKbuFWEiR83loQMD4BPSv62ZH0MPzTxjS92cARSSmkT3F3/Yk/sTLENKBeyBxPsATUxk76GtNVblX9Oe5XfxIMfXH9c3hQAAAAASUVORK5CYII=" type="image/png">' \
-    + "\n<link rel=\"stylesheet\" href=\"https://unpkg.com/@primer/css@20.8.3/dist/primer.css\">" \
-    + "\n</head>\n<body><div class=\"container-lg px-3 my-5 markdown-body\">" \
-    + "\n<h1>${env.COMPANY_NAME} ${product} - ${env.BRANCH_NAME} - ${env.BUILD_NUMBER}</h1>" \
-    + "\n<p class =\"color-fg-muted\">${now} MSK</p>"
-  data.groupBy { it.platform }.sort().each { platform, types ->
-    text += "\n<h2>${platform}</h2>\n<dl>"
-    types.groupBy { it.type }.each { type, files ->
-      text += "\n<dt>${type}</dt>\n<dd>"
-      files.each {
-        title = it.key.minus(~/^.+\//)
-        url = "${env.S3_BASE_URL}/${it.key}"
-        text += "\n<a href=\"${url}\">${title}</a> (${size(it.size)}B)<br>"
-      }
-      text += "\n</dd>"
-    }
-    text += "\n</dl>"
-  }
-  text += "\n</div>\n</body>\n</html>"
-
-  return text
+  ArrayList links = []
+  if (fileExists('reports/core.html'))    links.add('core')
+  if (fileExists('reports/desktop.html')) links.add('desktop')
+  if (fileExists('reports/builder.html')) links.add('builder')
+  if (fileExists('reports/server.html'))  links.add('server')
+  if (fileExists('reports/mobile.html'))  links.add('mobile')
+  currentBuild.description = links.collect( {
+    "<a href=\"${env.S3_BASE_URL}/reports/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/${it}.html\" target=\"_blank\">${it}</a>"
+  } ).join(' /\n')
 }
 
 void setStageStats(int status, String stageName = env.STAGE_NAME) {
