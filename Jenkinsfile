@@ -966,14 +966,14 @@ void buildAppcast() {
 }
 
 void buildReports() {
-  writeJSON json: deployData, file: 'deploy.json', pretty: true
+  writeJSON json: deployData, file: 'deploy.json', pretty: 2
   withCredentials([
     string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
   ]) {
     def ret = sh label: 'REPORTS', returnStatus: true,
       script: './reports.sh deploy.json'
-    echo ret
+    println ret
   }
 
   ArrayList links = []

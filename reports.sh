@@ -48,9 +48,15 @@ declare -A TYPE_TITLES=(
   [x86_64]="x86_64"
   [v8]="x86_64 V8"
   [arm]="arm64"
+  [altlinux]="ALT Linux"
+  [appimage]="AppImage"
+  [astra]="Astra Linux Special Edition"
   [debian]="Debian / Ubuntu"
+  [flatpak]="Flatpak"
   [rhel]="RHEL / CentOS"
-  [suse]="SUSE / OpenSUSE"
+  [rosa]="ROSA"
+  [snap]="Snapcraft"
+  [suse]="SUSE Linux / OpenSUSE"
 )
 
 set -x
