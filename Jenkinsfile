@@ -207,7 +207,7 @@ pipeline {
           if (params.signing) env.ENABLE_SIGNING=1
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
           gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
-          deployData = ""
+          deployData = []
           stageStats = [:]
         }
       }
@@ -667,7 +667,7 @@ void buildPackages(String platform, String license = 'opensource') {
       python make_package.py ${args.join(' ')}
     """
 
-  if (fileExists('deploy.txt')) deployData += readFile 'deploy.txt'
+  if (fileExists('deploy.txt')) deployData += readFile('deploy.txt').readLines()
   println deployData
 }
 
@@ -964,13 +964,13 @@ void buildAppcast() {
       script: './appcast.sh'
     println ret
   }
-  if (fileExists('deploy.txt')) deployData += readFile 'deploy.txt'
+  if (fileExists('deploy.txt')) deployData += readFile('deploy.txt').readLines()
   println deployData
 }
 
 void buildReports() {
   println deployData
-  writeFile file: 'keys.txt', text: deployData
+  writeFile file: 'keys.txt', text: deployData.join('\n') + '\n'
   withCredentials([
     string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')

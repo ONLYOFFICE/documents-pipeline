@@ -70,6 +70,12 @@ mkdir -p reports
 
 msg "${BOLD}${GREEN}PREPARE${NOFORMAT}"
 
+echo COMPANY_NAME=$COMPANY_NAME
+echo BRANCH_NAME=$BRANCH_NAME
+echo BUILD_VERSION=$BUILD_VERSION
+echo BUILD_NUMBER=$BUILD_NUMBER
+echo S3_BASE_URL=$S3_BASE_URL
+echo S3_BUCKET=$S3_BUCKET
 [[ ! -f $keys_t ]] && exit 1
 jq -n {} > $data_j
 
@@ -192,6 +198,7 @@ if ls reports/*.html 2> /dev/null; then
   done
 
   for product in core desktop builder server mobile; do
+    [[ -f reports/$product.html ]] || continue
     if [[ -f $desc_h ]]; then
       echo -n ' \ ' >> $desc_h
     fi
