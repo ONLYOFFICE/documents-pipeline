@@ -19,7 +19,7 @@ msg() {
 
 setup_colors
 
-NOW=$(LANG=C TZ=Europe/Moscow date '+%F %R %Z')
+set -x
 
 declare -A PLATFORM_TITLES=(
   [win]="Windows"
@@ -59,53 +59,52 @@ declare -A TYPE_TITLES=(
   [suse]="SUSE Linux / OpenSUSE"
 )
 
-set -x
+NOW=$(LANG=C TZ=Europe/Moscow date '+%F %R %Z')
+aws="aws"
+keys_t=${1:-keys.txt}
+data_j=reports/data.json
+desc_h=build.html
 
-
+rm -rfv reports $desc_h
+mkdir -p reports
 
 msg "${BOLD}${GREEN}PREPARE${NOFORMAT}"
 
-inputf=$1
-keys_t=keys.txt
-json_d=reports/data.json
-
-rm -rfv reports $keys_t
-mkdir -p reports
-jq -r '.[].key' $inputf | sort -V > $keys_t
-rm -fv $inputf
-jq -n '{}' > $json_d
+[[ ! -f $keys_t ]] && exit 1
+jq -n {} > $data_j
 
 json_add() {
-  jq ".$1.$2.$3 += [\"$4\"]" $json_d \
-    > $json_d.tmp \
-    && mv -f $json_d.tmp $json_d
+  jq ".$1.$2.$3 += [\"$4\"]" $data_j \
+    > $data_j.tmp \
+    && mv -f $data_j.tmp $data_j
 }
 
 for product in core desktop builder server mobile; do
-  if [[ $product == core ]] && grep -q -E "^((windows|mac|linux)/core|closure-maps)/" $keys_t; then
-    (grep "^windows/core/" $keys_t || true) | while read key; do
+  if [[ $product == core ]] && grep -q -E "^((windows|mac|linux)/core|closuremaps)/" $keys_t; then
+    (grep "^windows/core/" $keys_t || :) | while read key; do
       json_add $product win archive $key
     done
-    (grep "^mac/core/" $keys_t || true) | while read key; do
+    (grep "^mac/core/" $keys_t || :) | while read key; do
       json_add $product mac archive $key
     done
-    (grep "^linux/core/" $keys_t || true) | while read key; do
+    (grep "^linux/core/" $keys_t || :) | while read key; do
       json_add $product linux archive $key
     done
-    (grep -E "^closure-maps/.*opensource.*/" $keys_t || true) | while read key; do
+    (grep "^closuremaps/opensource/" $keys_t || :) | while read key; do
       json_add $product linux closuremaps_opensource $key
     done
-    (grep -E "^closure-maps/.*commercial.*/" $keys_t || true) | while read key; do
+    (grep "^closuremaps/commercial/" $keys_t || :) | while read key; do
       json_add $product linux closuremaps_commercial $key
     done
   elif [[ $product == mobile ]]; then
-    (grep -E "^$product/android/" $keys_t || true) | while read key; do
+    (grep "^$product/android/" $keys_t || :) | while read key; do
       json_add $product android archive $key
     done
   else
     for platform in win mac linux; do
-      for type in generic inno advinst update x86_64 arm v8 debian rhel suse; do
-        (grep -E "^$product/$platform/.*$type.*/" $keys_t || true) | while read key; do
+      for type in archive generic update inno advinst x86_64 v8 arm \
+                  altlinux appimage astra debian flatpak rhel rosa snap suse; do
+        (grep "^$product/$platform/$type/" $keys_t || :) | while read key; do
           json_add $product $platform $type $key
         done
       done
@@ -115,7 +114,7 @@ done
 
 
 
-jq -r "keys_unsorted[]" $json_d | while read product; do
+jq -r "keys_unsorted[]" $data_j | while read product; do
   msg "${BOLD}${GREEN}${product^^}${NOFORMAT}"
   html=reports/$product.html
 
@@ -133,23 +132,31 @@ jq -r "keys_unsorted[]" $json_d | while read product; do
   <p class ="color-fg-muted">$NOW</p>
 EOF
 
-  jq -r ".$product | keys_unsorted[]" $json_d | while read platform; do
+  jq -r ".$product | keys_unsorted[]" $data_j | while read platform; do
     echo "  <h2 id=\"$platform\">${PLATFORM_TITLES[$platform]}</h2>" >> $html
 
-    jq -r ".$product.$platform | keys_unsorted[]" $json_d | while read type; do
+    jq -r ".$product.$platform | keys_unsorted[]" $data_j | while read type; do
       echo "  <h3 id=\"$platform-$type\">${TYPE_TITLES[$type]}</h3>" >> $html
 
-      # jq -r ".$product.$platform.$type[]" $json_d | sort -V
-      jq -r ".$product.$platform.$type[]" $json_d | while read key; do
-        object=$(aws s3api head-object --bucket $S3_BUCKET --key $key)
-        size=$(<<<$object jq -r '.ContentLength' | LANG=C numfmt --to=iec-i)
-        md5=$(<<<$object jq -r '.Metadata.md5')
+      # jq -r ".$product.$platform.$type[]" $data_j | sort -V
+      jq -r ".$product.$platform.$type[]" $data_j | while read key; do
+        object=$($aws s3api head-object --bucket $S3_BUCKET --key $key || jq -n {})
+        size=$(<<<$object jq -er '.ContentLength' || echo -n 0)
+        sha256=$(<<<$object jq -er '.Metadata.sha256' || :)
+        sha1=$(<<<$object jq -er '.Metadata.sha1' || :)
+        md5=$(<<<$object jq -er '.Metadata.md5' || :)
 
         echo "  <div class=\"d-inline-flex width-full\" style=\"gap:8px\">" >> $html
         echo "    <span class=\"flex-1\"><a href=\"$S3_BASE_URL/$key\">${key##*/}</a></span>" >> $html
-        echo "    <span class=\"color-fg-muted\">${size}B</span>" >> $html
+        echo "    <span class=\"color-fg-muted\">$(LANG=C numfmt --to=iec-i $size)B</span>" >> $html
+        # if [[ -n $sha256 ]]; then
+        #   echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$sha256\">SHA256</span>" >> $html
+        # fi
+        # if [[ -n $sha1 ]]; then
+        #   echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$sha1\">SHA1</span>" >> $html
+        # fi
         # if [[ -n $md5 ]]; then
-        #   echo "    <span class=\"\"><code>MD5 Hash: $md5</code></span>" >> $html
+        #   echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$md5\">MD5</span>" >> $html
         # fi
         echo "  </div>" >> $html
       done
@@ -170,17 +177,24 @@ done
 msg "${BOLD}${GREEN}UPLOAD${NOFORMAT}"
 
 if ls reports/*.html 2> /dev/null; then
-  aws s3 sync --no-progress --acl public-read \
+  $aws s3 sync --no-progress --acl public-read \
     reports \
     s3://$S3_BUCKET/reports/$BRANCH_NAME/$BUILD_NUMBER
-  aws s3 sync --no-progress --acl public-read \
+  $aws s3 sync --no-progress --acl public-read --delete \
     s3://$S3_BUCKET/reports/$BRANCH_NAME/$BUILD_NUMBER \
     s3://$S3_BUCKET/reports/$BRANCH_NAME/latest
 
   for f in reports/*; do
-    echo "$S3_BASE_URL/reports/$BRANCH_NAME/$BUILD_NUMBER/${f##*/}"
+    echo "URL: $S3_BASE_URL/reports/$BRANCH_NAME/$BUILD_NUMBER/${f##*/}"
   done
   for f in reports/*; do
-    echo "$S3_BASE_URL/reports/$BRANCH_NAME/latest/${f##*/}"
+    echo "URL: $S3_BASE_URL/reports/$BRANCH_NAME/latest/${f##*/}"
+  done
+
+  for product in core desktop builder server mobile; do
+    if [[ -f $desc_h ]]; then
+      echo -n ' \ ' >> $desc_h
+    fi
+    echo -n "<a href=\"$S3_BASE_URL/reports/$BRANCH_NAME/$BUILD_NUMBER/$product.html\" target=\"_blank\">${product^}</a>" >> $desc_h
   done
 fi
