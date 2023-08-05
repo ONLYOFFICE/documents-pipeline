@@ -98,14 +98,14 @@ tee $appc_x << EOF
       <pubDate>$DATE_XML</pubDate>
       <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
       <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
-      <enclosure url="$EXEUPD_64_KEY" sparkle:os="windows-x64" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
+      <enclosure url="$S3_BASE_URL/$EXEUPD_64_KEY" sparkle:os="windows-x64" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
     </item>
     <item>
       <title>Version $BUILD_VERSION.$BUILD_NUMBER</title>
       <pubDate>$DATE_XML</pubDate>
       <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
       <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
-      <enclosure url="$EXEUPD_32_KEY" sparkle:os="windows-x86" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
+      <enclosure url="$S3_BASE_URL/$EXEUPD_32_KEY" sparkle:os="windows-x86" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
     </item>
   </channel>
 </rss>
@@ -115,7 +115,7 @@ echo "UPLOAD"
 
 for f in update/*; do
   md5sum=$(md5sum $f | cut -d' ' -f1)
-  $aws s3 cp --no-progress --acl public-read --metadata md5= \
+  $aws s3 cp --no-progress --acl public-read --metadata md5=$md5sum \
     $f s3://$S3_BUCKET/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/
   echo "URL: $S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/${f##*/}"
   echo "desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/${f##*/}" >> $keys_t
