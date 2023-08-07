@@ -207,6 +207,7 @@ pipeline {
           if (params.signing) env.ENABLE_SIGNING=1
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
           gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
+          gitTagRepos = []
           deployData = []
           stageStats = [:]
         }
@@ -553,8 +554,13 @@ void startDarwin(String platform) {
 
 void startLinux(String platform) {
   ArrayList constRepos = getConstRepos()
+  constRepos.each { gitTagRepos.add(it.name) }
   ArrayList varRepos = getVarRepos(platform, defaults.repo_name)
-  ArrayList allRepos = constRepos.plus(varRepos)
+  println gitTagRepos
+
+  ArrayList allRepos = []
+  constRepos.each { allRepos.add(it.name) }
+  varRepos.each { allRepos.add(it.name) }
   checkoutRepos(varRepos)
 
   buildArtifacts(platform, 'opensource')
@@ -904,6 +910,9 @@ def getVarRepos(String platform, String branding = '', String branch = env.BRANC
         ).branches[0].name
       }
     }
+    if (platform == 'linux_x86_64' && repo.name != 'onlyoffice.github.io') {
+      gitTagRepos.add(repo.name)
+    }
 
     repos.add(repo)
   }
@@ -941,9 +950,9 @@ void checkoutRepos(ArrayList repos) {
 
 void tagRepos(ArrayList repos, String tag = gitTag) {
   repos.each {
-    if (it.name != 'onlyoffice.github.io')
-      sh label: "REPO TAG: ${it.name}", script: """
-        cd ${it.name}
+    if (it != 'onlyoffice.github.io')
+      sh label: "REPO TAG: ${it}", script: """
+        cd ${it}
         git tag -l | xargs git tag -d
         git fetch --tags
         git tag ${tag}
