@@ -949,6 +949,12 @@ void checkoutRepos(ArrayList repos) {
 }
 
 void tagRepos(ArrayList repos, String tag = gitTag) {
+  sh label: "TAG REPOS", script: """
+    echo ${gitTag}
+    for repo in ${gitTagRepos.join(' ')}; do
+      echo \$repo
+    done
+  """
   repos.each {
     if (it != 'onlyoffice.github.io')
       sh label: "REPO TAG: ${it}", script: """
