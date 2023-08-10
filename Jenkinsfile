@@ -208,6 +208,8 @@ pipeline {
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
           deployData = []
           stageStats = [:]
+          gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
+          gitTagRepos = []
         }
       }
     }
@@ -389,8 +391,6 @@ pipeline {
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
           }
           steps {
-            gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
-            gitTagRepos = []
             start('linux_x86_64')
           }
           post {
