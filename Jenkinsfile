@@ -674,7 +674,6 @@ void buildPackages(String platform, String license = 'opensource') {
     """
 
   if (fileExists('deploy.txt')) deployData += readFile('deploy.txt').readLines()
-  println deployData
 }
 
 ArrayList getModuleList(String platform, String license = 'any') {
@@ -980,10 +979,10 @@ void buildAppcast() {
     println ret
   }
   if (fileExists('deploy.txt')) deployData += readFile('deploy.txt').readLines()
-  println deployData
 }
 
 void buildReports() {
+  if (!deployData) return
   println deployData
   writeFile file: 'keys.txt', text: deployData.join('\n') + '\n'
   withCredentials([
