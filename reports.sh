@@ -86,7 +86,7 @@ json_add() {
 }
 
 for product in core desktop builder server mobile; do
-  if [[ $product == core ]] && grep -q -E "^((windows|mac|linux)/core|closuremaps)/" $keys_t; then
+  if [[ $product == core ]] && grep -q -E "^((windows|mac|linux)/core|closure-maps)/" $keys_t; then
     (grep "^windows/core/" $keys_t || :) | while read key; do
       json_add $product win archive $key
     done
@@ -96,10 +96,10 @@ for product in core desktop builder server mobile; do
     (grep "^linux/core/" $keys_t || :) | while read key; do
       json_add $product linux archive $key
     done
-    (grep "^closuremaps/opensource/" $keys_t || :) | while read key; do
+    (grep "^closure-maps/opensource/" $keys_t || :) | while read key; do
       json_add $product linux closuremaps_opensource $key
     done
-    (grep "^closuremaps/commercial/" $keys_t || :) | while read key; do
+    (grep "^closure-maps/commercial/" $keys_t || :) | while read key; do
       json_add $product linux closuremaps_commercial $key
     done
   elif [[ $product == mobile ]]; then
