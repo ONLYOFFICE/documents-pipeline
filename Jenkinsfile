@@ -22,7 +22,7 @@ defaults = [
   password:         false,
   beta:             false,
   sign:             true,
-  schedule:         'H 17 * * *',
+  schedule:         'H 20 * * *',
   repo_owner:       'ONLYOFFICE',
   repo_name:        'onlyoffice',
 ]
@@ -42,7 +42,7 @@ if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
   defaults.putAll([
     channel:          'test',
     version:          env.BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
-    schedule:         'H 23 * * *',
+    schedule:         'H 2 * * *',
   ])
 }
 
