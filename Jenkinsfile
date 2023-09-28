@@ -625,18 +625,23 @@ void buildPackages(String platform, String license = 'opensource') {
     args.add("--branding ${defaults.repo_name}")
 
   String label = "packages ${license}".toUpperCase()
-  if (!platform.startsWith('windows'))
-    sh label: label, script: """
-      cd build_tools
-      ./make_package.py ${args.join(' ')}
-    """
-  else
-    bat label: label, script: """
-      cd build_tools
-      python make_package.py ${args.join(' ')}
-    """
 
-  if (fileExists('deploy.txt')) deployData += readFile('deploy.txt').readLines()
+  try {
+    if (!platform.startsWith('windows'))
+      sh label: label, script: """
+        cd build_tools
+        ./make_package.py ${args.join(' ')}
+      """
+    else
+      bat label: label, script: """
+        cd build_tools
+        python make_package.py ${args.join(' ')}
+      """
+  } catch (err) {
+    throw err
+  } finally {
+    if (fileExists('deploy.txt')) deployData += readFile('deploy.txt').readLines()
+  }
 }
 
 ArrayList getModuleList(String platform, String license = 'any') {
@@ -905,9 +910,7 @@ void checkoutRepos(ArrayList repos) {
 }
 
 void tagRepos(ArrayList repos = gitTagRepos, String tag = gitTag) {
-  println tag
-  println repos
-  sh label: "TAG REPOS", script: """
+  sh label: 'TAG REPOS', script: """
     for repo in ${repos.join(' ')}; do
       cd \$repo
         git tag -l | xargs git tag -d
@@ -923,13 +926,10 @@ void tagRepos(ArrayList repos = gitTagRepos, String tag = gitTag) {
 
 void buildAppcast() {
   if (!(params.desktop && (params.windows_x64 || params.windows_x86))) return
-  withCredentials([
-    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-  ]) {
-    Integer ret = sh label: 'APPCAST', returnStatus: true,
-      script: './appcast.sh'
-    println ret
+  try {
+    sh label: 'APPCAST', script: './appcast.sh'
+  } catch (err) {
+    echo err.toString()
   }
   if (fileExists('deploy.txt')) deployData += readFile('deploy.txt').readLines()
 }
@@ -938,15 +938,11 @@ void buildReports() {
   if (!deployData) return
   println deployData
   writeFile file: 'keys.txt', text: deployData.join('\n') + '\n'
-  withCredentials([
-    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-  ]) {
-    Integer ret = sh label: 'REPORTS', returnStatus: true,
-      script: './reports.sh keys.txt'
-    println ret
+  try {
+    sh label: 'REPORTS', script: './reports.sh keys.txt'
+  } catch (err) {
+    echo err.toString()
   }
-
   if (fileExists('build.html')) currentBuild.description = readFile 'build.html'
 }
 
