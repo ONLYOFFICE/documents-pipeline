@@ -29,9 +29,13 @@ pipeline {
             error("version is not defined")
           }
           sh """
-            aws s3 cp --no-progress --acl public-read \
+            aws s3 cp --no-progress --acl public-read --cache-control max-age=0 \
               s3://repo-doc-onlyoffice-com/desktop/win/update/${version}/${params.build}/appcast.json \
               s3://static.teamlab.com/install/desktop/editors/windows/onlyoffice/appcastdev.json
+            aws cloudfront create-invalidation \
+              --distribution-id EK2IXZ2TWVZKC \
+              --paths /install/desktop/editors/windows/onlyoffice/appcastdev.json
+            echo https://download.onlyoffice.com/install/desktop/editors/windows/onlyoffice/appcastdev.json
           """
         }
       }
