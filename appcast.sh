@@ -4,16 +4,16 @@ set -Eeuo pipefail
 cd "${0%/*}"
 
 s3_md5() {
-  $aws s3api head-object --bucket $S3_BUCKET --key $1 \
+  aws s3api head-object --bucket $S3_BUCKET --key $1 \
     --query 'Metadata.md5' --output text \
-    2> /dev/null || :
+    2> /dev/null || echo -n 0
 }
 
 set -x
 
 PACKAGE_NAME="ONLYOFFICE-DesktopEditors"
-DATE_JSON=$(LANG=C date -u "+%b %d %H:%M UTC %Y")
-DATE_XML=$(LANG=C date -u "+%a, %d %b %Y %H:%M:%S +0000")
+DATE_JSON=$(LANG=C TZ=UTC date -u "+%b %d %H:%M UTC %Y")
+DATE_XML=$(LANG=C TZ=UTC date -u "+%a, %d %b %Y %H:%M:%S +0000")
 CHANGES_URL="$S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER"
 EXEUPD_64_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
 EXEUPD_32_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
@@ -23,7 +23,6 @@ EXE_64_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
 EXE_32_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
 MSI_64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.msi"
 MSI_32_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.msi"
-aws="aws"
 appc_j=update/appcast.json
 appc_x=update/appcast.xml
 keys_t=deploy.txt
@@ -115,7 +114,7 @@ echo "UPLOAD"
 
 for f in update/*; do
   md5sum=$(md5sum $f | cut -d' ' -f1)
-  $aws s3 cp --no-progress --acl public-read --metadata md5=$md5sum \
+  aws s3 cp --no-progress --acl public-read --metadata md5=$md5sum \
     $f s3://$S3_BUCKET/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/
   echo "URL: $S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/${f##*/}"
   echo "desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/${f##*/}" >> $keys_t
