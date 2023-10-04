@@ -7,6 +7,8 @@ pipeline {
         permissions: ['Job/Build', 'Job/Cancel', 'Job/Read', 'Job/Workspace']
       )
     ])
+    disableConcurrentBuilds()
+    skipDefaultCheckout true
   }
   parameters {
     string (
@@ -29,13 +31,13 @@ pipeline {
             error("version is not defined")
           }
           sh """
+            APPCAST_PATH=install/desktop/editors/windows/onlyoffice/appcastdev.json
             aws s3 cp --no-progress --acl public-read --cache-control max-age=0 \
               s3://repo-doc-onlyoffice-com/desktop/win/update/${version}/${params.build}/appcast.json \
-              s3://static.teamlab.com/install/desktop/editors/windows/onlyoffice/appcastdev.json
+              s3://static.teamlab.com/\$APPCAST_PATH
             aws cloudfront create-invalidation \
-              --distribution-id EK2IXZ2TWVZKC \
-              --paths /install/desktop/editors/windows/onlyoffice/appcastdev.json
-            echo https://download.onlyoffice.com/install/desktop/editors/windows/onlyoffice/appcastdev.json
+              --distribution-id EK2IXZ2TWVZKC --paths /\$APPCAST_PATH
+            echo https://download.onlyoffice.com/\$APPCAST_PATH
           """
         }
       }
