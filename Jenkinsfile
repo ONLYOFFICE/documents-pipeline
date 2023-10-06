@@ -6,8 +6,8 @@ defaults = [
   windows_x86:      true,
   windows_x64_xp:   true,
   windows_x86_xp:   true,
-  darwin_x86_64:    true,
   darwin_arm64:     true,
+  darwin_x86_64:    true,
   darwin_x86_64_v8: true,
   linux_x86_64:     true,
   linux_aarch64:    true,
@@ -95,14 +95,14 @@ pipeline {
     )
     // macOS
     booleanParam (
-      name:         'darwin_x86_64',
-      description:  'Build macOS x86-64 targets',
-      defaultValue: defaults.darwin_x86_64
-    )
-    booleanParam (
       name:         'darwin_arm64',
       description:  'Build macOS arm64 targets',
       defaultValue: defaults.darwin_arm64
+    )
+    booleanParam (
+      name:         'darwin_x86_64',
+      description:  'Build macOS x86-64 targets',
+      defaultValue: defaults.darwin_x86_64
     )
     booleanParam (
       name:         'darwin_x86_64_v8',
@@ -301,29 +301,6 @@ pipeline {
           }
         }
         // macOS
-        stage('macOS x86_64') {
-          agent { label 'darwin_x86_64' }
-          when {
-            expression { params.darwin_x86_64 }
-            beforeAgent true
-          }
-          environment {
-            FASTLANE_HIDE_TIMESTAMP = '1'
-            FASTLANE_SKIP_UPDATE_CHECK = '1'
-            APPLE_ID = credentials('macos-apple-id')
-            TEAM_ID = credentials('macos-team-id')
-            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
-            CODESIGNING_IDENTITY = 'Developer ID Application'
-          }
-          steps {
-            start('darwin_x86_64')
-          }
-          post {
-            success  { setStageStats(0) }
-            unstable { setStageStats(1) }
-            failure  { setStageStats(2) }
-          }
-        }
         stage('macOS arm64') {
           agent { label 'darwin_arm64' }
           when {
@@ -340,6 +317,29 @@ pipeline {
           }
           steps {
             start('darwin_arm64')
+          }
+          post {
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
+          }
+        }
+        stage('macOS x86_64') {
+          agent { label 'darwin_x86_64' }
+          when {
+            expression { params.darwin_x86_64 }
+            beforeAgent true
+          }
+          environment {
+            FASTLANE_HIDE_TIMESTAMP = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+          }
+          steps {
+            start('darwin_x86_64')
           }
           post {
             success  { setStageStats(0) }
