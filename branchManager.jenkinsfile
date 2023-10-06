@@ -14,11 +14,11 @@ if (env.BRANCH_NAME == 'develop') {
   defaults.branch_type = 'release'
 }
 if (env.BRANCH_NAME ==~ /^(hotfix)\/.+/) {
-  defaults.action_type.addAll(['merge_hotfix', 'finish_hotfix', 'rename_hotfix', 'unprotect_hotfix'])
+  defaults.action_type.addAll(['merge_hotfix', 'finish_hotfix', 'rename_hotfix', 'delete_hotfix', 'unprotect_hotfix'])
   defaults.branch_type = 'hotfix'
 }
 if (env.BRANCH_NAME ==~ /^(release)\/.+/) {
-  defaults.action_type.addAll(['merge_release', 'finish_release', 'rename_release', 'unprotect_release'])
+  defaults.action_type.addAll(['merge_release', 'finish_release', 'rename_release', 'delete_release', 'unprotect_release'])
   defaults.branch_type = 'release'
 }
 
@@ -160,6 +160,7 @@ pipeline {
             }
 
           } else if (params.action_type in ['rename_hotfix', 'rename_release']) {
+
             branch = defaults.branch_type + '/v' + params.version
             baseBranches = [env.BRANCH_NAME]
 
@@ -179,6 +180,24 @@ pipeline {
                       sAction = protectBranch(repo, branch)
                       status.secondary = (sAction) ? 'lock' : ''
                     }
+                  }
+                }
+              }
+            }
+
+          } else if (params.action_type in ['delete_hotfix', 'delete_release']) {
+
+            stats.repos.each { repo, status ->
+              if (!checkRemoteBranch(repo, branch)) {
+                echo "${repo}: Branch doesn't ${branch} exist."
+                status.primary = 'skip'
+              } else {
+                dir ('repos/' + repo) {
+                  checkoutRepo(repo, branch)
+                  unprotectBranch(repo, branch)
+                  if (!repo.contains('documents-pipeline')) {
+                    pAction = deleteBranch(repo, branch)
+                    status.primary = (pAction) ? 'success' : 'failure'
                   }
                 }
               }
@@ -352,6 +371,7 @@ def deleteBranch(String repo, String branch) {
   return sh (
     label: "${repo}: delete ${branch}",
     script: """
+      git switch -f master
       git branch -D ${branch}
       git push --delete origin ${branch}
       echo "Branch deleted."
