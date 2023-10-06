@@ -937,7 +937,7 @@ void buildAppcast() {
 
 void buildReports() {
   if (!deployData) return
-  println deployData
+  println deployData.join('\n')
   writeFile file: 'keys.txt', text: deployData.join('\n') + '\n'
   try {
     sh label: 'REPORTS', script: './reports.sh keys.txt'
