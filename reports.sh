@@ -59,8 +59,7 @@ declare -A TYPE_TITLES=(
   [suse]="SUSE Linux / OpenSUSE"
 )
 
-NOW=$(LANG=C TZ=Europe/Moscow date '+%F %R %Z')
-aws="aws"
+NOW=$(LANG=C date '+%F %R %Z')
 keys_t=${1:-keys.txt}
 data_j=reports/data.json
 desc_h=build.html
@@ -146,7 +145,7 @@ EOF
 
       # jq -r ".$product.$platform.$type[]" $data_j | sort -V
       jq -r ".$product.$platform.$type[]" $data_j | while read key; do
-        object=$($aws s3api head-object --bucket $S3_BUCKET --key $key || jq -n {})
+        object=$(aws s3api head-object --bucket $S3_BUCKET --key $key || jq -n {})
         size=$(<<<$object jq -er '.ContentLength' || echo -n 0)
         sha256=$(<<<$object jq -er '.Metadata.sha256' || :)
         sha1=$(<<<$object jq -er '.Metadata.sha1' || :)
@@ -155,15 +154,15 @@ EOF
         echo "  <div class=\"d-inline-flex width-full\" style=\"gap:8px\">" >> $html
         echo "    <span class=\"flex-1\"><a href=\"$S3_BASE_URL/$key\">${key##*/}</a></span>" >> $html
         echo "    <span class=\"color-fg-muted\">$(LANG=C numfmt --to=iec-i $size)B</span>" >> $html
-        # if [[ -n $sha256 ]]; then
-        #   echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$sha256\">SHA256</span>" >> $html
-        # fi
-        # if [[ -n $sha1 ]]; then
-        #   echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$sha1\">SHA1</span>" >> $html
-        # fi
-        # if [[ -n $md5 ]]; then
-        #   echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$md5\">MD5</span>" >> $html
-        # fi
+        if [[ -n $sha256 ]]; then
+          echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$sha256\">SHA256</span>" >> $html
+        fi
+        if [[ -n $sha1 ]]; then
+          echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$sha1\">SHA1</span>" >> $html
+        fi
+        if [[ -n $md5 ]]; then
+          echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$md5\">MD5</span>" >> $html
+        fi
         echo "  </div>" >> $html
       done
     done
@@ -183,10 +182,10 @@ done
 msg "${BOLD}${GREEN}UPLOAD${NOFORMAT}"
 
 if ls reports/*.html 2> /dev/null; then
-  $aws s3 sync --no-progress --acl public-read \
+  aws s3 sync --no-progress --acl public-read \
     reports \
     s3://$S3_BUCKET/reports/$BRANCH_NAME/$BUILD_NUMBER
-  $aws s3 sync --no-progress --acl public-read --delete \
+  aws s3 sync --no-progress --acl public-read --delete \
     s3://$S3_BUCKET/reports/$BRANCH_NAME/$BUILD_NUMBER \
     s3://$S3_BUCKET/reports/$BRANCH_NAME/latest
 
