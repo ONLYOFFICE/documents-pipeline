@@ -113,8 +113,10 @@ EOF
 echo "UPLOAD"
 
 for f in update/*; do
-  md5sum=$(md5sum $f | cut -d' ' -f1)
-  aws s3 cp --no-progress --acl public-read --metadata md5=$md5sum \
+  sha256=$(sha256sum $f | cut -d' ' -f1)
+  sha1=$(sha1sum $f | cut -d' ' -f1)
+  md5=$(md5sum $f | cut -d' ' -f1)
+  aws s3 cp --no-progress --acl public-read --metadata sha256=$sha256,sha1=$sha1,md5=$md5 \
     $f s3://$S3_BUCKET/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/
   echo "URL: $S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/${f##*/}"
   echo "desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/${f##*/}" >> $keys_t
