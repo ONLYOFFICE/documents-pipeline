@@ -146,10 +146,10 @@ EOF
       # jq -r ".$product.$platform.$type[]" $data_j | sort -V
       jq -r ".$product.$platform.$type[]" $data_j | while read key; do
         object=$(aws s3api head-object --bucket $S3_BUCKET --key $key || jq -n {})
-        size=$(<<<$object jq -er '.ContentLength' || echo -n 0)
-        sha256=$(<<<$object jq -er '.Metadata.sha256' || :)
-        sha1=$(<<<$object jq -er '.Metadata.sha1' || :)
-        md5=$(<<<$object jq -er '.Metadata.md5' || :)
+        size=$(<<<$object jq -er '.ContentLength // 0')
+        sha256=$(<<<$object jq -er '.Metadata.sha256 // empty' || :)
+        sha1=$(<<<$object jq -er '.Metadata.sha1 // empty' || :)
+        md5=$(<<<$object jq -er '.Metadata.md5 // empty' || :)
 
         echo "  <div class=\"d-inline-flex width-full\" style=\"gap:8px\">" >> $html
         echo "    <span class=\"flex-1\"><a href=\"$S3_BASE_URL/$key\">${key##*/}</a></span>" >> $html
