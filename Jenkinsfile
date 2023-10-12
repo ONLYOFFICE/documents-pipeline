@@ -378,7 +378,6 @@ pipeline {
             beforeAgent true
           }
           environment {
-            GITHUB_TOKEN = credentials('github-token')
             // TAR_RELEASE_SUFFIX = '-gcc5'
             // DEB_RELEASE_SUFFIX = '~stretch'
             RPM_RELEASE_SUFFIX = '.el7'
@@ -430,34 +429,6 @@ pipeline {
             failure  { setStageStats(2) }
           }
         }
-      }
-    }
-    stage('Docker') {
-      agent { label 'linux_x86_64 || linux_aarch64' }
-      environment {
-        GITHUB_TOKEN = credentials('github-token')
-      }
-      when {
-        expression {
-          (params.linux_x86_64 || params.linux_aarch64) && (params.server_ce || params.server_ee || params.server_de)
-        }
-        beforeAgent true
-      }
-      steps {
-        script {
-          catchError(
-            buildResult: 'UNSTABLE',
-            stageResult: 'FAILURE',
-            message: 'Docker build failure'
-          ) {
-            checkDocker()
-          }
-        }
-      }
-      post {
-        success  { setStageStats(0) }
-        unstable { setStageStats(1) }
-        failure  { setStageStats(2) }
       }
     }
   }
@@ -534,10 +505,13 @@ void startLinux(String platform) {
   buildArtifacts(platform, 'commercial')
   buildPackages(platform, 'commercial')
 
-  if ((platform == 'linux_x86_64') && (params.server_ce || params.server_ee || params.server_de)) {
+  if (params.server_ce || params.server_ee || params.server_de) {
     if (env.COMPANY_NAME == 'ONLYOFFICE') {
-      buildDocker()
       tagRepos()
+      if ((params.linux_x86_64 ^ params.linux_aarch64)
+          || stageStats['Linux aarch64'] == 0
+          || stageStats['Linux x86_64'] == 0)
+        buildDocker()
     } else {
       ArrayList buildDockerServer = []
       if (params.server_ee) buildDockerServer.add('-ee')
@@ -790,28 +764,34 @@ String getPrefix(String platform) {
 // Docker
 
 void buildDocker() {
-  sh label: 'DOCKER RUN', script: """
-    gh workflow run 4testing-build.yml \
-      --repo ONLYOFFICE/Docker-DocumentServer \
-      --ref \$BRANCH_NAME \
-      -f build=\$BUILD_NUMBER \
-      -f amd64=${params.linux_x86_64} \
-      -f arm64=${params.linux_aarch64} \
-      -f community=${params.server_ce} \
-      -f enterprise=${params.server_ee} \
-      -f developer=${params.server_de}
-  """
-}
-
-void checkDocker() {
-  sh label: 'DOCKER CHECK', script: """
-    REPO=ONLYOFFICE/Docker-DocumentServer
-    sleep 5
-    RUN_ID=\$(gh run list --repo \$REPO --workflow 4testing-build.yml \
-      --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
-    gh --repo \$REPO run watch \$RUN_ID --interval 15 > /dev/null
-    gh --repo \$REPO run view \$RUN_ID --verbose --exit-status
-  """
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DOCKER BUILD', script: """
+        repo=ONLYOFFICE/Docker-DocumentServer
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref \$BRANCH_NAME \
+          -f build=\$BUILD_NUMBER \
+          -f amd64=${params.linux_x86_64} \
+          -f arm64=${params.linux_aarch64} \
+          -f community=${params.server_ce} \
+          -f enterprise=${params.server_ee} \
+          -f developer=${params.server_de}
+        sleep 5
+        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
+          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
+        gh --repo \$repo run view \$run_id --verbose --exit-status
+      """
+    }
+  } catch (err) {
+    echo err
+    setStageStats(2, 'Docker')
+  } finally {
+    if (!stageStats['Docker']) setStageStats(0, 'Docker')
+  }
 }
 
 // Repos
