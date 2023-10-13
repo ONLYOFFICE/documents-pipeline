@@ -204,6 +204,7 @@ pipeline {
           stageStats = [:]
           gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
           gitTagRepos = []
+          linuxDockerRun = params.linux_x86_64 ^ params.linux_aarch64
         }
       }
     }
@@ -507,11 +508,12 @@ void startLinux(String platform) {
 
   if (params.server_ce || params.server_ee || params.server_de) {
     if (env.COMPANY_NAME == 'ONLYOFFICE') {
-      tagRepos()
-      if ((params.linux_x86_64 ^ params.linux_aarch64)
-          || stageStats['Linux aarch64'] == 0
-          || stageStats['Linux x86_64'] == 0)
+      if (platform == 'linux_x86_64')
+        tagRepos()
+      if (linuxDockerRun)
         buildDocker()
+      else
+        linuxDockerRun = true
     } else {
       ArrayList buildDockerServer = []
       if (params.server_ee) buildDockerServer.add('-ee')
