@@ -790,9 +790,9 @@ void buildDocker() {
     }
   } catch (err) {
     echo err
-    setStageStats(2, 'Docker')
+    setStageStats(2, 'Linux Docker')
   } finally {
-    if (!stageStats['Docker']) setStageStats(0, 'Docker')
+    if (!stageStats['Linux Docker']) setStageStats(0, 'Linux Docker')
   }
 }
 
