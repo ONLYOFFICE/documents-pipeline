@@ -4,39 +4,37 @@ set -Eeuo pipefail
 cd "${0%/*}"
 
 s3_md5() {
-  $aws s3api head-object --bucket $S3_BUCKET --key $1 \
+  aws s3api head-object --bucket $S3_BUCKET --key $1 \
     --query 'Metadata.md5' --output text \
-    2> /dev/null || true
+    2> /dev/null || echo -n 0
 }
 
 set -x
 
-# PRODUCT_VERSION=0.0.0
-# BUILD_NUMBER=0
-# S3_BUCKET=repo-doc-onlyoffice-com
-# S3_BASE_URL=https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com
-
 PACKAGE_NAME="ONLYOFFICE-DesktopEditors"
-DATE_JSON=$(LANG=C date -u "+%b %d %H:%M UTC %Y")
-DATE_XML=$(LANG=C date -u "+%a, %d %b %Y %H:%M:%S +0000")
-UPDATES_URL="$S3_BASE_URL/desktop/win/inno/$PRODUCT_VERSION/$BUILD_NUMBER"
-CHANGES_URL="$S3_BASE_URL/desktop/win/update/$PRODUCT_VERSION/$BUILD_NUMBER"
-ZIP_64_KEY="desktop/win/generic/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x64.zip"
-ZIP_32_KEY="desktop/win/generic/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x86.zip"
-EXE_64_KEY="desktop/win/inno/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x64.exe"
-EXE_32_KEY="desktop/win/inno/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x86.exe"
-MSI_64_KEY="desktop/win/advinst/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x64.msi"
-MSI_32_KEY="desktop/win/advinst/$PACKAGE_NAME-$PRODUCT_VERSION.$BUILD_NUMBER-x86.msi"
-aws="aws"
+DATE_JSON=$(LANG=C TZ=UTC date -u "+%b %d %H:%M UTC %Y")
+DATE_XML=$(LANG=C TZ=UTC date -u "+%a, %d %b %Y %H:%M:%S +0000")
+CHANGES_URL="$S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER"
+EXEUPD_64_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
+EXEUPD_32_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
+ZIP_64_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.zip"
+ZIP_32_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.zip"
+EXE_64_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
+EXE_32_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
+MSI_64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.msi"
+MSI_32_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.msi"
+appc_j=update/appcast.json
+appc_x=update/appcast.xml
+keys_t=deploy.txt
 
-rm -rfv update repo
+rm -rfv update $keys_t
 mkdir -pv update
 
-echo "Make appcast"
+echo "MAKE APPCAST"
 
-cat > update/appcast.json << EOF
+tee $appc_j << EOF
 {
-  "version": "$PRODUCT_VERSION.$BUILD_NUMBER",
+  "version": "$BUILD_VERSION.$BUILD_NUMBER",
   "date": "$DATE_JSON",
   "releaseNotes": {
     "en-EN": "$CHANGES_URL/changes.html",
@@ -44,7 +42,7 @@ cat > update/appcast.json << EOF
   },
   "package": {
     "win_64": {
-      "url": "$UPDATES_URL/editors_update_x64.exe",
+      "url": "$S3_BASE_URL/$EXEUPD_64_KEY",
       "installArguments": "/silent /update",
       "archive": {
         "url": "$S3_BASE_URL/$ZIP_64_KEY",
@@ -59,12 +57,12 @@ cat > update/appcast.json << EOF
       "msi": {
         "url": "$S3_BASE_URL/$MSI_64_KEY",
         "md5": "$(s3_md5 $MSI_64_KEY)",
-        "arguments": "/qn /norestart",
-        "maxVersion": "7.3.3"
+        "arguments": "/qr /norestart",
+        "maxVersion": "7.5.0"
       }
     },
     "win_32": {
-      "url": "$UPDATES_URL/editors_update_x86.exe",
+      "url": "$S3_BASE_URL/$EXEUPD_32_KEY",
       "installArguments": "/silent /update",
       "archive": {
         "url": "$S3_BASE_URL/$ZIP_32_KEY",
@@ -79,16 +77,15 @@ cat > update/appcast.json << EOF
       "msi": {
         "url": "$S3_BASE_URL/$MSI_32_KEY",
         "md5": "$(s3_md5 $MSI_32_KEY)",
-        "arguments": "/qn /norestart",
-        "maxVersion": "7.3.3"
+        "arguments": "/qr /norestart",
+        "maxVersion": "7.5.0"
       }
     }
   }
 }
 EOF
-cat update/appcast.json
 
-cat > update/appcast.xml << EOF
+tee $appc_x << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
   <channel>
@@ -96,44 +93,31 @@ cat > update/appcast.xml << EOF
     <description>Most recent changes with links to updates.</description>
     <language>en</language>
     <item>
-      <title>Version $PRODUCT_VERSION.$BUILD_NUMBER</title>
+      <title>Version $BUILD_VERSION.$BUILD_NUMBER</title>
       <pubDate>$DATE_XML</pubDate>
       <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
       <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
-      <enclosure url="$UPDATES_URL/editors_update_x64.exe" sparkle:os="windows-x64" sparkle:version="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
+      <enclosure url="$S3_BASE_URL/$EXEUPD_64_KEY" sparkle:os="windows-x64" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
     </item>
     <item>
-      <title>Version $PRODUCT_VERSION.$BUILD_NUMBER</title>
+      <title>Version $BUILD_VERSION.$BUILD_NUMBER</title>
       <pubDate>$DATE_XML</pubDate>
       <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
       <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
-      <enclosure url="$UPDATES_URL/editors_update_x86.exe" sparkle:os="windows-x86" sparkle:version="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$PRODUCT_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
+      <enclosure url="$S3_BASE_URL/$EXEUPD_32_KEY" sparkle:os="windows-x86" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
     </item>
   </channel>
 </rss>
 EOF
-cat update/appcast.xml
 
-echo "Upload"
-$aws s3 sync --no-progress --acl public-read update \
-  s3://$S3_BUCKET/desktop/win/update/$PRODUCT_VERSION/$BUILD_NUMBER
+echo "UPLOAD"
 
-echo "Make deploy.json"
-cat > deploy.json << EOF
-[
-  {
-    "key": "desktop/win/update/$PRODUCT_VERSION/$BUILD_NUMBER/appcast.json",
-    "platform": "Windows x64",
-    "product": "desktop",
-    "size": $(stat -c %s update/appcast.json || echo 0),
-    "type": "Update"
-  },
-  {
-    "key": "desktop/win/update/$PRODUCT_VERSION/$BUILD_NUMBER/appcast.xml",
-    "platform": "Windows x64",
-    "product": "desktop",
-    "size": $(stat -c %s update/appcast.xml || echo 0),
-    "type": "Update"
-  }
-]
-EOF
+for f in update/*; do
+  sha256=$(sha256sum $f | cut -d' ' -f1)
+  sha1=$(sha1sum $f | cut -d' ' -f1)
+  md5=$(md5sum $f | cut -d' ' -f1)
+  aws s3 cp --no-progress --acl public-read --metadata sha256=$sha256,sha1=$sha1,md5=$md5 \
+    $f s3://$S3_BUCKET/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/
+  echo "URL: $S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/${f##*/}"
+  echo "desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/${f##*/}" >> $keys_t
+done
