@@ -789,7 +789,7 @@ void buildDocker() {
       """
     }
   } catch (err) {
-    echo err
+    echo err.toString()
     setStageStats(2, 'Linux Docker')
   } finally {
     if (!stageStats['Linux Docker']) setStageStats(0, 'Linux Docker')
