@@ -67,13 +67,14 @@ pipeline {
     stage('Branch Manager') {
       steps {
         script {
+          currentBuild.description = params.action_type
+          if (params.action_type in ['start_hotfix', 'start_release'])
+            currentBuild.description += ' ' + params.version
+
           if (params.wipe) {
             deleteDir()
             checkout scm
           }
-          currentBuild.displayName += ' - ' + params.action_type
-          if (params.action_type in ['start_hotfix', 'start_release'])
-            currentBuild.displayName += ' ' + params.version
 
           stats = [repos: [:]]
           String branch = env.BRANCH_NAME
