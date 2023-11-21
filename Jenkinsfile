@@ -767,7 +767,7 @@ String getPrefix(String platform) {
 // Docker
 
 void buildDocker() {
-  if (params.server_ce || params.server_ee || params.server_de)
+  if (!(params.server_ce || params.server_ee || params.server_de))
     return
   if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
     return
