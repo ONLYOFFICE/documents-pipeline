@@ -536,8 +536,8 @@ void startAndroid(String platform = 'android') {
   ArrayList varRepos = getVarRepos(platform)
   checkoutRepos(varRepos)
 
-  buildArtifacts(platform, 'opensource')
-  buildPackages(platform, 'opensource')
+  buildArtifacts(platform, 'commercial')
+  buildPackages(platform, 'commercial')
 }
 
 // Build
@@ -669,7 +669,7 @@ ArrayList getModuleList(String platform, String license = 'any') {
       server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
     ],
     android: [
-      mobile: p.mobile && l.os,
+      mobile: p.mobile && l.com,
     ],
   ]
   ArrayList modules = []
