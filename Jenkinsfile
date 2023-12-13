@@ -533,7 +533,7 @@ void startLinux(String platform) {
 }
 
 void startAndroid(String platform = 'android') {
-  ArrayList varRepos = getVarRepos(platform)
+  ArrayList varRepos = getVarRepos(platform, defaults.repo_name)
   checkoutRepos(varRepos)
 
   buildArtifacts(platform, 'commercial')
