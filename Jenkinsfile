@@ -737,7 +737,7 @@ ArrayList getTargetList(String platform, String license = 'any') {
       server_enterprise: p.server_ee && l.com,
     ],
     android: [
-      mobile: p.mobile && l.os,
+      mobile: p.mobile && l.com,
     ],
   ]
   ArrayList targets = []
