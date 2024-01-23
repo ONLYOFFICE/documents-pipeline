@@ -199,7 +199,7 @@ if ls reports/*.html 2> /dev/null; then
   for product in core desktop builder server mobile; do
     [[ -f reports/$product.html ]] || continue
     if [[ -f $desc_h ]]; then
-      echo -n ' \ ' >> $desc_h
+      echo -n ' &centerdot; ' >> $desc_h
     fi
     echo -n "<a href=\"$S3_BASE_URL/reports/$BRANCH_NAME/$BUILD_NUMBER/$product.html\" target=\"_blank\">${product^}</a>" >> $desc_h
   done
