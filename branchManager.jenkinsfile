@@ -67,9 +67,9 @@ pipeline {
     stage('Branch Manager') {
       steps {
         script {
-          currentBuild.displayName += ' - ' + params.action_type
+          currentBuild.description = params.action_type
           if (params.action_type in ['start_hotfix', 'start_release'])
-            currentBuild.displayName += ' ' + params.version
+            currentBuild.description += ' ' + params.version
 
           if (params.wipe) {
             deleteDir()
