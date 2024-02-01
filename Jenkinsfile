@@ -472,6 +472,10 @@ void start(String platform) {
   else if (params.clean && params.desktop && platform != 'android')
     dir ('desktop-apps') { deleteDir() }
 
+  if (!(params.core || params.desktop || params.builder || params.server_ce \
+      || params.server_ee || params.server_de || params.mobile))
+    return
+
   if (platform.startsWith('windows')) startWindows(platform)
   if (platform.startsWith('darwin'))  startDarwin(platform)
   if (platform.startsWith('linux'))   startLinux(platform)
