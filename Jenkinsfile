@@ -433,7 +433,19 @@ pipeline {
     }
   }
   post {
-    always {
+    fixed {
+      node('built-in') { script { sendTelegramMessage('fixed') } }
+    }
+    unstable {
+      node('built-in') { script { sendTelegramMessage('unstable') } }
+    }
+    failure {
+      node('built-in') { script { sendTelegramMessage('failure') } }
+    }
+    aborted {
+      node('built-in') { script { sendTelegramMessage('aborted') } }
+    }
+    cleanup {
       node('built-in') {
         script {
           parallel(
@@ -449,15 +461,6 @@ pipeline {
           )
         }
       }
-    }
-    fixed {
-      node('built-in') { script { sendTelegramMessage('fixed') } }
-    }
-    unstable {
-      node('built-in') { script { sendTelegramMessage('unstable') } }
-    }
-    failure {
-      node('built-in') { script { sendTelegramMessage('failure') } }
     }
   }
 }
