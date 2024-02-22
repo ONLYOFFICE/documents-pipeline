@@ -228,6 +228,7 @@ pipeline {
             success  { setStageStats(0) }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
           }
         }
         stage('Windows x86') {
@@ -251,6 +252,7 @@ pipeline {
             success  { setStageStats(0) }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
           }
         }
         stage('Windows x64 XP') {
@@ -274,6 +276,7 @@ pipeline {
             success  { setStageStats(0) }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
           }
         }
         stage('Windows x86 XP') {
@@ -298,6 +301,7 @@ pipeline {
             success  { setStageStats(0) }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
           }
         }
         // macOS
@@ -322,6 +326,7 @@ pipeline {
             success  { setStageStats(0) }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
           }
         }
         stage('macOS x86_64') {
@@ -345,6 +350,7 @@ pipeline {
             success  { setStageStats(0) }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
           }
         }
         stage('macOS x86_64 V8') {
@@ -368,6 +374,7 @@ pipeline {
             success  { setStageStats(0) }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
           }
         }
         // Linux
@@ -390,6 +397,7 @@ pipeline {
             success  { setStageStats(0) }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
           }
         }
         stage('Linux aarch64') {
@@ -411,6 +419,7 @@ pipeline {
             success  { setStageStats(0) }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
           }
         }
         // Android
@@ -427,6 +436,7 @@ pipeline {
             success  { setStageStats(0) }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
           }
         }
       }
@@ -905,7 +915,7 @@ void sendTelegramMessage(String jobStatus, String chatId = '-1001773122025') {
   if (!params.notify) return
   String text = 'Build [' + currentBuild.fullDisplayName \
       + '](' + currentBuild.absoluteUrl + ') ' + jobStatus
-  ArrayList icons = ['🟢', '🟡', '🔴']
+  ArrayList icons = ['🟢', '🟡', '🔴', '⚫️']
   stageStats.sort().each { stage, code ->
     text += '\n' + icons[code] + ' ' + stage.replaceAll('_','\\\\_')
   }
