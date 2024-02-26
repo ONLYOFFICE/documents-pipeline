@@ -859,8 +859,8 @@ void checkoutRepos(ArrayList repos) {
             ),
             submodule(
               recursiveSubmodules: true,
-              shallow: true,
-              depth: 1
+              // shallow: true,
+              // depth: 1
             )
           ]
         )
