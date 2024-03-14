@@ -39,8 +39,10 @@ declare -A PRODUCT_TITLES=(
 
 declare -A TYPE_TITLES=(
   [archive]="Archive"
-  [closuremaps_opensource]="Closure maps opensource"
-  [closuremaps_commercial]="Closure maps commercial"
+  [closuremaps_sdkjs_opensource]="SDKJS Closure Maps Opensource"
+  [closuremaps_sdkjs_commercial]="SDKJS Closure Maps Commercial"
+  [closuremaps_webapps_opensource]="WEB-APPS Closure Maps Opensource"
+  [closuremaps_webapps_commercial]="WEB-APPS Closure Maps Commercial"
   [generic]="Portable"
   [update]="Update"
   [inno]="Inno Setup"
@@ -95,11 +97,17 @@ for product in core desktop builder server mobile; do
     (grep "^linux/core/" $keys_t || :) | while read key; do
       json_add $product linux archive $key
     done
-    (grep "^closure-maps/opensource/" $keys_t || :) | while read key; do
-      json_add $product linux closuremaps_opensource $key
+    (grep "^closure-maps/sdkjs/opensource/" $keys_t || :) | while read key; do
+      json_add $product linux closuremaps_sdkjs_opensource $key
     done
-    (grep "^closure-maps/commercial/" $keys_t || :) | while read key; do
-      json_add $product linux closuremaps_commercial $key
+    (grep "^closure-maps/sdkjs/commercial/" $keys_t || :) | while read key; do
+      json_add $product linux closuremaps_sdkjs_commercial $key
+    done
+    (grep "^closure-maps/web-apps/opensource/" $keys_t || :) | while read key; do
+      json_add $product linux closuremaps_webapps_opensource $key
+    done
+    (grep "^closure-maps/web-apps/commercial/" $keys_t || :) | while read key; do
+      json_add $product linux closuremaps_webapps_commercial $key
     done
   elif [[ $product == mobile ]]; then
     (grep "^$product/android/" $keys_t || :) | while read key; do
