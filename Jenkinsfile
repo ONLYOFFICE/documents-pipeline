@@ -861,7 +861,11 @@ void checkoutRepos(ArrayList repos) {
               recursiveSubmodules: true,
               // shallow: true,
               // depth: 1
-            )
+            ),
+            [
+              $class: 'ScmName',
+              name: ((it.owner != "ONLYOFFICE") ? it.owner + "/" : "") + it.repo
+            ]
           ]
         )
       }
