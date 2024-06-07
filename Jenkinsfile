@@ -854,14 +854,18 @@ void checkoutRepos(ArrayList repos) {
             authorInChangelog(),
             cloneOption(
               noTags: true,
-              shallow: true,
-              depth: 1
+              // shallow: true,
+              // depth: 1
             ),
             submodule(
               recursiveSubmodules: true,
               // shallow: true,
               // depth: 1
-            )
+            ),
+            [
+              $class: 'ScmName',
+              name: ((it.owner != "ONLYOFFICE") ? it.owner + "/" : "") + it.repo
+            ]
           ]
         )
       }
