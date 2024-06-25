@@ -22,6 +22,7 @@ defaults = [
   password:         false,
   beta:             false,
   sign:             true,
+  notify:           true,
   schedule:         'H 20 * * *',
   owner:            'ONLYOFFICE',
   repo:             'onlyoffice',
@@ -59,7 +60,7 @@ pipeline {
   options {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
     checkoutToSubdirectory 'documents-pipeline'
-    timeout(activity: true, time: 6, unit: 'HOURS')
+    timeout(activity: true, time: 5, unit: 'HOURS')
   }
   parameters {
     booleanParam (
@@ -163,21 +164,14 @@ pipeline {
       defaultValue: defaults.mobile
     )
     // Other
-    /*
-    booleanParam (
-      name:         'password_protection',
-      description:  'Enable password protection',
-      defaultValue: defaults.password
-    )
-    */
     booleanParam (
       name:         'beta',
       description:  'Beta (enabled anyway on develop)',
       defaultValue: defaults.beta
     )
     booleanParam (
-      name:         'signing',
-      description:  'Sign installer (Only on Windows)',
+      name:         'sign',
+      description:  'Enable signing (Windows only)',
       defaultValue: defaults.sign
     )
     string (
@@ -188,7 +182,7 @@ pipeline {
     booleanParam (
       name:         'notify',
       description:  'Telegram notification',
-      defaultValue: true
+      defaultValue: defaults.notify
     )
   }
   triggers {
@@ -526,7 +520,7 @@ void buildArtifacts(String platform, String license = 'opensource') {
   args.add("--clean ${params.clean.toString()}")
   args.add("--qt-dir ${env.QT_PATH}")
   if (platform in ["windows_x64_xp", "windows_x86_xp"])
-    args.add("--qt-dir-xp ${env.QT56_PATH}")
+    args.add("--qt-dir-xp ${env.QT_PATH}")
   if (license == "commercial")
     args.add("--branding ${defaults.repo}")
   if (platform in ["windows_x64", "windows_x86"])
@@ -535,8 +529,6 @@ void buildArtifacts(String platform, String license = 'opensource') {
     args.add("--config use_v8")
   if (platform == "android")
     args.add("--config release")
-  // if (params.password_protection)
-  //   args.add("--features \"enable_protection disable_signatures\"")
   if (params.beta)
     args.add("--beta 1")
   if (!params.extra_args.isEmpty())
