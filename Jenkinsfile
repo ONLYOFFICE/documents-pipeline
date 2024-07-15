@@ -192,7 +192,7 @@ pipeline {
     stage('Prepare') {
       steps {
         script {
-          if (params.signing) env.ENABLE_SIGNING=1
+          if (params.sign) env.ENABLE_SIGNING=1
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
           deployData = []
           stageStats = [:]
@@ -554,7 +554,7 @@ void buildPackages(String platform, String license = 'opensource') {
   ArrayList targets = getTargetList(platform, license)
   if (!targets) return
   targets.addAll(['clean', 'deploy'])
-  if (params.signing && platform.startsWith('windows'))
+  if (params.sign && platform.startsWith('windows'))
     targets.add('sign')
 
   ArrayList args = [
