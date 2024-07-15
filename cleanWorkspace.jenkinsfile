@@ -2,6 +2,11 @@ pipeline {
   agent none
   parameters {
     string (
+      name:         'customWorkspace',
+      description:  'Custom workspace dir',
+      defaultValue: 'oo'
+    )
+    string (
       name:         'branch',
       description:  'Branch name',
       defaultValue: ''
@@ -11,7 +16,7 @@ pipeline {
     stage('Clean workspace') {
       steps {
         script {
-          parallel winCleanStages(params.branch)
+          parallel winCleanStages()
         }
       }
       when {
@@ -21,15 +26,16 @@ pipeline {
   }
 }
 
-def winCleanStages(String branch) {
+def winCleanStages() {
   Map nodes = [:]
-  String branchDir = branch.replaceAll(/\//,'_')
+  String customDir = params.customWorkspace
+  String branchDir = params.branch.replaceAll(/\//,'_')
 
   nodesByLabel("windows").each {
     nodes["${it}"] = { ->
       node(it) {
         stage("${it}") {
-          powershell "Remove-Item -Recurse -Force C:\\oo\\${branchDir}*"
+          powershell "Remove-Item -Recurse -Force C:\\${customDir}\\${branchDir}*"
         }
       }
     }
