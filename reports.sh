@@ -5,11 +5,25 @@ cd "${0%/*}"
 
 setup_colors() {
   if [[ -z "${NO_COLOR-}" ]]; then
-    NOFORMAT='\033[0m' BOLD='\033[1m'
-    RED='\033[0;31m' GREEN='\033[0;32m' ORANGE='\033[0;33m' BLUE='\033[0;34m'
-    PURPLE='\033[0;35m' CYAN='\033[0;36m' YELLOW='\033[1;33m'
+    NOFORMAT='\033[0m'
+    BOLD='\033[1m'
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    ORANGE='\033[0;33m'
+    BLUE='\033[0;34m'
+    PURPLE='\033[0;35m'
+    CYAN='\033[0;36m'
+    YELLOW='\033[1;33m'
   else
-    NOFORMAT='' BOLD='' RED='' GREEN='' ORANGE='' BLUE='' PURPLE='' CYAN='' YELLOW=''
+    NOFORMAT=''
+    BOLD=''
+    RED=''
+    GREEN=''
+    ORANGE=''
+    BLUE=''
+    PURPLE=''
+    CYAN=''
+    YELLOW=''
   fi
 }
 
@@ -161,15 +175,17 @@ EOF
 
         echo "  <div class=\"d-inline-flex width-full\" style=\"gap:8px\">" >> $html
         echo "    <span class=\"flex-1\"><a href=\"$S3_BASE_URL/$key\">${key##*/}</a></span>" >> $html
-        echo "    <span class=\"color-fg-muted\">$(LANG=C numfmt --to=iec-i $size)B</span>" >> $html
-        if [[ -n $sha256 ]]; then
-          echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$sha256\">SHA256</span>" >> $html
-        fi
-        if [[ -n $sha1 ]]; then
-          echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$sha1\">SHA1</span>" >> $html
-        fi
-        if [[ -n $md5 ]]; then
-          echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$md5\">MD5</span>" >> $html
+        if [[ -n $sha256 && -n $sha1 && -n $md5 ]]; then
+          echo "    <span class=\"color-fg-muted\">$(LANG=C numfmt --to=iec-i $size)B</span>" >> $html
+        else
+          echo "    <details class=\"dropdown details-reset details-overlay d-inline-block m-0\">" >> $html
+          echo "      <summary class=\"color-fg-muted d-inline\" aria-haspopup=\"true\">" >> $html
+          echo "        $(LANG=C numfmt --to=iec-i $size)B <div class=\"dropdown-caret\"></div>" >> $html
+          echo "      </summary>" >> $html
+          echo "      <div class=\"dropdown-menu dropdown-menu-sw px-2 text-small text-mono\" style=\"width:max-content\">" >> $html
+          echo "        SHA256: $sha256<br>SHA1: $sha1<br>MD5: $md5" >> $html
+          echo "      </div>" >> $html
+          echo "    </details>" >> $html
         fi
         echo "  </div>" >> $html
       done
@@ -206,9 +222,7 @@ if ls reports/*.html 2> /dev/null; then
 
   for product in core desktop builder server mobile; do
     [[ -f reports/$product.html ]] || continue
-    if [[ -f $desc_h ]]; then
-      echo -n ' &centerdot; ' >> $desc_h
-    fi
+    [[ -f $desc_h ]] && echo -n ' &centerdot; ' >> $desc_h
     echo -n "<a href=\"$S3_BASE_URL/reports/$BRANCH_NAME/$BUILD_NUMBER/$product.html\" target=\"_blank\">${product^}</a>" >> $desc_h
   done
 fi
