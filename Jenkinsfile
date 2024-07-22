@@ -382,6 +382,7 @@ pipeline {
             // TAR_RELEASE_SUFFIX = '-gcc5'
             // DEB_RELEASE_SUFFIX = '~stretch'
             RPM_RELEASE_SUFFIX = '.el7'
+            RPM_SUSE_RELEASE_SUFFIX = '.suse12'
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
           }
           steps {
@@ -404,6 +405,7 @@ pipeline {
             // TAR_RELEASE_SUFFIX = '-gcc5'
             // DEB_RELEASE_SUFFIX = '~stretch'
             RPM_RELEASE_SUFFIX = '.el7'
+            RPM_SUSE_RELEASE_SUFFIX = '.suse12'
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
           }
           steps {
