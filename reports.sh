@@ -175,7 +175,7 @@ EOF
 
         echo "  <div class=\"d-inline-flex width-full\" style=\"gap:8px\">" >> $html
         echo "    <span class=\"flex-1\"><a href=\"$S3_BASE_URL/$key\">${key##*/}</a></span>" >> $html
-        if [[ -n $sha256 && -n $sha1 && -n $md5 ]]; then
+        if [[ -z $sha256 && -z $sha1 && -z $md5 ]]; then
           echo "    <span class=\"color-fg-muted\">$(LANG=C numfmt --to=iec-i $size)B</span>" >> $html
         else
           echo "    <details class=\"dropdown details-reset details-overlay d-inline-block m-0\">" >> $html
