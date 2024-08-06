@@ -80,9 +80,6 @@ keys_t=${1:-keys.txt}
 data_j=reports/data.json
 desc_h=build.html
 
-rm -rfv reports $desc_h
-mkdir -p reports
-
 msg "${BOLD}${GREEN}PREPARE${NOFORMAT}"
 
 echo COMPANY_NAME=$COMPANY_NAME
@@ -91,6 +88,10 @@ echo BUILD_VERSION=$BUILD_VERSION
 echo BUILD_NUMBER=$BUILD_NUMBER
 echo S3_BASE_URL=$S3_BASE_URL
 echo S3_BUCKET=$S3_BUCKET
+
+rm -rfv reports $desc_h
+mkdir -p reports
+
 [[ ! -f $keys_t ]] && exit 1
 jq -n {} > $data_j
 
@@ -173,21 +174,21 @@ EOF
         sha1=$(<<<$object jq -er '.Metadata.sha1 // empty' || :)
         md5=$(<<<$object jq -er '.Metadata.md5 // empty' || :)
 
-        echo "  <div class=\"d-inline-flex width-full\" style=\"gap:8px\">" >> $html
-        echo "    <span class=\"flex-1\"><a href=\"$S3_BASE_URL/$key\">${key##*/}</a></span>" >> $html
         if [[ -z $sha256 && -z $sha1 && -z $md5 ]]; then
-          echo "    <span class=\"color-fg-muted\">$(LANG=C numfmt --to=iec-i $size)B</span>" >> $html
+          echo "  <p class=\"m-0\">" >> $html
+          echo "    <a href=\"$S3_BASE_URL/$key\">${key##*/}</a>" >> $html
+          echo "    $(LANG=C numfmt --to=iec-i $size)B" >> $html
+          echo "  </p>" >> $html
         else
-          echo "    <details class=\"dropdown details-reset details-overlay d-inline-block m-0\">" >> $html
-          echo "      <summary class=\"color-fg-muted d-inline\" aria-haspopup=\"true\">" >> $html
-          echo "        $(LANG=C numfmt --to=iec-i $size)B <div class=\"dropdown-caret\"></div>" >> $html
-          echo "      </summary>" >> $html
-          echo "      <div class=\"dropdown-menu dropdown-menu-sw px-2 text-small text-mono\" style=\"width:max-content\">" >> $html
-          echo "        SHA256: $sha256<br>SHA1: $sha1<br>MD5: $md5" >> $html
-          echo "      </div>" >> $html
-          echo "    </details>" >> $html
+          echo "  <details class=\"m-0\">" >> $html
+          echo "    <summary class=\"list-style-none\">" >> $html
+          echo "      <a href=\"$S3_BASE_URL/$key\">${key##*/}</a>" >> $html
+          echo "      $(LANG=C numfmt --to=iec-i $size)B" >> $html
+          echo "      <div class=\"dropdown-caret\"></div>" >> $html
+          echo "    </summary>" >> $html
+          echo "    <pre class=\"m-0\">SHA256: $sha256<br>SHA1: $sha1<br>MD5: $md5</pre>" >> $html
+          echo "  </details>" >> $html
         fi
-        echo "  </div>" >> $html
       done
     done
   done
