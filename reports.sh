@@ -55,8 +55,8 @@ declare -A TYPE_TITLES=(
   [archive]="Archive"
   [closuremaps_sdkjs_opensource]="SDKJS Closure Maps Opensource"
   [closuremaps_sdkjs_commercial]="SDKJS Closure Maps Commercial"
-  [closuremaps_webapps_opensource]="WEB-APPS Closure Maps Opensource"
-  [closuremaps_webapps_commercial]="WEB-APPS Closure Maps Commercial"
+  [closuremaps_webapps_opensource]="WEB-APPS Closure Maps"
+  # [closuremaps_webapps_commercial]="WEB-APPS Closure Maps Commercial"
   [generic]="Portable"
   [update]="Update"
   [inno]="Inno Setup"
@@ -64,13 +64,10 @@ declare -A TYPE_TITLES=(
   [x86_64]="x86_64"
   [v8]="x86_64 V8"
   [arm]="arm64"
-  [altlinux]="ALT Linux"
   [appimage]="AppImage"
-  [astra]="Astra Linux Special Edition"
   [debian]="Debian / Ubuntu"
   [flatpak]="Flatpak"
   [rhel]="RHEL / CentOS"
-  [rosa]="ROSA"
   [snap]="Snapcraft"
   [suse]="SUSE Linux / OpenSUSE"
 )
@@ -101,43 +98,52 @@ json_add() {
     && mv -f $data_j.tmp $data_j
 }
 
-for product in core desktop builder server mobile; do
-  if [[ $product == core ]] && grep -q -E "^((windows|mac|linux)/core|closure-maps)/" $keys_t; then
-    (grep "^windows/core/" $keys_t || :) | while read key; do
-      json_add $product win archive $key
-    done
-    (grep "^mac/core/" $keys_t || :) | while read key; do
-      json_add $product mac archive $key
-    done
-    (grep "^linux/core/" $keys_t || :) | while read key; do
-      json_add $product linux archive $key
-    done
-    (grep "^closure-maps/sdkjs/opensource/" $keys_t || :) | while read key; do
-      json_add $product linux closuremaps_sdkjs_opensource $key
-    done
-    (grep "^closure-maps/sdkjs/commercial/" $keys_t || :) | while read key; do
-      json_add $product linux closuremaps_sdkjs_commercial $key
-    done
-    (grep "^closure-maps/web-apps/opensource/" $keys_t || :) | while read key; do
-      json_add $product linux closuremaps_webapps_opensource $key
-    done
-    (grep "^closure-maps/web-apps/commercial/" $keys_t || :) | while read key; do
-      json_add $product linux closuremaps_webapps_commercial $key
-    done
-  elif [[ $product == mobile ]]; then
-    (grep "^$product/android/" $keys_t || :) | while read key; do
-      json_add $product android archive $key
-    done
-  else
-    for platform in win mac linux; do
-      for type in archive generic update inno advinst x86_64 v8 arm \
-                  altlinux appimage astra debian flatpak rhel rosa snap suse; do
-        (grep "^$product/$platform/$type/" $keys_t || :) | while read key; do
-          json_add $product $platform $type $key
-        done
+(grep "^archive/.*/core-win" $keys_t || :) | while read key; do
+  json_add core win archive $key
+done
+(grep "^archive/.*/core-mac" $keys_t || :) | while read key; do
+  json_add core mac archive $key
+done
+(grep "^archive/.*/core-linux" $keys_t || :) | while read key; do
+  json_add core linux archive $key
+done
+
+(grep "^archive/.*/builder-win" $keys_t || :) | while read key; do
+  json_add builder win archive $key
+done
+(grep "^archive/.*/builder-mac" $keys_t || :) | while read key; do
+  json_add builder mac archive $key
+done
+(grep "^archive/.*/builder-linux" $keys_t || :) | while read key; do
+  json_add builder linux archive $key
+done
+
+(grep "^closure-maps/sdkjs/opensource/" $keys_t || :) | while read key; do
+  json_add core linux closuremaps_sdkjs_opensource $key
+done
+(grep "^closure-maps/sdkjs/commercial/" $keys_t || :) | while read key; do
+  json_add core linux closuremaps_sdkjs_commercial $key
+done
+(grep "^closure-maps/web-apps/opensource/" $keys_t || :) | while read key; do
+  json_add core linux closuremaps_webapps_opensource $key
+done
+# (grep "^closure-maps/web-apps/commercial/" $keys_t || :) | while read key; do
+#   json_add core linux closuremaps_webapps_commercial $key
+# done
+
+(grep "^mobile/android/" $keys_t || :) | while read key; do
+  json_add mobile android archive $key
+done
+
+for product in desktop builder server; do
+  for platform in win mac linux; do
+    for type in archive generic update inno advinst x86_64 v8 arm \
+                appimage debian flatpak rhel snap suse; do
+      (grep "^$product/$platform/$type/" $keys_t || :) | while read key; do
+        json_add $product $platform $type $key
       done
     done
-  fi
+  done
 done
 
 
