@@ -157,7 +157,7 @@ jq -r "keys_unsorted[]" $data_j | while read product; do
 <html lang="en-US">
 <head>
   <title>$COMPANY_NAME ${PRODUCT_TITLES[$product]} - $BRANCH_NAME - $BUILD_NUMBER</title>
-  <link rel="shortcut icon" sizes="16x16" href="$S3_BASE_URL/favicon.png" type="image/png">
+  <link rel="shortcut icon" href="$S3_BASE_URL/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="https://unpkg.com/@primer/css@21.0.7/dist/primer.css">
 </head>
 <body>
