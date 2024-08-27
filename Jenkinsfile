@@ -192,7 +192,6 @@ pipeline {
     stage('Prepare') {
       steps {
         script {
-          if (params.sign) env.ENABLE_SIGNING=1
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
           deployData = []
           stageStats = [:]
@@ -577,10 +576,19 @@ void buildPackages(String platform, String license = 'opensource') {
         ./make_package.py ${args.join(' ')}
       """
     else
-      bat label: label, script: """
-        cd build_tools
-        python make_package.py ${args.join(' ')}
-      """
+      if (params.sign) env.ENABLE_SIGNING=1
+      withCredentials([
+        certificate(
+          credentialsId: 'windows-codesign-cert',
+          keystoreVariable: 'WINDOWS_CERTIFICATE',
+          passwordVariable: 'WINDOWS_CERTIFICATE_PASSWORD'
+        )
+      ]) {
+        bat label: label, script: """
+          cd build_tools
+          python make_package.py ${args.join(' ')}
+        """
+      }
   } catch (err) {
     throw err
   } finally {
