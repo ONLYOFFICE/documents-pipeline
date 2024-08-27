@@ -70,7 +70,7 @@ pipeline {
     )
     booleanParam (
       name:         'clean',
-      description:  'Rebuild binaries from the \'core\' repo',
+      description:  'Rebuild binaries from the "core" repo',
       defaultValue: defaults.clean
     )
     // Windows
