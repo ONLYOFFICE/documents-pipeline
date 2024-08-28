@@ -570,12 +570,12 @@ void buildPackages(String platform, String license = 'opensource') {
   String label = "packages ${license}".toUpperCase()
 
   try {
-    if (!platform.startsWith('windows'))
+    if (!platform.startsWith('windows')) {
       sh label: label, script: """
         cd build_tools
         ./make_package.py ${args.join(' ')}
       """
-    else
+    } else {
       if (params.sign) env.ENABLE_SIGNING=1
       withCredentials([
         certificate(
@@ -589,6 +589,7 @@ void buildPackages(String platform, String license = 'opensource') {
           python make_package.py ${args.join(' ')}
         """
       }
+    }
   } catch (err) {
     throw err
   } finally {
