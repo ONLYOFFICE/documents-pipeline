@@ -282,7 +282,7 @@ def checkoutRepo(String repo, String branch = 'master') {
         git clean -df
       else
         rm -rfv ./*
-        git clone -b ${branch} git@github.com:${repo}.git .
+        git clone -b ${branch} git@git.onlyoffice.com:${repo}.git .
       fi
       git branch -vv
     """
@@ -292,7 +292,7 @@ def checkoutRepo(String repo, String branch = 'master') {
 def checkRemoteBranch(String repo, String branch = 'master') {
   return sh (
     label: "${repo}: check branch ${branch}",
-    script: "git ls-remote --exit-code git@github.com:${repo}.git ${branch}",
+    script: "git ls-remote --exit-code git@git.onlyoffice.com:${repo}.git ${branch}",
     returnStatus: true
   ) == 0
 }
@@ -435,7 +435,7 @@ def sendNotification() {
       case 'delete':  text += '♻️'; break
       default:        text += '➖'
     }
-    text += " [${repo}](https://github.com/${repo})"
+    text += " [${repo}](https://git.onlyoffice.com/${repo})"
   }
 
   if (params.action_type in ['start_hotfix', 'start_release',
