@@ -25,7 +25,7 @@ if (env.BRANCH_NAME ==~ /^(release)\/.+/) {
 pipeline {
   agent { label 'branch_manager' }
   environment {
-    GITHUB_TOKEN = credentials('github-token')
+    // GITHUB_TOKEN = credentials('github-token')
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
   }
   options {
@@ -330,9 +330,9 @@ def mergeBranch(String repo, String branch, ArrayList baseBranches) {
           echo "No new commits."
           continue
         fi
-        gh pr create --repo ${repo} --base \$base --head ${branch} \
-          --title "Merge branch ${branch} into \$base" --fill || \
-        true
+        # gh pr create --repo ${repo} --base \$base --head ${branch} \
+        #   --title "Merge branch ${branch} into \$base" --fill || \
+        # true
         if ! git merge ${branch} --no-edit --no-ff \
           -m "Merge branch ${branch} into \$base"; then
           git merge --abort
@@ -369,40 +369,45 @@ def printBranches(String repo) {
   return sh (
     label: "${repo}: branches list",
     script: """
-      gh api -X GET repos/${repo}/branches?per_page=100 | \
-      jq -r '.[] | [.name, .protected] | @tsv'
+      git ls-remote -h git@git.onlyoffice.com:${repo}.git
     """,
+    // script: """
+    //   gh api -X GET repos/${repo}/branches?per_page=100 | \
+    //   jq -r '.[] | [.name, .protected] | @tsv'
+    // """,
     returnStatus: true
   ) == 0
 }
 
 def protectBranch(String repo, String branch) {
-  return sh (
-    label: "${repo}: protect ${branch}",
-    script: """
-      echo '{
-        "required_status_checks": null,
-        "enforce_admins": true,
-        "required_pull_request_reviews": null,
-        "restrictions": {
-          "users": [],
-          "teams": [
-            "dep-application-development-main-leads"
-          ]
-        }
-      }' | \
-      gh api -X PUT repos/${repo}/branches/${branch}/protection --input -
-    """,
-    returnStatus: true
-  ) == 0
+  return true
+  // return sh (
+  //   label: "${repo}: protect ${branch}",
+  //   script: """
+  //     echo '{
+  //       "required_status_checks": null,
+  //       "enforce_admins": true,
+  //       "required_pull_request_reviews": null,
+  //       "restrictions": {
+  //         "users": [],
+  //         "teams": [
+  //           "dep-application-development-main-leads"
+  //         ]
+  //       }
+  //     }' | \
+  //     gh api -X PUT repos/${repo}/branches/${branch}/protection --input -
+  //   """,
+  //   returnStatus: true
+  // ) == 0
 }
 
 def unprotectBranch(String repo, String branch) {
-  return sh (
-    label: "${repo}: unprotect ${branch}",
-    script: "gh api -X DELETE repos/${repo}/branches/${branch}/protection",
-    returnStatus: true
-  ) == 0
+  return true
+  // return sh (
+  //   label: "${repo}: unprotect ${branch}",
+  //   script: "gh api -X DELETE repos/${repo}/branches/${branch}/protection",
+  //   returnStatus: true
+  // ) == 0
 }
 
 def sendNotification() {
