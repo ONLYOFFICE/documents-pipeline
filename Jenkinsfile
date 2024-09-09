@@ -857,6 +857,10 @@ void checkoutRepos(ArrayList repos) {
           branches: [
             [name: 'refs/heads/' + it.branch]
           ],
+          browser: [
+            $class: 'GiteaBrowser',
+            repoUrl: "https://git.onlyoffice.com/${it.owner}/${it.repo}"
+          ],
           extensions: [
             authorInChangelog(),
             cloneOption(
