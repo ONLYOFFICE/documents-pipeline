@@ -2,7 +2,7 @@ defaults = [
   action_type: ['print_branches'],
   action_help: '',
   version: '0.0.0',
-  protect_branch: true
+  protect_branch: false
 ]
 
 if (env.BRANCH_NAME == 'master') {
@@ -25,7 +25,7 @@ if (env.BRANCH_NAME ==~ /^(release)\/.+/) {
 pipeline {
   agent { label 'branch_manager' }
   environment {
-    // GITHUB_TOKEN = credentials('github-token')
+    GITHUB_TOKEN = credentials('github-token')
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
   }
   options {
@@ -402,12 +402,11 @@ def protectBranch(String repo, String branch) {
 }
 
 def unprotectBranch(String repo, String branch) {
-  return true
-  // return sh (
-  //   label: "${repo}: unprotect ${branch}",
-  //   script: "gh api -X DELETE repos/${repo}/branches/${branch}/protection",
-  //   returnStatus: true
-  // ) == 0
+  return sh (
+    label: "${repo}: unprotect ${branch}",
+    script: "gh api -X DELETE repos/${repo}/branches/${branch}/protection",
+    returnStatus: true
+  ) == 0
 }
 
 def sendNotification() {

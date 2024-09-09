@@ -70,7 +70,7 @@ pipeline {
     )
     booleanParam (
       name:         'clean',
-      description:  'Rebuild binaries from the \'core\' repo',
+      description:  'Rebuild binaries from the "core" repo',
       defaultValue: defaults.clean
     )
     // Windows
@@ -192,7 +192,6 @@ pipeline {
     stage('Prepare') {
       steps {
         script {
-          if (params.sign) env.ENABLE_SIGNING=1
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
           deployData = []
           stageStats = [:]
@@ -382,6 +381,7 @@ pipeline {
             // TAR_RELEASE_SUFFIX = '-gcc5'
             // DEB_RELEASE_SUFFIX = '~stretch'
             RPM_RELEASE_SUFFIX = '.el7'
+            RPM_SUSE_RELEASE_SUFFIX = '.suse12'
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
           }
           steps {
@@ -404,6 +404,7 @@ pipeline {
             // TAR_RELEASE_SUFFIX = '-gcc5'
             // DEB_RELEASE_SUFFIX = '~stretch'
             RPM_RELEASE_SUFFIX = '.el7'
+            RPM_SUSE_RELEASE_SUFFIX = '.suse12'
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
           }
           steps {
@@ -569,16 +570,26 @@ void buildPackages(String platform, String license = 'opensource') {
   String label = "packages ${license}".toUpperCase()
 
   try {
-    if (!platform.startsWith('windows'))
+    if (!platform.startsWith('windows')) {
       sh label: label, script: """
         cd build_tools
         ./make_package.py ${args.join(' ')}
       """
-    else
-      bat label: label, script: """
-        cd build_tools
-        python make_package.py ${args.join(' ')}
-      """
+    } else {
+      if (params.sign) env.ENABLE_SIGNING=1
+      withCredentials([
+        certificate(
+          credentialsId: 'windows-codesign-cert',
+          keystoreVariable: 'WINDOWS_CERTIFICATE',
+          passwordVariable: 'WINDOWS_CERTIFICATE_PASSWORD'
+        )
+      ]) {
+        bat label: label, script: """
+          cd build_tools
+          python make_package.py ${args.join(' ')}
+        """
+      }
+    }
   } catch (err) {
     throw err
   } finally {
