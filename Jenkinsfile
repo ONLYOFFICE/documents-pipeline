@@ -827,7 +827,7 @@ void resolveRepos(String platform, String branding = '') {
         it.branch = resolveScm(
           source: [
             $class: 'GitSCMSource',
-            remote: "git@github.com:${it.owner}/${it.repo}.git",
+            remote: "git@git.onlyoffice.com:${it.owner}/${it.repo}.git",
             traits: [gitBranchDiscovery()]
           ],
           targets: [env.BRANCH_NAME, 'master']
@@ -851,8 +851,12 @@ void checkoutRepos(ArrayList repos) {
         if (retryCount > 0) sleep(30)
         retryCount++
         checkout scmGit(
-          userRemoteConfigs: [[url: "git@github.com:${it.owner}/${it.repo}.git"]],
-          branches: [[name: 'refs/heads/' + it.branch]],
+          userRemoteConfigs: [
+            [url: "git@git.onlyoffice.com:${it.owner}/${it.repo}.git"]
+          ],
+          branches: [
+            [name: 'refs/heads/' + it.branch]
+          ],
           extensions: [
             authorInChangelog(),
             cloneOption(
