@@ -5,11 +5,25 @@ cd "${0%/*}"
 
 setup_colors() {
   if [[ -z "${NO_COLOR-}" ]]; then
-    NOFORMAT='\033[0m' BOLD='\033[1m'
-    RED='\033[0;31m' GREEN='\033[0;32m' ORANGE='\033[0;33m' BLUE='\033[0;34m'
-    PURPLE='\033[0;35m' CYAN='\033[0;36m' YELLOW='\033[1;33m'
+    NOFORMAT='\033[0m'
+    BOLD='\033[1m'
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    ORANGE='\033[0;33m'
+    BLUE='\033[0;34m'
+    PURPLE='\033[0;35m'
+    CYAN='\033[0;36m'
+    YELLOW='\033[1;33m'
   else
-    NOFORMAT='' BOLD='' RED='' GREEN='' ORANGE='' BLUE='' PURPLE='' CYAN='' YELLOW=''
+    NOFORMAT=''
+    BOLD=''
+    RED=''
+    GREEN=''
+    ORANGE=''
+    BLUE=''
+    PURPLE=''
+    CYAN=''
+    YELLOW=''
   fi
 }
 
@@ -41,8 +55,8 @@ declare -A TYPE_TITLES=(
   [archive]="Archive"
   [closuremaps_sdkjs_opensource]="SDKJS Closure Maps Opensource"
   [closuremaps_sdkjs_commercial]="SDKJS Closure Maps Commercial"
-  [closuremaps_webapps_opensource]="WEB-APPS Closure Maps Opensource"
-  [closuremaps_webapps_commercial]="WEB-APPS Closure Maps Commercial"
+  [closuremaps_webapps_opensource]="WEB-APPS Closure Maps"
+  # [closuremaps_webapps_commercial]="WEB-APPS Closure Maps Commercial"
   [generic]="Portable"
   [update]="Update"
   [inno]="Inno Setup"
@@ -50,13 +64,10 @@ declare -A TYPE_TITLES=(
   [x86_64]="x86_64"
   [v8]="x86_64 V8"
   [arm]="arm64"
-  [altlinux]="ALT Linux"
   [appimage]="AppImage"
-  [astra]="Astra Linux Special Edition"
   [debian]="Debian / Ubuntu"
   [flatpak]="Flatpak"
   [rhel]="RHEL / CentOS"
-  [rosa]="ROSA"
   [snap]="Snapcraft"
   [suse]="SUSE Linux / OpenSUSE"
 )
@@ -66,9 +77,6 @@ keys_t=${1:-keys.txt}
 data_j=reports/data.json
 desc_h=build.html
 
-rm -rfv reports $desc_h
-mkdir -p reports
-
 msg "${BOLD}${GREEN}PREPARE${NOFORMAT}"
 
 echo COMPANY_NAME=$COMPANY_NAME
@@ -77,6 +85,10 @@ echo BUILD_VERSION=$BUILD_VERSION
 echo BUILD_NUMBER=$BUILD_NUMBER
 echo S3_BASE_URL=$S3_BASE_URL
 echo S3_BUCKET=$S3_BUCKET
+
+rm -rfv reports $desc_h
+mkdir -p reports
+
 [[ ! -f $keys_t ]] && exit 1
 jq -n {} > $data_j
 
@@ -86,43 +98,52 @@ json_add() {
     && mv -f $data_j.tmp $data_j
 }
 
-for product in core desktop builder server mobile; do
-  if [[ $product == core ]] && grep -q -E "^((windows|mac|linux)/core|closure-maps)/" $keys_t; then
-    (grep "^windows/core/" $keys_t || :) | while read key; do
-      json_add $product win archive $key
-    done
-    (grep "^mac/core/" $keys_t || :) | while read key; do
-      json_add $product mac archive $key
-    done
-    (grep "^linux/core/" $keys_t || :) | while read key; do
-      json_add $product linux archive $key
-    done
-    (grep "^closure-maps/sdkjs/opensource/" $keys_t || :) | while read key; do
-      json_add $product linux closuremaps_sdkjs_opensource $key
-    done
-    (grep "^closure-maps/sdkjs/commercial/" $keys_t || :) | while read key; do
-      json_add $product linux closuremaps_sdkjs_commercial $key
-    done
-    (grep "^closure-maps/web-apps/opensource/" $keys_t || :) | while read key; do
-      json_add $product linux closuremaps_webapps_opensource $key
-    done
-    (grep "^closure-maps/web-apps/commercial/" $keys_t || :) | while read key; do
-      json_add $product linux closuremaps_webapps_commercial $key
-    done
-  elif [[ $product == mobile ]]; then
-    (grep "^$product/android/" $keys_t || :) | while read key; do
-      json_add $product android archive $key
-    done
-  else
-    for platform in win mac linux; do
-      for type in archive generic update inno advinst x86_64 v8 arm \
-                  altlinux appimage astra debian flatpak rhel rosa snap suse; do
-        (grep "^$product/$platform/$type/" $keys_t || :) | while read key; do
-          json_add $product $platform $type $key
-        done
+(grep "^archive/.*/core-win" $keys_t || :) | while read key; do
+  json_add core win archive $key
+done
+(grep "^archive/.*/core-mac" $keys_t || :) | while read key; do
+  json_add core mac archive $key
+done
+(grep "^archive/.*/core-linux" $keys_t || :) | while read key; do
+  json_add core linux archive $key
+done
+
+(grep "^archive/.*/builder-win" $keys_t || :) | while read key; do
+  json_add builder win archive $key
+done
+(grep "^archive/.*/builder-mac" $keys_t || :) | while read key; do
+  json_add builder mac archive $key
+done
+(grep "^archive/.*/builder-linux" $keys_t || :) | while read key; do
+  json_add builder linux archive $key
+done
+
+(grep "^closure-maps/sdkjs/opensource/" $keys_t || :) | while read key; do
+  json_add core linux closuremaps_sdkjs_opensource $key
+done
+(grep "^closure-maps/sdkjs/commercial/" $keys_t || :) | while read key; do
+  json_add core linux closuremaps_sdkjs_commercial $key
+done
+(grep "^closure-maps/web-apps/opensource/" $keys_t || :) | while read key; do
+  json_add core linux closuremaps_webapps_opensource $key
+done
+# (grep "^closure-maps/web-apps/commercial/" $keys_t || :) | while read key; do
+#   json_add core linux closuremaps_webapps_commercial $key
+# done
+
+(grep "^mobile/android/" $keys_t || :) | while read key; do
+  json_add mobile android archive $key
+done
+
+for product in desktop builder server; do
+  for platform in win mac linux; do
+    for type in archive generic update inno advinst x86_64 v8 arm \
+                appimage debian flatpak rhel snap suse; do
+      (grep "^$product/$platform/$type/" $keys_t || :) | while read key; do
+        json_add $product $platform $type $key
       done
     done
-  fi
+  done
 done
 
 
@@ -136,7 +157,7 @@ jq -r "keys_unsorted[]" $data_j | while read product; do
 <html lang="en-US">
 <head>
   <title>$COMPANY_NAME ${PRODUCT_TITLES[$product]} - $BRANCH_NAME - $BUILD_NUMBER</title>
-  <link rel="shortcut icon" sizes="16x16" href="$S3_BASE_URL/favicon.png" type="image/png">
+  <link rel="shortcut icon" href="$S3_BASE_URL/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="https://unpkg.com/@primer/css@21.0.7/dist/primer.css">
 </head>
 <body>
@@ -159,19 +180,21 @@ EOF
         sha1=$(<<<$object jq -er '.Metadata.sha1 // empty' || :)
         md5=$(<<<$object jq -er '.Metadata.md5 // empty' || :)
 
-        echo "  <div class=\"d-inline-flex width-full\" style=\"gap:8px\">" >> $html
-        echo "    <span class=\"flex-1\"><a href=\"$S3_BASE_URL/$key\">${key##*/}</a></span>" >> $html
-        echo "    <span class=\"color-fg-muted\">$(LANG=C numfmt --to=iec-i $size)B</span>" >> $html
-        if [[ -n $sha256 ]]; then
-          echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$sha256\">SHA256</span>" >> $html
+        if [[ -z $sha256 && -z $sha1 && -z $md5 ]]; then
+          echo "  <p class=\"m-0\">" >> $html
+          echo "    <a href=\"$S3_BASE_URL/$key\">${key##*/}</a>" >> $html
+          echo "    $(LANG=C numfmt --to=iec-i $size)B" >> $html
+          echo "  </p>" >> $html
+        else
+          echo "  <details class=\"m-0\">" >> $html
+          echo "    <summary class=\"list-style-none\">" >> $html
+          echo "      <a href=\"$S3_BASE_URL/$key\">${key##*/}</a>" >> $html
+          echo "      $(LANG=C numfmt --to=iec-i $size)B" >> $html
+          echo "      <div class=\"dropdown-caret\"></div>" >> $html
+          echo "    </summary>" >> $html
+          echo "    <pre class=\"m-0\">SHA256: $sha256<br>SHA1: $sha1<br>MD5: $md5</pre>" >> $html
+          echo "  </details>" >> $html
         fi
-        if [[ -n $sha1 ]]; then
-          echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$sha1\">SHA1</span>" >> $html
-        fi
-        if [[ -n $md5 ]]; then
-          echo "    <span class=\"tooltipped tooltipped-nw tooltipped-no-delay\" aria-label=\"$md5\">MD5</span>" >> $html
-        fi
-        echo "  </div>" >> $html
       done
     done
   done
@@ -206,9 +229,7 @@ if ls reports/*.html 2> /dev/null; then
 
   for product in core desktop builder server mobile; do
     [[ -f reports/$product.html ]] || continue
-    if [[ -f $desc_h ]]; then
-      echo -n ' &centerdot; ' >> $desc_h
-    fi
+    [[ -f $desc_h ]] && echo -n ' &centerdot; ' >> $desc_h
     echo -n "<a href=\"$S3_BASE_URL/reports/$BRANCH_NAME/$BUILD_NUMBER/$product.html\" target=\"_blank\">${product^}</a>" >> $desc_h
   done
 fi
