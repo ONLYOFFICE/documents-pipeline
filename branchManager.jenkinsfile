@@ -1,74 +1,70 @@
 defaults = [
-  action_type: ['print_branches'],
-  action_help: '',
-  version: '0.0.0',
-  protect_branch: false
+  actions: ['print_branches'],
+  version: '0.0.0'
 ]
 
-if (env.BRANCH_NAME == 'master') {
-  defaults.action_type.add('start_hotfix')
+if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('hotfix/v')) {
   defaults.branch_type = 'hotfix'
 }
-if (env.BRANCH_NAME == 'develop') {
-  defaults.action_type.add('start_release')
+if (env.BRANCH_NAME == 'develop' || env.BRANCH_NAME.startsWith('release/v')) {
   defaults.branch_type = 'release'
 }
-if (env.BRANCH_NAME ==~ /^(hotfix)\/.+/) {
-  defaults.action_type.addAll(['merge_hotfix', 'finish_hotfix', 'rename_hotfix', 'delete_hotfix', 'unprotect_hotfix'])
-  defaults.branch_type = 'hotfix'
+
+if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'develop') {
+  defaults.actions.add('start')
 }
-if (env.BRANCH_NAME ==~ /^(release)\/.+/) {
-  defaults.action_type.addAll(['merge_release', 'finish_release', 'rename_release', 'delete_release', 'unprotect_release'])
-  defaults.branch_type = 'release'
+if (env.BRANCH_NAME ==~ /^(hotfix|release)\/v.+/) {
+  defaults.actions.add('merge')
+  defaults.actions.add('finish')
+  defaults.actions.add('rename')
+  defaults.actions.add('delete')
+  defaults.actions.add('protect')
+  defaults.actions.add('unprotect')
 }
 
 pipeline {
-  agent { label 'branch_manager' }
+  agent {
+    label 'branch_manager'
+  }
   environment {
-    GITHUB_TOKEN = credentials('github-token')
+    GIT_SERVER = 'git.onlyoffice.com'
+    GIT_OWNER = 'ONLYOFFICE'
+    GITEA_TOKEN = credentials('gitea-token')
     TELEGRAM_TOKEN = credentials('telegram-bot-token')
   }
   options {
     disableConcurrentBuilds()
   }
   parameters {
-    booleanParam (
-      name:         'wipe',
-      description:  'Wipe out current workspace',
-      defaultValue: false
-    )
-    choice (
-      name:         'action_type',
-      description:  "Action type",
-      choices:      defaults.action_type
-    )
-    string (
-      name:         'version',
-      description:  'Release version (for start only)',
-      defaultValue: defaults.version
-    )
-    booleanParam (
-      name:         'protect_branch',
-      description:  'Protect branch (for start only)',
-      defaultValue: defaults.protect_branch
-    )
-    string (
-      name:         'extra_branch',
-      description:  'Extra branch (for finish only)',
-      defaultValue: ''
-    )
-    booleanParam (
-      name:         'notify',
-      description:  'Telegram notification',
-      defaultValue: true
-    )
+    booleanParam \
+      name: 'wipe',
+      description: 'Wipe out current workspace'
+    choice \
+      name: 'action',
+      choices: defaults.actions,
+      description: "Action type"
+    string \
+      name: 'version',
+      defaultValue: defaults.version,
+      description: 'Release version (for start only) [' + defaults.branch_type + ']'
+    booleanParam \
+      name: 'protect_branch',
+      defaultValue: true,
+      description: 'Protect branch (for start & rename only)'
+    string \
+      name: 'extra_branch',
+      description: 'Extra branch (for finish only)'
+    booleanParam \
+      name: 'notify',
+      defaultValue: true,
+      description: 'Telegram notification (for only start, merge & finish)'
   }
   stages {
     stage('Branch Manager') {
       steps {
         script {
-          currentBuild.displayName += ' - ' + params.action_type
-          if (params.action_type in ['start_hotfix', 'start_release'])
+          currentBuild.displayName += ' - ' + params.action
+          if (params.action == 'start')
             currentBuild.displayName += ' ' + params.version
 
           if (params.wipe) {
@@ -85,14 +81,14 @@ pipeline {
           Boolean pAction
           Boolean sAction
 
-          if (params.action_type == 'print_branches') {
+          if (params.action == 'print_branches') {
 
             stats.repos.each { repo, status ->
               pAction = printBranches(repo)
               status.primary = (pAction) ? 'success' : 'failure'
             }
 
-          } else if (params.action_type in ['start_hotfix', 'start_release']) {
+          } else if (params.action == 'start') {
 
             branch = defaults.branch_type + '/v' + params.version
             baseBranches = [env.BRANCH_NAME]
@@ -115,11 +111,11 @@ pipeline {
 
               if (params.protect_branch) {
                 sAction = protectBranch(repo, branch)
-                status.secondary = (sAction) ? 'lock' : ''
+                status.secondary = (sAction) ? 'lock' : 'none'
               }
             }
 
-          } else if (params.action_type in ['merge_hotfix', 'merge_release']) {
+          } else if (params.action == 'merge') {
 
             baseBranches = ['master']
 
@@ -136,7 +132,7 @@ pipeline {
               }
             }
 
-          } else if (params.action_type in ['finish_hotfix', 'finish_release']) {
+          } else if (params.action == 'finish') {
 
             baseBranches = ['master', 'develop']
             if (!params.extra_branch.isEmpty())
@@ -152,15 +148,15 @@ pipeline {
                   unprotectBranch(repo, branch)
                   pAction = mergeBranch(repo, branch, baseBranches)
                   status.primary = (pAction) ? 'success' : 'failure'
-                  if (pAction && !repo.contains('documents-pipeline')) {
+                  if (pAction) {
                     sAction = deleteBranch(repo, branch)
-                    status.secondary = (sAction) ? 'delete' : ''
+                    status.secondary = (sAction) ? 'delete' : 'none'
                   }
                 }
               }
             }
 
-          } else if (params.action_type in ['rename_hotfix', 'rename_release']) {
+          } else if (params.action == 'rename') {
 
             branch = defaults.branch_type + '/v' + params.version
             baseBranches = [env.BRANCH_NAME]
@@ -172,21 +168,21 @@ pipeline {
               } else {
                 dir ('repos/' + repo) {
                   checkoutRepo(repo, env.BRANCH_NAME)
-                  pAction = createBranch(repo, branch, env.BRANCH_NAME)          
+                  pAction = createBranch(repo, branch, env.BRANCH_NAME)
                   status.primary = (pAction) ? 'success' : 'failure'
                   if (pAction) {
                     unprotectBranch(repo, env.BRANCH_NAME)
                     deleteBranch(repo, env.BRANCH_NAME)
                     if (params.protect_branch) {
-                      sAction = protectBranch(repo, branch)
-                      status.secondary = (sAction) ? 'lock' : ''
+                      protectBranch(repo, branch)
+                      status.secondary = (sAction) ? 'lock' : 'none'
                     }
                   }
                 }
               }
             }
 
-          } else if (params.action_type in ['delete_hotfix', 'delete_release']) {
+          } else if (params.action == 'delete') {
 
             stats.repos.each { repo, status ->
               if (!checkRemoteBranch(repo, branch)) {
@@ -196,15 +192,20 @@ pipeline {
                 dir ('repos/' + repo) {
                   checkoutRepo(repo, branch)
                   unprotectBranch(repo, branch)
-                  if (!repo.contains('documents-pipeline')) {
-                    pAction = deleteBranch(repo, branch)
-                    status.primary = (pAction) ? 'success' : 'failure'
-                  }
+                  pAction = deleteBranch(repo, branch)
+                  status.primary = (pAction) ? 'success' : 'failure'
                 }
               }
             }
-            
-          } else if (params.action_type in ['unprotect_hotfix', 'unprotect_release']) {
+
+          } else if (params.action == 'protect') {
+
+            stats.repos.each { repo, status ->
+              pAction = protectBranch(repo, branch)
+              status.primary = (pAction) ? 'success' : 'failure'
+            }
+
+          } else if (params.action == 'unprotect') {
 
             stats.repos.each { repo, status ->
               pAction = unprotectBranch(repo, branch)
@@ -245,29 +246,24 @@ pipeline {
 
 def getRepos() {
   return [
-    'ONLYOFFICE/build_tools',
-    'ONLYOFFICE/core',
-    // 'ONLYOFFICE/core-fonts',
-    'ONLYOFFICE/desktop-apps',
-    'ONLYOFFICE/desktop-sdk',
-    // 'ONLYOFFICE/dictionaries',
-    'ONLYOFFICE/document-builder-package',
-    // 'ONLYOFFICE/document-server-integration',
-    'ONLYOFFICE/document-server-package',
-    // 'ONLYOFFICE/document-templates',
-    'ONLYOFFICE/documents-pipeline',
-    'ONLYOFFICE/onlyoffice',
-    'ONLYOFFICE/sdkjs',
-    // 'ONLYOFFICE/sdkjs-disable-features',
-    'ONLYOFFICE/sdkjs-forms',
-    'ONLYOFFICE/sdkjs-ooxml',
-    'ONLYOFFICE/server',
-    'ONLYOFFICE/server-license',
-    'ONLYOFFICE/server-lockstorage',
-    'ONLYOFFICE/web-apps',
-    'ONLYOFFICE/web-apps-mobile',
-    'ONLYOFFICE/Docker-DocumentServer',
-    'ONLYOFFICE/DocumentBuilder'
+    'build_tools',
+    'core',
+    'desktop-apps',
+    'desktop-sdk',
+    'document-builder-package',
+    'document-server-package',
+    'documents-pipeline',
+    'onlyoffice',
+    'sdkjs',
+    'sdkjs-forms',
+    'sdkjs-ooxml',
+    'server',
+    'server-license',
+    'server-lockstorage',
+    'web-apps',
+    'web-apps-mobile',
+    'Docker-DocumentServer',
+    'DocumentBuilder'
   ]
 }
 
@@ -282,7 +278,7 @@ def checkoutRepo(String repo, String branch = 'master') {
         git clean -df
       else
         rm -rfv ./*
-        git clone -b ${branch} git@git.onlyoffice.com:${repo}.git .
+        git clone -b ${branch} git@\$GIT_SERVER:\$GIT_OWNER/${repo}.git .
       fi
       git branch -vv
     """
@@ -292,7 +288,7 @@ def checkoutRepo(String repo, String branch = 'master') {
 def checkRemoteBranch(String repo, String branch = 'master') {
   return sh (
     label: "${repo}: check branch ${branch}",
-    script: "git ls-remote --exit-code git@git.onlyoffice.com:${repo}.git ${branch}",
+    script: "git ls-remote --exit-code git@\$GIT_SERVER:\$GIT_OWNER/${repo}.git ${branch}",
     returnStatus: true
   ) == 0
 }
@@ -330,7 +326,7 @@ def mergeBranch(String repo, String branch, ArrayList baseBranches) {
           echo "No new commits."
           continue
         fi
-        # gh pr create --repo ${repo} --base \$base --head ${branch} \
+        # gh pr create --repo \$GIT_OWNER/${repo} --base \$base --head ${branch} \
         #   --title "Merge branch ${branch} into \$base" --fill || \
         # true
         if ! git merge ${branch} --no-edit --no-ff \
@@ -353,6 +349,7 @@ def mergeBranch(String repo, String branch, ArrayList baseBranches) {
 }
 
 def deleteBranch(String repo, String branch) {
+  if (repo == "documents-pipeline") return false
   return sh (
     label: "${repo}: delete ${branch}",
     script: """
@@ -369,42 +366,69 @@ def printBranches(String repo) {
   return sh (
     label: "${repo}: branches list",
     script: """
-      git ls-remote -h git@git.onlyoffice.com:${repo}.git
+      HTTP_CODE=\$(curl -s -X 'GET' \
+        "https://\$GIT_SERVER/api/v1/repos/\$GIT_OWNER/${repo}/branches" \
+        -H "Authorization: token \$GITEA_TOKEN" \
+        -w '%{http_code}' \
+        -o output.json)
+      test \$HTTP_CODE -eq 200
+      jq -r '.[] | [.name, .protected] | @tsv' output.json
     """,
-    // script: """
-    //   gh api -X GET repos/${repo}/branches?per_page=100 | \
-    //   jq -r '.[] | [.name, .protected] | @tsv'
-    // """,
     returnStatus: true
   ) == 0
 }
 
 def protectBranch(String repo, String branch) {
-  return true
-  // return sh (
-  //   label: "${repo}: protect ${branch}",
-  //   script: """
-  //     echo '{
-  //       "required_status_checks": null,
-  //       "enforce_admins": true,
-  //       "required_pull_request_reviews": null,
-  //       "restrictions": {
-  //         "users": [],
-  //         "teams": [
-  //           "dep-application-development-main-leads"
-  //         ]
-  //       }
-  //     }' | \
-  //     gh api -X PUT repos/${repo}/branches/${branch}/protection --input -
-  //   """,
-  //   returnStatus: true
-  // ) == 0
+  if (repo == "documents-pipeline") {
+    return false
+  } else if (repo == "server-license") {
+    String team = "DEP-AD-Main-License"
+  } else {
+    String team = "DEP-AD-Main-Leads"
+  }
+  return sh (
+    label: "${repo}: protect ${branch}",
+    script: """
+      HTTP_CODE=\$(echo '{
+        "branch_name": "${branch}",
+        "enable_push": true,
+        "enable_push_whitelist": true,
+        "push_whitelist_teams": [
+          "${team}",
+          "Dep-Builder"
+        ],
+        "enable_merge_whitelist": true,
+        "merge_whitelist_teams": [
+          "${team}"
+        ]
+      }' | \
+      curl -s -X 'POST' \
+        "https://\$GIT_SERVER/api/v1/repos/\$GIT_OWNER/${repo}/branch_protections" \
+        -H "Authorization: token \$GITEA_TOKEN" \
+        -H 'Content-Type: application/json' \
+        -w '%{http_code}' \
+        -o output.json \
+        -d @-)
+      jq '.' output.json
+      test \$HTTP_CODE -eq 201
+    """,
+    returnStatus: true
+  ) == 0
 }
 
 def unprotectBranch(String repo, String branch) {
+  String branchUrl = URLEncoder.encode(branch)
   return sh (
     label: "${repo}: unprotect ${branch}",
-    script: "gh api -X DELETE repos/${repo}/branches/${branch}/protection",
+    script: """
+      HTTP_CODE=\$(curl -s -X 'DELETE' \
+        "https://\$GIT_SERVER/api/v1/repos/\$GIT_OWNER/${repo}/branch_protections/${branchUrl}" \
+        -H "Authorization: token \$GITEA_TOKEN" \
+        -w '%{http_code}' \
+        -o output.json)
+      jq '.' output.json
+      test \$HTTP_CODE -eq 204 || test \$HTTP_CODE -eq 404
+    """,
     returnStatus: true
   ) == 0
 }
@@ -412,14 +436,14 @@ def unprotectBranch(String repo, String branch) {
 def sendNotification() {
   String chatId = '-1001346473906'
   String text = ''
-  switch(params.action_type) {
-    case ['start_hotfix', 'start_release']:
+  switch(params.action) {
+    case 'start':
       text = "Branch `${stats.branch}` created from `${stats.baseBranches[0]}`"
       break
-    case ['merge_hotfix', 'merge_release']:
+    case 'merge':
       text = "Branch `${stats.branch}` merged into `${stats.baseBranches[0]}`"
       break
-    case ['finish_hotfix', 'finish_release']:
+    case 'finish':
       text = "Branch `${stats.branch}` merged into "
       text += stats.baseBranches.collect({"`$it`"}).join(', ')
       break
@@ -437,14 +461,13 @@ def sendNotification() {
     switch(status.secondary) {
       case 'lock':    text += '🔒'; break
       case 'delete':  text += '♻️'; break
-      default:        text += '➖'
+      case 'none':    text += '➖'; break
+      default:        text += ''
     }
-    text += " [${repo}](https://git.onlyoffice.com/${repo})"
+    text += " [${repo}](https://${env.GIT_SERVER}/${env.GIT_OWNER}/${repo})"
   }
 
-  if (params.action_type in ['start_hotfix', 'start_release',
-                             'merge_hotfix', 'merge_release',
-                             'finish_hotfix', 'finish_release']
+  if (params.action in ['start', 'merge', 'finish']
       && params.notify && stats.success > 0) {
     sh label: "Send Telegram Message", script: "curl -X POST -s -S \
       -d chat_id=${chatId} \
