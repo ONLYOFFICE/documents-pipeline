@@ -149,7 +149,7 @@ pipeline {
               } else {
                 dir ('repos/' + repo) {
                   checkoutRepo(repo)
-                  unprotectBranch(repo, branch)
+                  // unprotectBranch(repo, branch)
                   pAction = mergeBranch(repo, branch, baseBranches)
                   status.primary = (pAction) ? 'success' : 'failure'
                   if (pAction && !repo.contains('documents-pipeline')) {
