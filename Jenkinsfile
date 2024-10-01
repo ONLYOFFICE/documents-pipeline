@@ -299,7 +299,9 @@ pipeline {
         }
         // macOS
         stage('macOS arm64') {
-          agent { label 'darwin_arm64' }
+          agent {
+            label 'darwin_arm64'
+          }
           when {
             expression { params.darwin_arm64 }
             beforeAgent true
@@ -323,7 +325,9 @@ pipeline {
           }
         }
         stage('macOS x86_64') {
-          agent { label 'darwin_x86_64' }
+          agent {
+            label 'darwin_x86_64'
+          }
           when {
             expression { params.darwin_x86_64 }
             beforeAgent true
@@ -347,7 +351,9 @@ pipeline {
           }
         }
         stage('macOS x86_64 V8') {
-          agent { label 'darwin_x86_64_v8' }
+          agent {
+            label 'darwin_x86_64_v8'
+          }
           when {
             expression { params.darwin_x86_64_v8 }
             beforeAgent true
@@ -372,7 +378,9 @@ pipeline {
         }
         // Linux
         stage('Linux x86_64') {
-          agent { label 'linux_x86_64' }
+          agent {
+            label 'linux_x86_64'
+          }
           when {
             expression { params.linux_x86_64 }
             beforeAgent true
@@ -395,7 +403,9 @@ pipeline {
           }
         }
         stage('Linux aarch64') {
-          agent { label 'linux_aarch64' }
+          agent {
+            label 'linux_aarch64'
+          }
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
@@ -419,7 +429,9 @@ pipeline {
         }
         // Android
         stage('Android') {
-          agent { label 'android' }
+          agent {
+            label 'android'
+          }
           when {
             expression { params.android && params.mobile }
             beforeAgent true
