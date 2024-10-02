@@ -193,7 +193,6 @@ pipeline {
       steps {
         script {
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
-          deployData = []
           stageStats = [:]
           gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
           gitTagRepos = []
@@ -604,8 +603,6 @@ void buildPackages(String platform, String license = 'opensource') {
     }
   } catch (err) {
     throw err
-  } finally {
-    if (fileExists('deploy.txt')) deployData += readFile('deploy.txt').readLines()
   }
 }
 
@@ -912,26 +909,26 @@ void tagRepos(ArrayList repos = gitTagRepos, String tag = gitTag) {
 // Post Actions
 
 void buildAppcast() {
-  if (!(params.desktop && params.windows_x64 && params.windows_x86)) return
-  if (!(stageStats['Windows x64'] == 0 && stageStats['Windows x86'] == 0)) return
+  if (!(params.desktop && params.windows_x64 && params.windows_x86))
+    return
+  if (!(stageStats['Windows x64'] == 0 && stageStats['Windows x86'] == 0))
+    return
   try {
     sh label: 'APPCAST', script: './appcast.sh'
   } catch (err) {
     echo err.toString()
   }
-  if (fileExists('deploy.txt')) deployData += readFile('deploy.txt').readLines()
 }
 
 void buildReports() {
-  if (!deployData) return
-  println deployData.join('\n')
-  writeFile file: 'keys.txt', text: deployData.join('\n') + '\n'
   try {
-    sh label: 'REPORTS', script: './reports.sh keys.txt'
+    sh label: 'REPORTS', script: \
+      './reports.sh -b ' + env.BRANCH_NAME + ' -n ' + env.BUILD_NUMBER
   } catch (err) {
     echo err.toString()
   }
-  if (fileExists('build.html')) currentBuild.description = readFile 'build.html'
+  if (fileExists('build.html'))
+    currentBuild.description = readFile 'build.html'
 }
 
 void setStageStats(int status, String stageName = env.STAGE_NAME) {
