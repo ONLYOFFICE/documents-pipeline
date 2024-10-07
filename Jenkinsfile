@@ -897,10 +897,8 @@ void tagRepos(ArrayList repos = gitTagRepos, String tag = gitTag) {
   sh label: 'TAG REPOS', script: """
     for repo in ${repos.join(' ')}; do
       cd \$repo
-        git tag -l | xargs git tag -d
-        git fetch --tags
-        git tag ${tag}
-        git push origin --tags
+      git tag ${tag}
+      git push origin ${tag}
       cd ..
     done
   """
