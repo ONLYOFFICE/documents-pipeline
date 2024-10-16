@@ -106,7 +106,7 @@ now=$(LANG=C TZ=Etc/GMT-3 date '+%F %R %Z')
 json_add() {
   msg "$BLUE$1 > $2 > $3$NOFORMAT"
   aws s3api list-objects-v2 --bucket $S3_BUCKET --prefix $4 \
-    --query 'Contents[].Key' | jq -r '.[]?' | sort -V | while read key; do
+    --query 'Contents[].Key' | jq -r '.[]?' | while read key; do
     msg "  $key"
     object=$(aws s3api head-object --bucket $S3_BUCKET --key $key || jq -n {})
     size=$(<<<$object jq -er '.ContentLength // 0')
@@ -143,8 +143,8 @@ if [[ -z "${HTML_ONLY-}" ]]; then
   # DESKTOP
   json_add desktop win   generic desktop/win/generic/${COMPANY_NAME}-DesktopEditors-${VERSION_DOT}
   json_add desktop win   inno    desktop/win/inno/${COMPANY_NAME}-DesktopEditors-${VERSION_DOT}
-  json_add desktop win   inno    desktop/win/inno/${COMPANY_NAME}-DesktopEditors-Update-${VERSION_DOT}
   json_add desktop win   inno    desktop/win/inno/${COMPANY_NAME}-DesktopEditors-Standalone-${VERSION_DOT}
+  json_add desktop win   inno    desktop/win/inno/${COMPANY_NAME}-DesktopEditors-Update-${VERSION_DOT}
   json_add desktop win   advinst desktop/win/advinst/${COMPANY_NAME}-DesktopEditors-${VERSION_DOT}
   json_add desktop win   update  desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER
   json_add desktop mac   arm     desktop/mac/arm/$BUILD_VERSION/$BUILD_NUMBER
