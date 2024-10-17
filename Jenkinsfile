@@ -70,7 +70,7 @@ pipeline {
     )
     booleanParam (
       name:         'clean',
-      description:  'Rebuild binaries from the \'core\' repo',
+      description:  'Rebuild binaries from the "core" repo',
       defaultValue: defaults.clean
     )
     // Windows
@@ -192,9 +192,7 @@ pipeline {
     stage('Prepare') {
       steps {
         script {
-          if (params.sign) env.ENABLE_SIGNING=1
           branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
-          deployData = []
           stageStats = [:]
           gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
           gitTagRepos = []
@@ -300,7 +298,9 @@ pipeline {
         }
         // macOS
         stage('macOS arm64') {
-          agent { label 'darwin_arm64' }
+          agent {
+            label 'darwin_arm64'
+          }
           when {
             expression { params.darwin_arm64 }
             beforeAgent true
@@ -324,7 +324,9 @@ pipeline {
           }
         }
         stage('macOS x86_64') {
-          agent { label 'darwin_x86_64' }
+          agent {
+            label 'darwin_x86_64'
+          }
           when {
             expression { params.darwin_x86_64 }
             beforeAgent true
@@ -348,7 +350,9 @@ pipeline {
           }
         }
         stage('macOS x86_64 V8') {
-          agent { label 'darwin_x86_64_v8' }
+          agent {
+            label 'darwin_x86_64_v8'
+          }
           when {
             expression { params.darwin_x86_64_v8 }
             beforeAgent true
@@ -373,7 +377,9 @@ pipeline {
         }
         // Linux
         stage('Linux x86_64') {
-          agent { label 'linux_x86_64' }
+          agent {
+            label 'linux_x86_64'
+          }
           when {
             expression { params.linux_x86_64 }
             beforeAgent true
@@ -382,6 +388,7 @@ pipeline {
             // TAR_RELEASE_SUFFIX = '-gcc5'
             // DEB_RELEASE_SUFFIX = '~stretch'
             RPM_RELEASE_SUFFIX = '.el7'
+            RPM_SUSE_RELEASE_SUFFIX = '.suse12'
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
           }
           steps {
@@ -395,7 +402,9 @@ pipeline {
           }
         }
         stage('Linux aarch64') {
-          agent { label 'linux_aarch64' }
+          agent {
+            label 'linux_aarch64'
+          }
           when {
             expression { params.linux_aarch64 }
             beforeAgent true
@@ -404,6 +413,7 @@ pipeline {
             // TAR_RELEASE_SUFFIX = '-gcc5'
             // DEB_RELEASE_SUFFIX = '~stretch'
             RPM_RELEASE_SUFFIX = '.el7'
+            RPM_SUSE_RELEASE_SUFFIX = '.suse12'
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
           }
           steps {
@@ -418,7 +428,9 @@ pipeline {
         }
         // Android
         stage('Android') {
-          agent { label 'android' }
+          agent {
+            label 'android'
+          }
           when {
             expression { params.android && params.mobile }
             beforeAgent true
@@ -569,20 +581,28 @@ void buildPackages(String platform, String license = 'opensource') {
   String label = "packages ${license}".toUpperCase()
 
   try {
-    if (!platform.startsWith('windows'))
+    if (!platform.startsWith('windows')) {
       sh label: label, script: """
         cd build_tools
         ./make_package.py ${args.join(' ')}
       """
-    else
-      bat label: label, script: """
-        cd build_tools
-        python make_package.py ${args.join(' ')}
-      """
+    } else {
+      if (params.sign) env.ENABLE_SIGNING=1
+      withCredentials([
+        certificate(
+          credentialsId: 'windows-codesign-cert',
+          keystoreVariable: 'WINDOWS_CERTIFICATE',
+          passwordVariable: 'WINDOWS_CERTIFICATE_PASSWORD'
+        )
+      ]) {
+        bat label: label, script: """
+          cd build_tools
+          python make_package.py ${args.join(' ')}
+        """
+      }
+    }
   } catch (err) {
     throw err
-  } finally {
-    if (fileExists('deploy.txt')) deployData += readFile('deploy.txt').readLines()
   }
 }
 
@@ -816,7 +836,7 @@ void resolveRepos(String platform, String branding = '') {
         it.branch = resolveScm(
           source: [
             $class: 'GitSCMSource',
-            remote: "git@github.com:${it.owner}/${it.repo}.git",
+            remote: "git@git.onlyoffice.com:${it.owner}/${it.repo}.git",
             traits: [gitBranchDiscovery()]
           ],
           targets: [env.BRANCH_NAME, 'master']
@@ -840,8 +860,16 @@ void checkoutRepos(ArrayList repos) {
         if (retryCount > 0) sleep(30)
         retryCount++
         checkout scmGit(
-          userRemoteConfigs: [[url: "git@github.com:${it.owner}/${it.repo}.git"]],
-          branches: [[name: 'refs/heads/' + it.branch]],
+          userRemoteConfigs: [
+            [url: "git@git.onlyoffice.com:${it.owner}/${it.repo}.git"]
+          ],
+          branches: [
+            [name: 'refs/heads/' + it.branch]
+          ],
+          browser: [
+            $class: 'GiteaBrowser',
+            repoUrl: "https://git.onlyoffice.com/${it.owner}/${it.repo}"
+          ],
           extensions: [
             authorInChangelog(),
             cloneOption(
@@ -869,10 +897,8 @@ void tagRepos(ArrayList repos = gitTagRepos, String tag = gitTag) {
   sh label: 'TAG REPOS', script: """
     for repo in ${repos.join(' ')}; do
       cd \$repo
-        git tag -l | xargs git tag -d
-        git fetch --tags
-        git tag ${tag}
-        git push origin --tags
+      git tag ${tag}
+      git push origin ${tag}
       cd ..
     done
   """
@@ -881,26 +907,26 @@ void tagRepos(ArrayList repos = gitTagRepos, String tag = gitTag) {
 // Post Actions
 
 void buildAppcast() {
-  if (!(params.desktop && params.windows_x64 && params.windows_x86)) return
-  if (!(stageStats['Windows x64'] == 0 && stageStats['Windows x86'] == 0)) return
+  if (!(params.desktop && params.windows_x64 && params.windows_x86))
+    return
+  if (!(stageStats['Windows x64'] == 0 && stageStats['Windows x86'] == 0))
+    return
   try {
     sh label: 'APPCAST', script: './appcast.sh'
   } catch (err) {
     echo err.toString()
   }
-  if (fileExists('deploy.txt')) deployData += readFile('deploy.txt').readLines()
 }
 
 void buildReports() {
-  if (!deployData) return
-  println deployData.join('\n')
-  writeFile file: 'keys.txt', text: deployData.join('\n') + '\n'
   try {
-    sh label: 'REPORTS', script: './reports.sh keys.txt'
+    sh label: 'REPORTS', script: \
+      './reports.sh -b ' + env.BRANCH_NAME + ' -n ' + env.BUILD_NUMBER
   } catch (err) {
     echo err.toString()
   }
-  if (fileExists('build.html')) currentBuild.description = readFile 'build.html'
+  if (fileExists('build.html'))
+    currentBuild.description = readFile 'build.html'
 }
 
 void setStageStats(int status, String stageName = env.STAGE_NAME) {
