@@ -1,46 +1,38 @@
 pipeline {
-  agent { label 'appcastdev' }
+  agent {
+    label 'appcastdev'
+  }
   options {
-    authorizationMatrix([
-      group(
-        name: 'ONLYOFFICE',
-        permissions: ['Job/Build', 'Job/Cancel', 'Job/Read', 'Job/Workspace']
-      )
-    ])
     disableConcurrentBuilds()
     skipDefaultCheckout true
   }
   parameters {
-    string (
-      name:         'build',
-      description:  'Appcast build number for appcastdev.json (0 to delete)',
-      defaultValue: ''
-    )
+    string name: 'version', description:  'Appcast version'
+    string name: 'build', description:  'Appcast build number'
+    booleanParam name: 'delete', description: 'Delete appcastdev.json'
   }
   stages {
     stage('Appcast') {
       steps {
         script {
-          String version
-          int build
+          env.APPCAST_PATH = 'install/desktop/editors/windows/onlyoffice/appcastdev.json'
 
-          if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
-            version = env.BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,'')
-          } else if (env.BRANCH_NAME == 'develop') {
-            version = '99.99.99'
-          } else {
-            error("bad version")
-          }
+          if (!params.delete) {
 
-          try {
-            build = "${params.build}".toInteger()
-          } catch (err) {
-            error("bad build")
-          }
+            try {
+              String version = params.version
+              compareVersions failIfEmpty: true, v1: version, v2: '0.0.0'
+            } catch (err) {
+              error("bad version")
+            }
 
-          if (build > 0) {
+            try {
+              int build = "${params.build}".toInteger()
+            } catch (err) {
+              error("bad build")
+            }
+
             sh """
-              APPCAST_PATH=install/desktop/editors/windows/onlyoffice/appcastdev.json
               aws s3 cp --no-progress --acl public-read --cache-control max-age=0 \
                 s3://repo-doc-onlyoffice-com/desktop/win/update/${version}/${build}/appcast.json \
                 s3://static.teamlab.com/\$APPCAST_PATH
@@ -48,14 +40,16 @@ pipeline {
                 --distribution-id EK2IXZ2TWVZKC --paths /\$APPCAST_PATH
               echo "URL: https://download.onlyoffice.com/\$APPCAST_PATH"
             """
+
           } else {
+
             sh """
-              APPCAST_PATH=install/desktop/editors/windows/onlyoffice/appcastdev.json
               aws s3 rm s3://static.teamlab.com/\$APPCAST_PATH
               aws cloudfront create-invalidation \
                 --distribution-id EK2IXZ2TWVZKC --paths /\$APPCAST_PATH
               echo "URL: https://download.onlyoffice.com/\$APPCAST_PATH"
             """
+
           }
         }
       }
