@@ -379,12 +379,13 @@ def printBranches(String repo) {
 }
 
 def protectBranch(String repo, String branch) {
+  String team
   if (repo == "documents-pipeline") {
     return false
   } else if (repo == "server-license") {
-    String team = "DEP-AD-Main-License"
+    team = "DEP-AD-Main-License"
   } else {
-    String team = "DEP-AD-Main-Leads"
+    team = "DEP-AD-Main-Leads"
   }
   return sh (
     label: "${repo}: protect ${branch}",
