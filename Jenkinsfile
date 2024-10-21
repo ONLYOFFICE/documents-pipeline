@@ -185,9 +185,9 @@ pipeline {
       defaultValue: defaults.notify
     )
   }
-  triggers {
-    cron(defaults.schedule)
-  }
+  // triggers {
+  //   cron(defaults.schedule)
+  // }
   stages {
     stage('Prepare') {
       steps {
