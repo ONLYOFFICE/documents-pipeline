@@ -113,6 +113,7 @@ json_add() {
     sha256=$(<<<$object jq -er '.Metadata.sha256 // empty' || :)
     sha1=$(<<<$object jq -er '.Metadata.sha1 // empty' || :)
     md5=$(<<<$object jq -er '.Metadata.md5 // empty' || :)
+    [[ ! -f $json ]] && jq -n '{}' > $json
     jq ".$1.$2.$3 += [{
       key: \"$key\",
       size: $size,
@@ -130,7 +131,6 @@ if [[ -z "${HTML_ONLY-}" ]]; then
   msg "${BOLD}JSON:${NOFORMAT}"
   rm -rfv $desc reports
   mkdir -pv reports
-  jq -n '{}' > $json
 
   # CORE
   json_add core win   archive archive/$BRANCH_NAME/$BUILD_NUMBER/core-win
@@ -231,6 +231,7 @@ if [[ -z "${JSON_ONLY-}" ]]; then
   msg "${BOLD}HTML:${NOFORMAT}"
   rm -rfv $desc reports/*.html
 
+  [[ ! -f $json ]] && die "Artifacts not found" 0
   jq -r "keys_unsorted[]" $json | while read product; do
 
     msg "$BLUE$product$NOFORMAT"
