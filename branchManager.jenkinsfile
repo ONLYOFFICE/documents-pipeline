@@ -269,7 +269,7 @@ def getRepos() {
 
 def checkoutRepo(String repo, String branch = 'master') {
   sh (
-    label: "${repo}: checkout",
+    label: "${repo}: checkout".toUpperCase(),
     script: """
       if [ "\$(GIT_DIR=.git git rev-parse --is-inside-work-tree)" = 'true' ]; then
         git fetch --all --prune
@@ -287,7 +287,7 @@ def checkoutRepo(String repo, String branch = 'master') {
 
 def checkRemoteBranch(String repo, String branch = 'master') {
   return sh (
-    label: "${repo}: check branch ${branch}",
+    label: "${repo}: check branch ${branch}".toUpperCase(),
     script: "git ls-remote --exit-code git@\$GIT_SERVER:\$GIT_OWNER/${repo}.git ${branch}",
     returnStatus: true
   ) == 0
@@ -295,7 +295,7 @@ def checkRemoteBranch(String repo, String branch = 'master') {
 
 def createBranch(String repo, String branch, String baseBranch) {
   return sh (
-    label: "${repo}: start ${branch}",
+    label: "${repo}: start ${branch}".toUpperCase(),
     script: """
       git switch ${baseBranch}
       git reset --hard origin/${baseBranch}
@@ -310,7 +310,7 @@ def createBranch(String repo, String branch, String baseBranch) {
 
 def mergeBranch(String repo, String branch, ArrayList baseBranches) {
   return sh (
-    label: "${repo}: merge ${branch} into ${baseBranches.join(' ')}",
+    label: "${repo}: merge ${branch} into ${baseBranches.join(' ')}".toUpperCase(),
     script: """#!/bin/bash -xe
       git switch ${branch}
       git reset --hard origin/${branch}
@@ -351,7 +351,7 @@ def mergeBranch(String repo, String branch, ArrayList baseBranches) {
 def deleteBranch(String repo, String branch) {
   if (repo == "documents-pipeline") return false
   return sh (
-    label: "${repo}: delete ${branch}",
+    label: "${repo}: delete ${branch}".toUpperCase(),
     script: """
       git switch -f master
       git branch -D ${branch}
@@ -364,7 +364,7 @@ def deleteBranch(String repo, String branch) {
 
 def printBranches(String repo) {
   return sh (
-    label: "${repo}: branches list",
+    label: "${repo}: branches list".toUpperCase(),
     script: """
       HTTP_CODE=\$(curl -s -X 'GET' \
         "https://\$GIT_SERVER/api/v1/repos/\$GIT_OWNER/${repo}/branches" \
@@ -388,7 +388,7 @@ def protectBranch(String repo, String branch) {
     team = "DEP-AD-Main-Leads"
   }
   return sh (
-    label: "${repo}: protect ${branch}",
+    label: "${repo}: protect ${branch}".toUpperCase(),
     script: """
       HTTP_CODE=\$(echo '{
         "branch_name": "${branch}",
@@ -420,7 +420,7 @@ def protectBranch(String repo, String branch) {
 def unprotectBranch(String repo, String branch) {
   String branchUrl = URLEncoder.encode(branch)
   return sh (
-    label: "${repo}: unprotect ${branch}",
+    label: "${repo}: unprotect ${branch}".toUpperCase(),
     script: """
       HTTP_CODE=\$(curl -s -X 'DELETE' \
         "https://\$GIT_SERVER/api/v1/repos/\$GIT_OWNER/${repo}/branch_protections/${branchUrl}" \
@@ -470,12 +470,13 @@ def sendNotification() {
 
   if (params.action in ['start', 'merge', 'finish']
       && params.notify && stats.success > 0) {
-    sh label: "Send Telegram Message", script: "curl -X POST -s -S \
-      -d chat_id=${chatId} \
-      -d parse_mode=markdown \
-      -d disable_web_page_preview=true \
-      --data-urlencode text='${text}' \
-      https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
+    sh label: "Send Telegram Message".toUpperCase(),
+      script: "curl -X POST -s -S \
+        -d chat_id=${chatId} \
+        -d parse_mode=markdown \
+        -d disable_web_page_preview=true \
+        --data-urlencode text='${text}' \
+        https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
   } else {
     echo text
   }
