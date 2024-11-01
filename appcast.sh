@@ -14,7 +14,7 @@ set -x
 PACKAGE_NAME="ONLYOFFICE-DesktopEditors"
 DATE_JSON=$(LANG=C TZ=UTC date -u "+%b %d %H:%M UTC %Y")
 DATE_XML=$(LANG=C TZ=UTC date -u "+%a, %d %b %Y %H:%M:%S +0000")
-CHANGES_URL="$S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER"
+CHANGES_URL="https://download.onlyoffice.com/install/desktop/editors/windows/onlyoffice/changes"
 EXEUPD_64_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
 EXEUPD_32_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
 ZIP_64_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.zip"
