@@ -742,8 +742,9 @@ ArrayList getTargetList(String platform, String license = 'any') {
     ],
     linux_x86_64: [
       core: p.core && l.os,
-      closuremaps_opensource: (p.core || p.builder || p.server_ce) && l.os,
-      closuremaps_commercial: (p.desktop || p.server_de || p.server_ee) && l.com,
+      closuremaps_sdkjs_opensource: (p.core || p.server_ce) && l.os,
+      closuremaps_sdkjs_commercial: (p.server_de || p.server_ee) && l.com,
+      closuremaps_webapps: (p.core || p.server_ce) && l.os,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
       server_community: p.server_ce && l.os,
