@@ -279,10 +279,9 @@ EOF
             echo "  </p>" >> $html
           else
             echo "  <details class=\"m-0\">" >> $html
-            echo "    <summary class=\"list-style-none\">" >> $html
+            echo "    <summary>" >> $html
             echo "      <a href=\"$S3_BASE_URL/$key\">${key##*/}</a>" >> $html
             echo "      $(LANG=C numfmt --to=iec-i $size)B" >> $html
-            echo "      <div class=\"dropdown-caret\"></div>" >> $html
             echo "    </summary>" >> $html
             echo "    <pre class=\"m-0\">SHA256: $sha256<br>SHA1: $sha1<br>MD5: $md5</pre>" >> $html
             echo "  </details>" >> $html
