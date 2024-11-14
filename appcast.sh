@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -Eeuo pipefail
+set -Eeuxo pipefail
 cd "${0%/*}"
 
 s3_md5() {
@@ -9,12 +9,16 @@ s3_md5() {
     2> /dev/null || echo -n 0
 }
 
-set -x
-
-PACKAGE_NAME="ONLYOFFICE-DesktopEditors"
+: "${COMPANY_NAME:=ONLYOFFICE}"
+: "${S3_BUCKET:=repo-doc-onlyoffice-com}"
+: "${S3_BASE_URL:=https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com}"
+: "${BUILD_VERSION:=0.0.0}"
+: "${BUILD_NUMBER:=0}"
+DESKTOP_NAME="$COMPANY_NAME Desktop Editors"
+PACKAGE_NAME="$COMPANY_NAME-DesktopEditors"
 DATE_JSON=$(LANG=C TZ=UTC date -u "+%b %d %H:%M UTC %Y")
 DATE_XML=$(LANG=C TZ=UTC date -u "+%a, %d %b %Y %H:%M:%S +0000")
-CHANGES_URL="https://download.onlyoffice.com/install/desktop/editors/windows/onlyoffice/changes"
+CHANGES_URL="$S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER"
 EXEUPD_64_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
 EXEUPD_32_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
 ZIP_64_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.zip"
@@ -25,13 +29,13 @@ MSI_64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.m
 MSI_32_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.msi"
 appc_j=update/appcast.json
 appc_x=update/appcast.xml
-keys_t=deploy.txt
+clog_en=update/changes.html
+clog_ru=update/changes_ru.html
 
-rm -rfv update $keys_t
+rm -rfv update
 mkdir -pv update
 
-echo "MAKE APPCAST"
-
+# APPCAST JSON
 tee $appc_j << EOF
 {
   "version": "$BUILD_VERSION.$BUILD_NUMBER",
@@ -85,11 +89,12 @@ tee $appc_j << EOF
 }
 EOF
 
+# APPCAST XML
 tee $appc_x << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
   <channel>
-    <title>$PACKAGE_NAME Changelog</title>
+    <title>$DESKTOP_NAME Changelog</title>
     <description>Most recent changes with links to updates.</description>
     <language>en</language>
     <item>
@@ -110,8 +115,52 @@ tee $appc_x << EOF
 </rss>
 EOF
 
-echo "UPLOAD"
+# APPCAST CHANGES
+for clog in $clog_en $clog_ru; do
+  case "$clog" in
+    $clog_en ) HTML_TITLE="%s Release Notes"; HTML_MORE="See list of the changes" ;;
+    $clog_ru ) HTML_TITLE="История изменений %s"; HTML_MORE="Список изменений" ;;
+  esac
+  tee $clog << EOF
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${HTML_TITLE//%s/$DESKTOP_NAME}</title>
+  <style type="text/css">
+    body {
+      background: white;
+      font-size: 12px;
+      font-family: sans-serif;
+    }
+    h1, h2 {
+      font-weight: normal;
+      font-style: normal;
+    }
+    h1 {
+      font-size: 18px;
+    }
+    h2 {
+      font-size: 16px;
+    }
+    a {
+      text-decoration: none;
+    }
+    .releasedate {
+        color: #888;
+        font-size: medium;
+    }
+  </style>
+</head>
+<body>
+  <h1>ONLYOFFICE Desktop Editors $BUILD_VERSION<span class="releasedate"> - {{DATE}}</span></h1>
+  <h2><a href="https://github.com/ONLYOFFICE/DesktopEditors/blob/master/CHANGELOG.md#${BUILD_VERSION//./}" target="_blank">$HTML_MORE</a></h2>
+</body>
+</html>
+EOF
+done
 
+# UPLOAD
 for f in update/*; do
   sha256=$(sha256sum $f | cut -d' ' -f1)
   sha1=$(sha1sum $f | cut -d' ' -f1)
@@ -119,5 +168,4 @@ for f in update/*; do
   aws s3 cp --no-progress --acl public-read --metadata sha256=$sha256,sha1=$sha1,md5=$md5 \
     $f s3://$S3_BUCKET/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/
   echo "URL: $S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/${f##*/}"
-  echo "desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/${f##*/}" >> $keys_t
 done
