@@ -175,6 +175,7 @@ if [[ -z "${HTML_ONLY-}" ]]; then
   json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-${VERSION_DOT}
   json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-EE-${VERSION_DOT}
   json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-DE-${VERSION_DOT}
+  json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-Prerequisites-${VERSION_DOT}
   json_add server linux debian server/linux/debian/${COMPANY_NAME_LC}-documentserver_${VERSION}
   json_add server linux debian server/linux/debian/${COMPANY_NAME_LC}-documentserver-ee_${VERSION}
   json_add server linux debian server/linux/debian/${COMPANY_NAME_LC}-documentserver-de_${VERSION}
