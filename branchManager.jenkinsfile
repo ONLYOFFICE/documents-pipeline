@@ -94,21 +94,8 @@ pipeline {
             baseBranches = [env.BRANCH_NAME]
 
             stats.repos.each { repo, status ->
-              if (checkRemoteBranch(repo, branch)) {
-                echo "${repo}: Branch already ${branch} exists."
-                status.primary = 'skip'
-              } else {
-                dir ('repos/' + repo) {
-                  checkoutRepo(repo)
-                  if (!checkRemoteBranch(repo, 'develop')
-                    && !createBranch(repo, 'develop', 'master'))
-                    error("Can't create develop branch.")
-
-                  pAction = createBranch(repo, branch, baseBranches[0])
-                  status.primary = (pAction) ? 'success' : 'failure'
-                }
-              }
-
+              pAction = createBranch(repo, branch, baseBranches[0])
+              status.primary = (pAction) ? 'success' : 'failure'
               if (params.protect_branch) {
                 sAction = protectBranch(repo, branch)
                 status.secondary = (sAction) ? 'lock' : 'none'
@@ -295,14 +282,21 @@ def checkRemoteBranch(String repo, String branch = 'master') {
 
 def createBranch(String repo, String branch, String baseBranch) {
   return sh (
-    label: "${repo}: start ${branch}".toUpperCase(),
+    label: "${repo}: create branch ${branch}".toUpperCase(),
     script: """
-      git switch ${baseBranch}
-      git reset --hard origin/${baseBranch}
-      git checkout -B ${branch}
-      git push origin ${branch}
-      git branch -vv
-      echo "Branch created."
+      HTTP_CODE=\$(echo '{
+        "new_branch_name": "${branch}",
+        "old_ref_name": "${baseBranch}"
+      }' | \
+      curl -s -X 'POST' \
+        "https://\$GIT_SERVER/api/v1/repos/\$GIT_OWNER/${repo}/branches" \
+        -H "Authorization: token \$GITEA_TOKEN" \
+        -H 'Content-Type: application/json' \
+        -w '%{http_code}' \
+        -o output.json \
+        -d @-)
+      jq -r '.' output.json
+      test \$HTTP_CODE -eq 201 || test \$HTTP_CODE -eq 409
     """,
     returnStatus: true
   ) == 0
