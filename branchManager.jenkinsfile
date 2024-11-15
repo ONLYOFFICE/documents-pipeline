@@ -235,14 +235,19 @@ def getRepos() {
   return [
     'build_tools',
     'core',
+    'core-ext',
     'desktop-apps',
     'desktop-sdk',
+    'document-android-editors',
     'document-builder-package',
     'document-server-package',
-    'documents-pipeline',
+    'documents-app-android',
+    'documents-app-ios',
+    'editors-ios',
     'onlyoffice',
     'sdkjs',
     'sdkjs-forms',
+    'sdkjs-native',
     'sdkjs-ooxml',
     'server',
     'server-license',
@@ -250,7 +255,8 @@ def getRepos() {
     'web-apps',
     'web-apps-mobile',
     'Docker-DocumentServer',
-    'DocumentBuilder'
+    'DocumentBuilder',
+    'documents-pipeline'
   ]
 }
 
