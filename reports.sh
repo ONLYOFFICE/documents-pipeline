@@ -147,6 +147,7 @@ if [[ -z "${HTML_ONLY-}" ]]; then
   json_add desktop win   inno    desktop/win/inno/${COMPANY_NAME}-DesktopEditors-Update-${VERSION_DOT}
   json_add desktop win   advinst desktop/win/advinst/${COMPANY_NAME}-DesktopEditors-${VERSION_DOT}
   json_add desktop win   update  desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER
+  json_add desktop win   online  desktop/win/online/OnlineInstaller-${VERSION_DOT}
   json_add desktop mac   arm     desktop/mac/arm/$BUILD_VERSION/$BUILD_NUMBER
   json_add desktop mac   x86_64  desktop/mac/x86_64/$BUILD_VERSION/$BUILD_NUMBER
   json_add desktop mac   v8      desktop/mac/v8/$BUILD_VERSION/$BUILD_NUMBER
@@ -174,6 +175,7 @@ if [[ -z "${HTML_ONLY-}" ]]; then
   json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-${VERSION_DOT}
   json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-EE-${VERSION_DOT}
   json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-DE-${VERSION_DOT}
+  json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-Prerequisites-${VERSION_DOT}
   json_add server linux debian server/linux/debian/${COMPANY_NAME_LC}-documentserver_${VERSION}
   json_add server linux debian server/linux/debian/${COMPANY_NAME_LC}-documentserver-ee_${VERSION}
   json_add server linux debian server/linux/debian/${COMPANY_NAME_LC}-documentserver-de_${VERSION}
@@ -214,6 +216,7 @@ declare -A TYPE_TITLES=(
   [update]="Update"
   [inno]="Inno Setup"
   [advinst]="Advanced Installer"
+  [online]="Online Installer"
   [x86_64]="x86_64"
   [v8]="x86_64 V8"
   [arm]="arm64"
@@ -278,10 +281,9 @@ EOF
             echo "  </p>" >> $html
           else
             echo "  <details class=\"m-0\">" >> $html
-            echo "    <summary class=\"list-style-none\">" >> $html
+            echo "    <summary>" >> $html
             echo "      <a href=\"$S3_BASE_URL/$key\">${key##*/}</a>" >> $html
             echo "      $(LANG=C numfmt --to=iec-i $size)B" >> $html
-            echo "      <div class=\"dropdown-caret\"></div>" >> $html
             echo "    </summary>" >> $html
             echo "    <pre class=\"m-0\">SHA256: $sha256<br>SHA1: $sha1<br>MD5: $md5</pre>" >> $html
             echo "  </details>" >> $html
