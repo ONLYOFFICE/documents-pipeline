@@ -471,6 +471,9 @@ pipeline {
               buildAppcast()
               buildReports()
             },
+            snap: {
+              buildDesktopSnap()
+            },
             docker: {
               buildDocker()
             }
@@ -603,6 +606,37 @@ void buildPackages(String platform, String license = 'opensource') {
     }
   } catch (err) {
     throw err
+  }
+}
+
+void buildDesktopSnap() {
+  if (!params.desktop)
+    return
+  if (stageStats['Linux x86_64'] != 0)
+    return
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DESKTOP SNAP BUILD', script: """
+        repo=ONLYOFFICE/snap-desktopeditors
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref \$BRANCH_NAME \
+          -f version=\$BUILD_VERSION \
+          -f build=\$BUILD_NUMBER
+        sleep 5
+        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
+          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
+        gh --repo \$repo run view \$run_id --verbose --exit-status
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Desktop Snap'] = 2
+  } finally {
+    if (!stageStats['Linux Desktop Snap']) stageStats['Linux Desktop Snap'] = 0
   }
 }
 
