@@ -471,8 +471,14 @@ pipeline {
               buildAppcast()
               buildReports()
             },
+            flatpak: {
+              buildDesktopFlatpak()
+            },
+            snap: {
+              buildDesktopSnap()
+            },
             docker: {
-              buildDocker()
+              buildDocsDocker()
             }
           )
         }
@@ -606,7 +612,69 @@ void buildPackages(String platform, String license = 'opensource') {
   }
 }
 
-void buildDocker() {
+void buildDesktopFlatpak() {
+  if (!params.desktop)
+    return
+  if (stageStats['Linux x86_64'] != 0)
+    return
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DESKTOP FLATPAK BUILD', script: """
+        repo=ONLYOFFICE/org.onlyoffice.desktopeditors
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref master \
+          -f version=\$BUILD_VERSION \
+          -f build=\$BUILD_NUMBER
+        sleep 5
+        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
+          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
+        gh --repo \$repo run view \$run_id --verbose --exit-status
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Desktop Flatpak'] = 2
+  } finally {
+    if (!stageStats['Linux Desktop Flatpak']) stageStats['Linux Desktop Flatpak'] = 0
+  }
+}
+
+void buildDesktopSnap() {
+  if (!params.desktop)
+    return
+  if (stageStats['Linux x86_64'] != 0)
+    return
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DESKTOP SNAP BUILD', script: """
+        repo=ONLYOFFICE/snap-desktopeditors
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref master \
+          -f version=\$BUILD_VERSION \
+          -f build=\$BUILD_NUMBER
+        sleep 5
+        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
+          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
+        gh --repo \$repo run view \$run_id --verbose --exit-status
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Desktop Snap'] = 2
+  } finally {
+    if (!stageStats['Linux Desktop Snap']) stageStats['Linux Desktop Snap'] = 0
+  }
+}
+
+void buildDocsDocker() {
   if (!(params.server_ce || params.server_ee || params.server_de))
     return
   if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
@@ -615,7 +683,7 @@ void buildDocker() {
     withCredentials([
       string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
     ]) {
-      sh label: 'DOCKER BUILD', script: """
+      sh label: 'DOCKER DOCS BUILD', script: """
         repo=ONLYOFFICE/Docker-DocumentServer
         gh workflow run 4testing-build.yml \
           --repo \$repo \
@@ -635,9 +703,9 @@ void buildDocker() {
     }
   } catch (err) {
     echo err.toString()
-    stageStats['Linux Docker'] = 2
+    stageStats['Linux Docs Docker'] = 2
   } finally {
-    if (!stageStats['Linux Docker']) stageStats['Linux Docker'] = 0
+    if (!stageStats['Linux Docs Docker']) stageStats['Linux Docs Docker'] = 0
   }
 }
 
