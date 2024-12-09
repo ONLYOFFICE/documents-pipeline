@@ -477,6 +477,10 @@ pipeline {
             snap: {
               buildDesktopSnap()
             },
+            ,
+            appimage: {
+              buildDesktopAppimage()
+            },
             docker: {
               buildDocsDocker()
             }
@@ -671,6 +675,37 @@ void buildDesktopSnap() {
     stageStats['Linux Desktop Snap'] = 2
   } finally {
     if (!stageStats['Linux Desktop Snap']) stageStats['Linux Desktop Snap'] = 0
+  }
+}
+
+void buildDesktopAppimage() {
+  if (!params.desktop)
+    return
+  if (stageStats['Linux x86_64'] != 0)
+    return
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DESKTOP APPIMAGE BUILD', script: """
+        repo=ONLYOFFICE/appimage-desktopeditors
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref master \
+          -f version=\$BUILD_VERSION \
+          -f build=\$BUILD_NUMBER
+        sleep 5
+        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
+          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
+        gh --repo \$repo run view \$run_id --verbose --exit-status
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Desktop Appimage'] = 2
+  } finally {
+    if (!stageStats['Linux Desktop Appimage']) stageStats['Linux Desktop Appimage'] = 0
   }
 }
 
