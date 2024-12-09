@@ -242,7 +242,7 @@ if [[ -z "${JSON_ONLY-}" ]]; then
 
     cat << EOF > $html
 <!DOCTYPE html>
-<html lang="en-US" data-color-mode="auto" data-light-theme="light" data-dark-theme="dark_dimmed">
+<html lang="en-US" data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">
 <head>
   <title>$COMPANY_NAME ${PRODUCT_TITLES[$product]} - $BRANCH_NAME - $BUILD_NUMBER</title>
   <link rel="shortcut icon" href="$S3_BASE_URL/favicon.ico" type="image/x-icon">

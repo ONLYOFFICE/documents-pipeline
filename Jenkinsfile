@@ -818,6 +818,7 @@ ArrayList getTargetList(String platform, String license = 'any') {
       server_community: p.server_ce && l.os,
       server_developer: p.server_de && l.com,
       server_enterprise: p.server_ee && l.com,
+      server_prerequisites: (p.server_ee || p.server_de) && l.com,
     ],
     windows_x86: [
       core: p.core && l.os,
