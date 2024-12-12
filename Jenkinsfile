@@ -751,13 +751,13 @@ ArrayList getModuleList(String platform, String license = 'any') {
   ]
   LinkedHashMap map = [
     windows_x64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
       server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
     ],
     windows_x86: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
     ],
@@ -768,12 +768,12 @@ ArrayList getModuleList(String platform, String license = 'any') {
       desktop: p.desktop && l.com,
     ],
     darwin_x86_64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       builder: p.builder && l.os,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_arm64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       builder: p.builder && l.os,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
@@ -781,7 +781,7 @@ ArrayList getModuleList(String platform, String license = 'any') {
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     linux_x86_64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
       server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
@@ -811,7 +811,7 @@ ArrayList getTargetList(String platform, String license = 'any') {
   ]
   LinkedHashMap map = [
     windows_x64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
       server_community: p.server_ce && l.os,
@@ -820,7 +820,7 @@ ArrayList getTargetList(String platform, String license = 'any') {
       server_prerequisites: (p.server_ee || p.server_de) && l.com,
     ],
     windows_x86: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
     ],
@@ -831,12 +831,12 @@ ArrayList getTargetList(String platform, String license = 'any') {
       desktop: p.desktop && l.com,
     ],
     darwin_x86_64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
       builder: p.builder && l.os,
     ],
     darwin_arm64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
       builder: p.builder && l.os,
     ],
@@ -844,10 +844,10 @@ ArrayList getTargetList(String platform, String license = 'any') {
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     linux_x86_64: [
-      core: p.core && l.os,
-      closuremaps_sdkjs_opensource: (p.core || p.server_ce) && l.os,
-      closuremaps_sdkjs_commercial: (p.server_de || p.server_ee) && l.com,
-      closuremaps_webapps: (p.core || p.server_ce) && l.os,
+      core: p.core && l.com,
+      closuremaps_sdkjs_opensource: (p.builder || p.server_ce) && l.os,
+      closuremaps_sdkjs_commercial: (p.core || p.server_de || p.server_ee) && l.com,
+      closuremaps_webapps: (p.core || p.server_de || p.server_ee) && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
       server_community: p.server_ce && l.os,
