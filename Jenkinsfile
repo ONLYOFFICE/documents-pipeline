@@ -471,15 +471,14 @@ pipeline {
               buildAppcast()
               buildReports()
             },
+            appimage: {
+              buildDesktopAppimage()
+            },
             flatpak: {
               buildDesktopFlatpak()
             },
             snap: {
               buildDesktopSnap()
-            },
-            ,
-            appimage: {
-              buildDesktopAppimage()
             },
             docker: {
               buildDocsDocker()
@@ -616,6 +615,37 @@ void buildPackages(String platform, String license = 'opensource') {
   }
 }
 
+void buildDesktopAppimage() {
+  if (!params.desktop)
+    return
+  if (stageStats['Linux x86_64'] != 0)
+    return
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DESKTOP APPIMAGE BUILD', script: """
+        repo=ONLYOFFICE/appimage-desktopeditors
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref master \
+          -f version=\$BUILD_VERSION \
+          -f build=\$BUILD_NUMBER
+        sleep 5
+        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
+          --branch master --json databaseId --jq '.[0].databaseId')
+        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
+        gh --repo \$repo run view \$run_id --verbose --exit-status
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Desktop Appimage'] = 2
+  } finally {
+    if (!stageStats['Linux Desktop Appimage']) stageStats['Linux Desktop Appimage'] = 0
+  }
+}
+
 void buildDesktopFlatpak() {
   if (!params.desktop)
     return
@@ -634,7 +664,7 @@ void buildDesktopFlatpak() {
           -f build=\$BUILD_NUMBER
         sleep 5
         run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+          --branch master --json databaseId --jq '.[0].databaseId')
         gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
         gh --repo \$repo run view \$run_id --verbose --exit-status
       """
@@ -665,7 +695,7 @@ void buildDesktopSnap() {
           -f build=\$BUILD_NUMBER
         sleep 5
         run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+          --branch master --json databaseId --jq '.[0].databaseId')
         gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
         gh --repo \$repo run view \$run_id --verbose --exit-status
       """
@@ -675,37 +705,6 @@ void buildDesktopSnap() {
     stageStats['Linux Desktop Snap'] = 2
   } finally {
     if (!stageStats['Linux Desktop Snap']) stageStats['Linux Desktop Snap'] = 0
-  }
-}
-
-void buildDesktopAppimage() {
-  if (!params.desktop)
-    return
-  if (stageStats['Linux x86_64'] != 0)
-    return
-  try {
-    withCredentials([
-      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-    ]) {
-      sh label: 'DESKTOP APPIMAGE BUILD', script: """
-        repo=ONLYOFFICE/appimage-desktopeditors
-        gh workflow run 4testing-build.yml \
-          --repo \$repo \
-          --ref master \
-          -f version=\$BUILD_VERSION \
-          -f build=\$BUILD_NUMBER
-        sleep 5
-        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
-        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-        gh --repo \$repo run view \$run_id --verbose --exit-status
-      """
-    }
-  } catch (err) {
-    echo err.toString()
-    stageStats['Linux Desktop Appimage'] = 2
-  } finally {
-    if (!stageStats['Linux Desktop Appimage']) stageStats['Linux Desktop Appimage'] = 0
   }
 }
 
@@ -752,13 +751,13 @@ ArrayList getModuleList(String platform, String license = 'any') {
   ]
   LinkedHashMap map = [
     windows_x64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
       server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
     ],
     windows_x86: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
     ],
@@ -769,12 +768,12 @@ ArrayList getModuleList(String platform, String license = 'any') {
       desktop: p.desktop && l.com,
     ],
     darwin_x86_64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       builder: p.builder && l.os,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_arm64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       builder: p.builder && l.os,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
@@ -782,7 +781,7 @@ ArrayList getModuleList(String platform, String license = 'any') {
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     linux_x86_64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
       server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
@@ -812,7 +811,7 @@ ArrayList getTargetList(String platform, String license = 'any') {
   ]
   LinkedHashMap map = [
     windows_x64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
       server_community: p.server_ce && l.os,
@@ -821,7 +820,7 @@ ArrayList getTargetList(String platform, String license = 'any') {
       server_prerequisites: (p.server_ee || p.server_de) && l.com,
     ],
     windows_x86: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
     ],
@@ -832,12 +831,12 @@ ArrayList getTargetList(String platform, String license = 'any') {
       desktop: p.desktop && l.com,
     ],
     darwin_x86_64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
       builder: p.builder && l.os,
     ],
     darwin_arm64: [
-      core: p.core && l.os,
+      core: p.core && l.com,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
       builder: p.builder && l.os,
     ],
@@ -845,10 +844,10 @@ ArrayList getTargetList(String platform, String license = 'any') {
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     linux_x86_64: [
-      core: p.core && l.os,
-      closuremaps_sdkjs_opensource: (p.core || p.server_ce) && l.os,
-      closuremaps_sdkjs_commercial: (p.server_de || p.server_ee) && l.com,
-      closuremaps_webapps: (p.core || p.server_ce) && l.os,
+      core: p.core && l.com,
+      closuremaps_sdkjs_opensource: (p.builder || p.server_ce) && l.os,
+      closuremaps_sdkjs_commercial: (p.core || p.server_de || p.server_ee) && l.com,
+      closuremaps_webapps: (p.core || p.server_de || p.server_ee) && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.os,
       server_community: p.server_ce && l.os,

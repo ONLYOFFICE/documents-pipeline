@@ -101,7 +101,7 @@ msg "- S3_BASE_URL:      $S3_BASE_URL"
 
 json=reports/data.json
 desc=build.html
-now=$(LANG=C TZ=Etc/GMT-3 date '+%F %R %Z')
+UPDATEDATE=$(LANG=C TZ=Etc/GMT-3 date '+%F %R %Z')
 
 json_add() {
   msg "$BLUE$1 > $2 > $3$NOFORMAT"
@@ -251,7 +251,7 @@ if [[ -z "${JSON_ONLY-}" ]]; then
 <body>
   <div class="container-lg px-3 my-5 markdown-body">
   <h1>$COMPANY_NAME ${PRODUCT_TITLES[$product]} - $BRANCH_NAME - $BUILD_NUMBER</h1>
-  <p class ="color-fg-muted">$now</p>
+  <p class="color-fg-muted">$UPDATEDATE</p>
 EOF
 
     jq -r ".$product | keys_unsorted[]" $json | while read platform; do
