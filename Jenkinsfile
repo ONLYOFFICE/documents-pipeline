@@ -724,7 +724,7 @@ void buildDocsDocker() {
           --ref \$BRANCH_NAME \
           -f build=\$BUILD_NUMBER \
           -f amd64=${stageStats['Linux x86_64'] == 0} \
-          -f arm64=${stageStats['Linux aarch64'] == 0} \
+          -f arm64=false \
           -f community=${params.server_ce} \
           -f enterprise=${params.server_ee} \
           -f developer=${params.server_de}
