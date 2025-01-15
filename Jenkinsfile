@@ -477,7 +477,9 @@ pipeline {
             snap: {
               buildDesktopSnap()
             },
-            ,
+            snapds: {
+              buildDocsSnap()
+            },
             appimage: {
               buildDesktopAppimage()
             },
@@ -675,6 +677,37 @@ void buildDesktopSnap() {
     stageStats['Linux Desktop Snap'] = 2
   } finally {
     if (!stageStats['Linux Desktop Snap']) stageStats['Linux Desktop Snap'] = 0
+  }
+}
+
+void buildDocsSnap() {
+  if (!params.desktop)
+    return
+  if (stageStats['Linux x86_64'] != 0)
+    return
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DOCS SNAP BUILD', script: """
+        repo=ONLYOFFICE/snap-documentserver
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref master \
+          -f version=\$BUILD_VERSION \
+          -f build=\$BUILD_NUMBER
+        sleep 5
+        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
+          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
+        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
+        gh --repo \$repo run view \$run_id --verbose --exit-status
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Docs Snap'] = 2
+  } finally {
+    if (!stageStats['Linux Docs Snap']) stageStats['Linux Docs Snap'] = 0
   }
 }
 
