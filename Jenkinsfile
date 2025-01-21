@@ -634,11 +634,6 @@ void buildDesktopAppimage() {
           --ref master \
           -f version=\$BUILD_VERSION \
           -f build=\$BUILD_NUMBER
-        sleep 5
-        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch master --json databaseId --jq '.[0].databaseId')
-        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-        gh --repo \$repo run view \$run_id --verbose --exit-status
       """
     }
   } catch (err) {
@@ -665,11 +660,6 @@ void buildDesktopFlatpak() {
           --ref master \
           -f version=\$BUILD_VERSION \
           -f build=\$BUILD_NUMBER
-        sleep 5
-        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch master --json databaseId --jq '.[0].databaseId')
-        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-        gh --repo \$repo run view \$run_id --verbose --exit-status
       """
     }
   } catch (err) {
@@ -696,11 +686,6 @@ void buildDesktopSnap() {
           --ref master \
           -f version=\$BUILD_VERSION \
           -f build=\$BUILD_NUMBER
-        sleep 5
-        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch master --json databaseId --jq '.[0].databaseId')
-        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-        gh --repo \$repo run view \$run_id --verbose --exit-status
       """
     }
   } catch (err) {
@@ -712,9 +697,9 @@ void buildDesktopSnap() {
 }
 
 void buildDocsSnap() {
-  if (!params.desktop)
+  if (!(params.server_ce || params.server_ee || params.server_de))
     return
-  if (stageStats['Linux x86_64'] != 0)
+  if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
     return
   try {
     withCredentials([
@@ -727,11 +712,6 @@ void buildDocsSnap() {
           --ref master \
           -f version=\$BUILD_VERSION \
           -f build=\$BUILD_NUMBER
-        sleep 5
-        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
-        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-        gh --repo \$repo run view \$run_id --verbose --exit-status
       """
     }
   } catch (err) {
@@ -762,11 +742,6 @@ void buildDocsDocker() {
           -f community=${params.server_ce} \
           -f enterprise=${params.server_ee} \
           -f developer=${params.server_de}
-        sleep 5
-        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
-        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-        gh --repo \$repo run view \$run_id --verbose --exit-status
       """
     }
   } catch (err) {
