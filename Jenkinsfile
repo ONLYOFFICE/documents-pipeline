@@ -171,7 +171,7 @@ pipeline {
     )
     booleanParam (
       name:         'sign',
-      description:  'Enable signing (Windows only)',
+      description:  'Enable signing',
       defaultValue: defaults.sign
     )
     string (
@@ -593,13 +593,13 @@ void buildPackages(String platform, String license = 'opensource') {
   String label = "packages ${license}".toUpperCase()
 
   try {
+    if (params.sign) env.ENABLE_SIGNING=1
     if (!platform.startsWith('windows')) {
       sh label: label, script: """
         cd build_tools
         ./make_package.py ${args.join(' ')}
       """
     } else {
-      if (params.sign) env.ENABLE_SIGNING=1
       withCredentials([
         certificate(
           credentialsId: 'windows-codesign-cert',
