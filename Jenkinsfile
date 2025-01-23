@@ -213,6 +213,9 @@ pipeline {
             expression { params.windows_x64 }
             beforeAgent true
           }
+          environment {
+            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
+          }
           steps {
             start('windows_x64')
           }
@@ -235,7 +238,9 @@ pipeline {
             beforeAgent true
           }
           environment {
+            ARCH = 'x86'
             UNAME_M = 'i686'
+            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
           }
           steps {
             start('windows_x86')
@@ -259,6 +264,7 @@ pipeline {
             beforeAgent true
           }
           environment {
+            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
             _WIN_XP = '1'
           }
           steps {
@@ -283,8 +289,10 @@ pipeline {
             beforeAgent true
           }
           environment {
-            _WIN_XP = '1'
+            ARCH = 'x86'
             UNAME_M = 'i686'
+            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
+            _WIN_XP = '1'
           }
           steps {
             start('windows_x86_xp')
