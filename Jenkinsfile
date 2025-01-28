@@ -171,7 +171,7 @@ pipeline {
     )
     booleanParam (
       name:         'sign',
-      description:  'Enable signing (Windows only)',
+      description:  'Enable signing',
       defaultValue: defaults.sign
     )
     string (
@@ -213,6 +213,9 @@ pipeline {
             expression { params.windows_x64 }
             beforeAgent true
           }
+          environment {
+            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
+          }
           steps {
             start('windows_x64')
           }
@@ -235,7 +238,9 @@ pipeline {
             beforeAgent true
           }
           environment {
+            ARCH = 'x86'
             UNAME_M = 'i686'
+            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
           }
           steps {
             start('windows_x86')
@@ -259,6 +264,7 @@ pipeline {
             beforeAgent true
           }
           environment {
+            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
             _WIN_XP = '1'
           }
           steps {
@@ -283,8 +289,10 @@ pipeline {
             beforeAgent true
           }
           environment {
-            _WIN_XP = '1'
+            ARCH = 'x86'
             UNAME_M = 'i686'
+            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
+            _WIN_XP = '1'
           }
           steps {
             start('windows_x86_xp')
@@ -480,6 +488,9 @@ pipeline {
             snap: {
               buildDesktopSnap()
             },
+            snapds: {
+              buildDocsSnap()
+            },
             docker: {
               buildDocsDocker()
             }
@@ -590,13 +601,13 @@ void buildPackages(String platform, String license = 'opensource') {
   String label = "packages ${license}".toUpperCase()
 
   try {
+    if (params.sign) env.ENABLE_SIGNING=1
     if (!platform.startsWith('windows')) {
       sh label: label, script: """
         cd build_tools
         ./make_package.py ${args.join(' ')}
       """
     } else {
-      if (params.sign) env.ENABLE_SIGNING=1
       withCredentials([
         certificate(
           credentialsId: 'windows-codesign-cert',
@@ -612,134 +623,6 @@ void buildPackages(String platform, String license = 'opensource') {
     }
   } catch (err) {
     throw err
-  }
-}
-
-void buildDesktopAppimage() {
-  if (!params.desktop)
-    return
-  if (stageStats['Linux x86_64'] != 0)
-    return
-  try {
-    withCredentials([
-      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-    ]) {
-      sh label: 'DESKTOP APPIMAGE BUILD', script: """
-        repo=ONLYOFFICE/appimage-desktopeditors
-        gh workflow run 4testing-build.yml \
-          --repo \$repo \
-          --ref master \
-          -f version=\$BUILD_VERSION \
-          -f build=\$BUILD_NUMBER
-        sleep 5
-        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch master --json databaseId --jq '.[0].databaseId')
-        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-        gh --repo \$repo run view \$run_id --verbose --exit-status
-      """
-    }
-  } catch (err) {
-    echo err.toString()
-    stageStats['Linux Desktop Appimage'] = 2
-  } finally {
-    if (!stageStats['Linux Desktop Appimage']) stageStats['Linux Desktop Appimage'] = 0
-  }
-}
-
-void buildDesktopFlatpak() {
-  if (!params.desktop)
-    return
-  if (stageStats['Linux x86_64'] != 0)
-    return
-  try {
-    withCredentials([
-      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-    ]) {
-      sh label: 'DESKTOP FLATPAK BUILD', script: """
-        repo=ONLYOFFICE/org.onlyoffice.desktopeditors
-        gh workflow run 4testing-build.yml \
-          --repo \$repo \
-          --ref master \
-          -f version=\$BUILD_VERSION \
-          -f build=\$BUILD_NUMBER
-        sleep 5
-        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch master --json databaseId --jq '.[0].databaseId')
-        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-        gh --repo \$repo run view \$run_id --verbose --exit-status
-      """
-    }
-  } catch (err) {
-    echo err.toString()
-    stageStats['Linux Desktop Flatpak'] = 2
-  } finally {
-    if (!stageStats['Linux Desktop Flatpak']) stageStats['Linux Desktop Flatpak'] = 0
-  }
-}
-
-void buildDesktopSnap() {
-  if (!params.desktop)
-    return
-  if (stageStats['Linux x86_64'] != 0)
-    return
-  try {
-    withCredentials([
-      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-    ]) {
-      sh label: 'DESKTOP SNAP BUILD', script: """
-        repo=ONLYOFFICE/snap-desktopeditors
-        gh workflow run 4testing-build.yml \
-          --repo \$repo \
-          --ref master \
-          -f version=\$BUILD_VERSION \
-          -f build=\$BUILD_NUMBER
-        sleep 5
-        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch master --json databaseId --jq '.[0].databaseId')
-        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-        gh --repo \$repo run view \$run_id --verbose --exit-status
-      """
-    }
-  } catch (err) {
-    echo err.toString()
-    stageStats['Linux Desktop Snap'] = 2
-  } finally {
-    if (!stageStats['Linux Desktop Snap']) stageStats['Linux Desktop Snap'] = 0
-  }
-}
-
-void buildDocsDocker() {
-  if (!(params.server_ce || params.server_ee || params.server_de))
-    return
-  if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
-    return
-  try {
-    withCredentials([
-      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-    ]) {
-      sh label: 'DOCKER DOCS BUILD', script: """
-        repo=ONLYOFFICE/Docker-DocumentServer
-        gh workflow run 4testing-build.yml \
-          --repo \$repo \
-          --ref \$BRANCH_NAME \
-          -f build=\$BUILD_NUMBER \
-          -f amd64=${stageStats['Linux x86_64'] == 0} \
-          -f arm64=${stageStats['Linux aarch64'] == 0} \
-          -f community=${params.server_ce} \
-          -f enterprise=${params.server_ee} \
-          -f developer=${params.server_de}
-        sleep 5
-        run_id=\$(gh run list --repo \$repo --workflow 4testing-build.yml \
-          --branch \$BRANCH_NAME --json databaseId --jq '.[0].databaseId')
-        gh --repo \$repo run watch \$run_id --interval 15 > /dev/null
-        gh --repo \$repo run view \$run_id --verbose --exit-status
-      """
-    }
-  } catch (err) {
-    echo err.toString()
-    stageStats['Linux Docs Docker'] = 2
-  } finally {
-    if (!stageStats['Linux Docs Docker']) stageStats['Linux Docs Docker'] = 0
   }
 }
 
@@ -1031,6 +914,140 @@ void buildReports() {
   }
   if (fileExists('build.html'))
     currentBuild.description = readFile 'build.html'
+}
+
+void buildDesktopAppimage() {
+  if (!params.desktop)
+    return
+  if (stageStats['Linux x86_64'] != 0)
+    return
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DESKTOP APPIMAGE BUILD', script: """
+        repo=ONLYOFFICE/appimage-desktopeditors
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref master \
+          -f version=\$BUILD_VERSION \
+          -f build=\$BUILD_NUMBER
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Desktop Appimage'] = 2
+  } finally {
+    if (!stageStats['Linux Desktop Appimage']) stageStats['Linux Desktop Appimage'] = 0
+  }
+}
+
+void buildDesktopFlatpak() {
+  if (!params.desktop)
+    return
+  if (stageStats['Linux x86_64'] != 0)
+    return
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DESKTOP FLATPAK BUILD', script: """
+        repo=ONLYOFFICE/org.onlyoffice.desktopeditors
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref master \
+          -f version=\$BUILD_VERSION \
+          -f build=\$BUILD_NUMBER
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Desktop Flatpak'] = 2
+  } finally {
+    if (!stageStats['Linux Desktop Flatpak']) stageStats['Linux Desktop Flatpak'] = 0
+  }
+}
+
+void buildDesktopSnap() {
+  if (!params.desktop)
+    return
+  if (stageStats['Linux x86_64'] != 0)
+    return
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DESKTOP SNAP BUILD', script: """
+        repo=ONLYOFFICE/snap-desktopeditors
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref master \
+          -f version=\$BUILD_VERSION \
+          -f build=\$BUILD_NUMBER
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Desktop Snap'] = 2
+  } finally {
+    if (!stageStats['Linux Desktop Snap']) stageStats['Linux Desktop Snap'] = 0
+  }
+}
+
+void buildDocsSnap() {
+  if (!(params.server_ce || params.server_ee || params.server_de))
+    return
+  if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
+    return
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DOCS SNAP BUILD', script: """
+        repo=ONLYOFFICE/snap-documentserver
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref master \
+          -f version=\$BUILD_VERSION \
+          -f build=\$BUILD_NUMBER
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Docs Snap'] = 2
+  } finally {
+    if (!stageStats['Linux Docs Snap']) stageStats['Linux Docs Snap'] = 0
+  }
+}
+
+void buildDocsDocker() {
+  if (!(params.server_ce || params.server_ee || params.server_de))
+    return
+  if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
+    return
+  try {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DOCKER DOCS BUILD', script: """
+        repo=ONLYOFFICE/Docker-DocumentServer
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref \$BRANCH_NAME \
+          -f build=\$BUILD_NUMBER \
+          -f amd64=${stageStats['Linux x86_64'] == 0} \
+          -f arm64=false \
+          -f community=${params.server_ce} \
+          -f enterprise=${params.server_ee} \
+          -f developer=${params.server_de}
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Docs Docker'] = 2
+  } finally {
+    if (!stageStats['Linux Docs Docker']) stageStats['Linux Docs Docker'] = 0
+  }
 }
 
 void setStageStats(int status, String stageName = env.STAGE_NAME) {
