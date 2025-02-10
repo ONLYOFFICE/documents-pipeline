@@ -40,6 +40,10 @@ pipeline {
       name: 'wipe',
       description: 'Wipe out current workspace'
     choice \
+      name: 'repo_list',
+      choices: ['general', 'mobile', 'both'],
+      description: 'Repo list'
+    choice \
       name: 'action',
       choices: defaults.actions,
       description: "Action type"
@@ -232,32 +236,41 @@ pipeline {
 }
 
 def getRepos() {
-  return [
-    'build_tools',
-    'core',
-    'core-ext',
-    'desktop-apps',
-    'desktop-sdk',
-    'document-android-editors',
-    'document-builder-package',
-    'document-server-package',
-    'documents-app-android',
-    'documents-app-ios',
-    'editors-ios',
-    'onlyoffice',
-    'sdkjs',
-    'sdkjs-forms',
-    'sdkjs-native',
-    'sdkjs-ooxml',
-    'server',
-    'server-license',
-    'server-lockstorage',
-    'web-apps',
-    'web-apps-mobile',
-    'Docker-DocumentServer',
-    'DocumentBuilder',
-    'documents-pipeline'
-  ]
+  ArrayList list = []
+  if (params.repo_list == "general" || params.repo_list == "both") {
+    list += [
+      'documents-pipeline',
+      'build_tools',
+      'core',
+      'desktop-apps',
+      'desktop-sdk',
+      'document-builder-package',
+      'document-server-package',
+      'onlyoffice',
+      'sdkjs',
+      'sdkjs-forms',
+      'sdkjs-ooxml',
+      'server',
+      'server-license',
+      'server-lockstorage',
+      'web-apps',
+      'web-apps-mobile',
+      'Docker-DocumentServer',
+      'DocumentBuilder'
+    ]
+  }
+  if (params.repo_list == "mobile" || params.repo_list == "both") {
+    list += [
+      'core-ext',
+      'document-android-editors',
+      'documents-app-android',
+      'documents-app-ios',
+      'editors-ios',
+      'editors-ios-sp',
+      'sdkjs-native'
+    ]
+  }
+  return list
 }
 
 def checkoutRepo(String repo, String branch = 'master') {
