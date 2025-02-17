@@ -604,18 +604,14 @@ void buildPackages(String platform, String license = 'opensource') {
   try {
     if (params.sign) env.ENABLE_SIGNING=1
     if (!platform.startsWith('windows')) {
-      sh label: label, script: """
-        cd build_tools
-        ./make_package.py ${args.join(' ')}
-      """
+      timestamps {
+        sh label: label, script: """
+          cd build_tools
+          ./make_package.py ${args.join(' ')}
+        """
+      }
     } else {
-      withCredentials([
-        certificate(
-          credentialsId: 'windows-codesign-cert',
-          keystoreVariable: 'WINDOWS_CERTIFICATE',
-          passwordVariable: 'WINDOWS_CERTIFICATE_PASSWORD'
-        )
-      ]) {
+      timestamps {
         bat label: label, script: """
           cd build_tools
           python make_package.py ${args.join(' ')}
