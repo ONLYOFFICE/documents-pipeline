@@ -31,6 +31,7 @@ defaults = [
 if (env.BRANCH_NAME == 'develop') {
   defaults.putAll([
     channel:          'nightly',
+    darwin_x86_64:    false,
     darwin_x86_64_v8: false,
     android:          false,
     server_ce:        false,
@@ -652,12 +653,12 @@ ArrayList getModuleList(String platform, String license = 'any') {
     ],
     darwin_x86_64: [
       core: p.core && l.com,
-      builder: p.builder && l.os,
+      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_arm64: [
       core: p.core && l.com,
-      builder: p.builder && l.os,
+      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_x86_64_v8: [
@@ -716,12 +717,12 @@ ArrayList getTargetList(String platform, String license = 'any') {
     darwin_x86_64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-      builder: p.builder && l.os,
+      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_arm64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-      builder: p.builder && l.os,
+      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_x86_64_v8: [
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
