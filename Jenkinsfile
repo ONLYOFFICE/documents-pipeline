@@ -480,21 +480,8 @@ pipeline {
               buildAppcast()
               buildReports()
             },
-            appimage: {
-              buildDesktopAppimage()
-            },
-            flatpak: {
-              buildDesktopFlatpak()
-            },
-            snap: {
-              buildDesktopSnap()
-            },
-            snapds: {
-              buildDocsSnap()
-            },
-            docker: {
-              buildDocsDocker()
-            }
+            docs_docker: buildDocsDocker(),
+            docs_snap: buildDocsSnap()
           )
         }
       }
@@ -521,6 +508,12 @@ void start(String platform) {
 
   buildArtifacts(platform, 'commercial')
   buildPackages(platform, 'commercial')
+
+  if (platform == 'linux_x86_64' && params.desktop) {
+    buildDesktopAppimage()
+    buildDesktopFlatpak()
+    buildDesktopSnap()
+  }
 
   if (platform == 'linux_x86_64' && (params.server_ce || params.server_ee || params.server_de)) {
     if (env.COMPANY_NAME == 'ONLYOFFICE') {
