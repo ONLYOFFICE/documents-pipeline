@@ -896,6 +896,9 @@ void buildAppcast() {
 }
 
 void buildReports() {
+  if (!( params.core || params.desktop || params.builder || params.server_ce
+      || params.server_ee || params.server_de || params.mobile ))
+    return
   try {
     sh label: 'REPORTS', script: \
       './reports.sh -b ' + env.BRANCH_NAME + ' -n ' + env.BUILD_NUMBER
