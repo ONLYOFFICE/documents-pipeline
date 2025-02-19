@@ -61,7 +61,7 @@ pipeline {
   options {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
     checkoutToSubdirectory 'documents-pipeline'
-    timeout(activity: true, time: 5, unit: 'HOURS')
+    timeout(activity: true, time: 1, unit: 'HOURS')
   }
   parameters {
     booleanParam (
