@@ -62,6 +62,7 @@ pipeline {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
     checkoutToSubdirectory 'documents-pipeline'
     timeout(activity: true, time: 1, unit: 'HOURS')
+    timestamps()
   }
   parameters {
     booleanParam (
@@ -597,19 +598,15 @@ void buildPackages(String platform, String license = 'opensource') {
   try {
     if (params.sign) env.ENABLE_SIGNING=1
     if (!platform.startsWith('windows')) {
-      timestamps {
-        sh label: label, script: """
-          cd build_tools
-          ./make_package.py ${args.join(' ')}
-        """
-      }
+      sh label: label, script: """
+        cd build_tools
+        ./make_package.py ${args.join(' ')}
+      """
     } else {
-      timestamps {
-        bat label: label, script: """
-          cd build_tools
-          python make_package.py ${args.join(' ')}
-        """
-      }
+      bat label: label, script: """
+        cd build_tools
+        python make_package.py ${args.join(' ')}
+      """
     }
   } catch (err) {
     throw err
