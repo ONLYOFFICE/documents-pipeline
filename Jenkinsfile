@@ -481,8 +481,12 @@ pipeline {
               buildAppcast()
               buildReports()
             },
-            docs_docker: buildDocsDocker(),
-            docs_snap: buildDocsSnap()
+            docs_docker: {
+              buildDocsDocker()
+            },
+            docs_snap: {
+              buildDocsSnap()
+            }
           )
         }
       }
