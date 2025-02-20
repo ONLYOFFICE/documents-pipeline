@@ -61,7 +61,8 @@ pipeline {
   options {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
     checkoutToSubdirectory 'documents-pipeline'
-    timeout(activity: true, time: 5, unit: 'HOURS')
+    timeout(activity: true, time: 1, unit: 'HOURS')
+    timestamps()
   }
   parameters {
     booleanParam (
@@ -480,20 +481,11 @@ pipeline {
               buildAppcast()
               buildReports()
             },
-            appimage: {
-              buildDesktopAppimage()
-            },
-            flatpak: {
-              buildDesktopFlatpak()
-            },
-            snap: {
-              buildDesktopSnap()
-            },
-            snapds: {
-              buildDocsSnap()
-            },
-            docker: {
+            docs_docker: {
               buildDocsDocker()
+            },
+            docs_snap: {
+              buildDocsSnap()
             }
           )
         }
@@ -521,6 +513,12 @@ void start(String platform) {
 
   buildArtifacts(platform, 'commercial')
   buildPackages(platform, 'commercial')
+
+  if (platform == 'linux_x86_64' && params.desktop) {
+    buildDesktopAppimage()
+    buildDesktopFlatpak()
+    buildDesktopSnap()
+  }
 
   if (platform == 'linux_x86_64' && (params.server_ce || params.server_ee || params.server_de)) {
     if (env.COMPANY_NAME == 'ONLYOFFICE') {
@@ -604,19 +602,15 @@ void buildPackages(String platform, String license = 'opensource') {
   try {
     if (params.sign) env.ENABLE_SIGNING=1
     if (!platform.startsWith('windows')) {
-      timestamps {
-        sh label: label, script: """
-          cd build_tools
-          ./make_package.py ${args.join(' ')}
-        """
-      }
+      sh label: label, script: """
+        cd build_tools
+        ./make_package.py ${args.join(' ')}
+      """
     } else {
-      timestamps {
-        bat label: label, script: """
-          cd build_tools
-          python make_package.py ${args.join(' ')}
-        """
-      }
+      bat label: label, script: """
+        cd build_tools
+        python make_package.py ${args.join(' ')}
+      """
     }
   } catch (err) {
     throw err
@@ -903,6 +897,9 @@ void buildAppcast() {
 }
 
 void buildReports() {
+  if (!( params.core || params.desktop || params.builder || params.server_ce
+      || params.server_ee || params.server_de || params.mobile ))
+    return
   try {
     sh label: 'REPORTS', script: \
       './reports.sh -b ' + env.BRANCH_NAME + ' -n ' + env.BUILD_NUMBER
