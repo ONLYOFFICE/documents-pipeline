@@ -266,7 +266,6 @@ def getRepos() {
       'documents-app-android',
       'documents-app-ios',
       'editors-ios',
-      'editors-ios-sp',
       'sdkjs-native'
     ]
   }
