@@ -518,25 +518,8 @@ void start(String platform) {
     buildDesktopAppimage()
     buildDesktopFlatpak()
     buildDesktopSnap()
-  }
-
-  if (platform == 'linux_x86_64' && (params.server_ce || params.server_ee || params.server_de)) {
-    if (env.COMPANY_NAME == 'ONLYOFFICE') {
-      tagRepos()
-    } else {
-      ArrayList buildDockerServer = []
-      if (params.server_ee) buildDockerServer.add('-ee')
-      if (params.server_de) buildDockerServer.add('-de')
-      buildDockerServer.each {
-        sh label: 'DOCKER DOCUMENTSERVER' + it.toUpperCase(), script: """
-          cd Docker-DocumentServer
-          make clean
-          make deploy -e PRODUCT_EDITION=${it} -e ONLYOFFICE_VALUE=ds \
-            -e PACKAGE_VERSION=\$BUILD_VERSION-\$BUILD_NUMBER \
-            -e PACKAGE_BASEURL=\$S3_BASE_URL/server/linux/debian
-        """
-      }
-    }
+    // buildDocsDockerLocal()
+    tagRepos()
   }
 }
 
@@ -872,6 +855,10 @@ void checkoutRepos(ArrayList repos) {
 }
 
 void tagRepos(ArrayList repos = gitTagRepos, String tag = gitTag) {
+  if (!(params.server_ce || params.server_ee || params.server_de))
+    return
+  if (env.COMPANY_NAME != 'ONLYOFFICE')
+    return
   sh label: 'TAG REPOS', script: """
     for repo in ${repos.join(' ')}; do
       cd \$repo
@@ -1038,6 +1025,25 @@ void buildDocsDocker() {
     stageStats['Linux Docs Docker'] = 2
   } finally {
     if (!stageStats['Linux Docs Docker']) stageStats['Linux Docs Docker'] = 0
+  }
+}
+
+void buildDocsDockerLocal() {
+  if (!(params.server_ce || params.server_ee || params.server_de))
+    return
+  if (env.COMPANY_NAME == 'ONLYOFFICE')
+    return
+  ArrayList buildDockerServer = []
+  if (params.server_ee) buildDockerServer.add('-ee')
+  if (params.server_de) buildDockerServer.add('-de')
+  buildDockerServer.each {
+    sh label: 'DOCKER DOCUMENTSERVER' + it.toUpperCase(), script: """
+      cd Docker-DocumentServer
+      make clean
+      make deploy -e PRODUCT_EDITION=${it} -e ONLYOFFICE_VALUE=ds \
+        -e PACKAGE_VERSION=\$BUILD_VERSION-\$BUILD_NUMBER \
+        -e PACKAGE_BASEURL=\$S3_BASE_URL/server/linux/debian
+    """
   }
 }
 
