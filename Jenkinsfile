@@ -514,7 +514,7 @@ void start(String platform) {
   buildArtifacts(platform, 'commercial')
   buildPackages(platform, 'commercial')
 
-  if (platform == 'linux_x86_64' && params.desktop) {
+  if (platform == 'linux_x86_64') {
     buildDesktopAppimage()
     buildDesktopFlatpak()
     buildDesktopSnap()
@@ -913,8 +913,6 @@ void buildReports() {
 void buildDesktopAppimage() {
   if (!params.desktop)
     return
-  if (stageStats['Linux x86_64'] != 0)
-    return
   try {
     withCredentials([
       string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
@@ -930,16 +928,15 @@ void buildDesktopAppimage() {
     }
   } catch (err) {
     echo err.toString()
-    stageStats['Linux Desktop Appimage'] = 2
-  } finally {
-    if (!stageStats['Linux Desktop Appimage']) stageStats['Linux Desktop Appimage'] = 0
+  //   stageStats['Linux Desktop Appimage'] = 2
+  // } finally {
+  //   if (!stageStats['Linux Desktop Appimage'])
+  //     stageStats['Linux Desktop Appimage'] = 0
   }
 }
 
 void buildDesktopFlatpak() {
   if (!params.desktop)
-    return
-  if (stageStats['Linux x86_64'] != 0)
     return
   try {
     withCredentials([
@@ -956,16 +953,15 @@ void buildDesktopFlatpak() {
     }
   } catch (err) {
     echo err.toString()
-    stageStats['Linux Desktop Flatpak'] = 2
-  } finally {
-    if (!stageStats['Linux Desktop Flatpak']) stageStats['Linux Desktop Flatpak'] = 0
+  //   stageStats['Linux Desktop Flatpak'] = 2
+  // } finally {
+  //   if (!stageStats['Linux Desktop Flatpak'])
+  //     stageStats['Linux Desktop Flatpak'] = 0
   }
 }
 
 void buildDesktopSnap() {
   if (!params.desktop)
-    return
-  if (stageStats['Linux x86_64'] != 0)
     return
   try {
     withCredentials([
@@ -982,9 +978,10 @@ void buildDesktopSnap() {
     }
   } catch (err) {
     echo err.toString()
-    stageStats['Linux Desktop Snap'] = 2
-  } finally {
-    if (!stageStats['Linux Desktop Snap']) stageStats['Linux Desktop Snap'] = 0
+  //   stageStats['Linux Desktop Snap'] = 2
+  // } finally {
+  //   if (!stageStats['Linux Desktop Snap'])
+  //     stageStats['Linux Desktop Snap'] = 0
   }
 }
 
