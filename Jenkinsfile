@@ -31,6 +31,7 @@ defaults = [
 if (env.BRANCH_NAME == 'develop') {
   defaults.putAll([
     channel:          'nightly',
+    darwin_x86_64:    false,
     darwin_x86_64_v8: false,
     android:          false,
     server_ce:        false,
@@ -60,7 +61,8 @@ pipeline {
   options {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
     checkoutToSubdirectory 'documents-pipeline'
-    timeout(activity: true, time: 5, unit: 'HOURS')
+    timeout(activity: true, time: 1, unit: 'HOURS')
+    timestamps()
   }
   parameters {
     booleanParam (
@@ -479,20 +481,11 @@ pipeline {
               buildAppcast()
               buildReports()
             },
-            appimage: {
-              buildDesktopAppimage()
-            },
-            flatpak: {
-              buildDesktopFlatpak()
-            },
-            snap: {
-              buildDesktopSnap()
-            },
-            snapds: {
-              buildDocsSnap()
-            },
-            docker: {
+            docs_docker: {
               buildDocsDocker()
+            },
+            docs_snap: {
+              buildDocsSnap()
             }
           )
         }
@@ -521,23 +514,12 @@ void start(String platform) {
   buildArtifacts(platform, 'commercial')
   buildPackages(platform, 'commercial')
 
-  if (platform == 'linux_x86_64' && (params.server_ce || params.server_ee || params.server_de)) {
-    if (env.COMPANY_NAME == 'ONLYOFFICE') {
-      tagRepos()
-    } else {
-      ArrayList buildDockerServer = []
-      if (params.server_ee) buildDockerServer.add('-ee')
-      if (params.server_de) buildDockerServer.add('-de')
-      buildDockerServer.each {
-        sh label: 'DOCKER DOCUMENTSERVER' + it.toUpperCase(), script: """
-          cd Docker-DocumentServer
-          make clean
-          make deploy -e PRODUCT_EDITION=${it} -e ONLYOFFICE_VALUE=ds \
-            -e PACKAGE_VERSION=\$BUILD_VERSION-\$BUILD_NUMBER \
-            -e PACKAGE_BASEURL=\$S3_BASE_URL/server/linux/debian
-        """
-      }
-    }
+  if (platform == 'linux_x86_64') {
+    buildDesktopAppimage()
+    buildDesktopFlatpak()
+    buildDesktopSnap()
+    // buildDocsDockerLocal()
+    tagRepos()
   }
 }
 
@@ -608,18 +590,10 @@ void buildPackages(String platform, String license = 'opensource') {
         ./make_package.py ${args.join(' ')}
       """
     } else {
-      withCredentials([
-        certificate(
-          credentialsId: 'windows-codesign-cert',
-          keystoreVariable: 'WINDOWS_CERTIFICATE',
-          passwordVariable: 'WINDOWS_CERTIFICATE_PASSWORD'
-        )
-      ]) {
-        bat label: label, script: """
-          cd build_tools
-          python make_package.py ${args.join(' ')}
-        """
-      }
+      bat label: label, script: """
+        cd build_tools
+        python make_package.py ${args.join(' ')}
+      """
     }
   } catch (err) {
     throw err
@@ -652,12 +626,12 @@ ArrayList getModuleList(String platform, String license = 'any') {
     ],
     darwin_x86_64: [
       core: p.core && l.com,
-      builder: p.builder && l.os,
+      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_arm64: [
       core: p.core && l.com,
-      builder: p.builder && l.os,
+      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_x86_64_v8: [
@@ -716,12 +690,12 @@ ArrayList getTargetList(String platform, String license = 'any') {
     darwin_x86_64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-      builder: p.builder && l.os,
+      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_arm64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-      builder: p.builder && l.os,
+      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_x86_64_v8: [
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
@@ -881,6 +855,10 @@ void checkoutRepos(ArrayList repos) {
 }
 
 void tagRepos(ArrayList repos = gitTagRepos, String tag = gitTag) {
+  if (!(params.server_ce || params.server_ee || params.server_de))
+    return
+  if (env.COMPANY_NAME != 'ONLYOFFICE')
+    return
   sh label: 'TAG REPOS', script: """
     for repo in ${repos.join(' ')}; do
       cd \$repo
@@ -906,6 +884,9 @@ void buildAppcast() {
 }
 
 void buildReports() {
+  if (!( params.core || params.desktop || params.builder || params.server_ce
+      || params.server_ee || params.server_de || params.mobile ))
+    return
   try {
     sh label: 'REPORTS', script: \
       './reports.sh -b ' + env.BRANCH_NAME + ' -n ' + env.BUILD_NUMBER
@@ -918,8 +899,6 @@ void buildReports() {
 
 void buildDesktopAppimage() {
   if (!params.desktop)
-    return
-  if (stageStats['Linux x86_64'] != 0)
     return
   try {
     withCredentials([
@@ -936,16 +915,15 @@ void buildDesktopAppimage() {
     }
   } catch (err) {
     echo err.toString()
-    stageStats['Linux Desktop Appimage'] = 2
-  } finally {
-    if (!stageStats['Linux Desktop Appimage']) stageStats['Linux Desktop Appimage'] = 0
+  //   stageStats['Linux Desktop Appimage'] = 2
+  // } finally {
+  //   if (!stageStats['Linux Desktop Appimage'])
+  //     stageStats['Linux Desktop Appimage'] = 0
   }
 }
 
 void buildDesktopFlatpak() {
   if (!params.desktop)
-    return
-  if (stageStats['Linux x86_64'] != 0)
     return
   try {
     withCredentials([
@@ -962,16 +940,15 @@ void buildDesktopFlatpak() {
     }
   } catch (err) {
     echo err.toString()
-    stageStats['Linux Desktop Flatpak'] = 2
-  } finally {
-    if (!stageStats['Linux Desktop Flatpak']) stageStats['Linux Desktop Flatpak'] = 0
+  //   stageStats['Linux Desktop Flatpak'] = 2
+  // } finally {
+  //   if (!stageStats['Linux Desktop Flatpak'])
+  //     stageStats['Linux Desktop Flatpak'] = 0
   }
 }
 
 void buildDesktopSnap() {
   if (!params.desktop)
-    return
-  if (stageStats['Linux x86_64'] != 0)
     return
   try {
     withCredentials([
@@ -988,9 +965,10 @@ void buildDesktopSnap() {
     }
   } catch (err) {
     echo err.toString()
-    stageStats['Linux Desktop Snap'] = 2
-  } finally {
-    if (!stageStats['Linux Desktop Snap']) stageStats['Linux Desktop Snap'] = 0
+  //   stageStats['Linux Desktop Snap'] = 2
+  // } finally {
+  //   if (!stageStats['Linux Desktop Snap'])
+  //     stageStats['Linux Desktop Snap'] = 0
   }
 }
 
@@ -1036,7 +1014,7 @@ void buildDocsDocker() {
           --ref \$BRANCH_NAME \
           -f build=\$BUILD_NUMBER \
           -f amd64=${stageStats['Linux x86_64'] == 0} \
-          -f arm64=false \
+          -f arm64=${stageStats['Linux aarch64'] == 0} \
           -f community=${params.server_ce} \
           -f enterprise=${params.server_ee} \
           -f developer=${params.server_de}
@@ -1047,6 +1025,25 @@ void buildDocsDocker() {
     stageStats['Linux Docs Docker'] = 2
   } finally {
     if (!stageStats['Linux Docs Docker']) stageStats['Linux Docs Docker'] = 0
+  }
+}
+
+void buildDocsDockerLocal() {
+  if (!(params.server_ce || params.server_ee || params.server_de))
+    return
+  if (env.COMPANY_NAME == 'ONLYOFFICE')
+    return
+  ArrayList buildDockerServer = []
+  if (params.server_ee) buildDockerServer.add('-ee')
+  if (params.server_de) buildDockerServer.add('-de')
+  buildDockerServer.each {
+    sh label: 'DOCKER DOCUMENTSERVER' + it.toUpperCase(), script: """
+      cd Docker-DocumentServer
+      make clean
+      make deploy -e PRODUCT_EDITION=${it} -e ONLYOFFICE_VALUE=ds \
+        -e PACKAGE_VERSION=\$BUILD_VERSION-\$BUILD_NUMBER \
+        -e PACKAGE_BASEURL=\$S3_BASE_URL/server/linux/debian
+    """
   }
 }
 
