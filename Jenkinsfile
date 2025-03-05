@@ -877,7 +877,12 @@ void buildAppcast() {
   if (!(stageStats['Windows x64'] == 0 && stageStats['Windows x86'] == 0))
     return
   try {
-    sh label: 'APPCAST', script: './appcast.sh'
+    sh label: 'APPCAST', script: """
+      ./appcast.sh \
+        --version \$BUILD_VERSION \
+        --number \$BUILD_NUMBER \
+        --deploy
+    """
   } catch (err) {
     echo err.toString()
   }

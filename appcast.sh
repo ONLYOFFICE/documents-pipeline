@@ -3,17 +3,56 @@
 set -Eeuxo pipefail
 cd "${0%/*}"
 
-s3_md5() {
-  aws s3api head-object --bucket $S3_BUCKET --key $1 \
-    --query 'Metadata.md5' --output text \
-    2> /dev/null || echo -n 0
+parse_params() {
+  : "${COMPANY_NAME:=ONLYOFFICE}"
+  : "${S3_BUCKET:=repo-doc-onlyoffice-com}"
+  : "${S3_BASE_URL:=https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com}"
+  UPDATE_DIR=update
+  S3_TEMP_DIR=s3
+  DEPLOY=0
+
+  while :; do
+    case "${1-}" in
+      -v | --version)
+        BUILD_VERSION="${2:-0.0.0}"
+        shift
+        ;;
+      -n | --number)
+        BUILD_NUMBER="${2:-0}"
+        shift
+        ;;
+      -d | --deploy)
+        DEPLOY="1"
+        ;;
+      -?*)
+        echo "Unknown option: $1" >&2
+        ;;
+      *)
+        break
+        ;;
+    esac
+    shift
+  done
+
+  return 0
 }
 
-: "${COMPANY_NAME:=ONLYOFFICE}"
-: "${S3_BUCKET:=repo-doc-onlyoffice-com}"
-: "${S3_BASE_URL:=https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com}"
-: "${BUILD_VERSION:=0.0.0}"
-: "${BUILD_NUMBER:=0}"
+s3_head_object() {
+  install -D -m 644 /dev/null $S3_TEMP_DIR/$1.json
+  aws s3api head-object --bucket $S3_BUCKET --key $1 > $S3_TEMP_DIR/$1.json
+}
+
+s3_md5() {
+  jq -r '.Metadata.md5 // empty' $S3_TEMP_DIR/$1.json
+}
+
+parse_params "$@"
+
+appc_j="$UPDATE_DIR/appcast.json"
+appc_x="$UPDATE_DIR/appcast.xml"
+clog_en="$UPDATE_DIR/changes.html"
+clog_ru="$UPDATE_DIR/changes_ru.html"
+
 DESKTOP_NAME="$COMPANY_NAME Desktop Editors"
 PACKAGE_NAME="$COMPANY_NAME-DesktopEditors"
 DATE_JSON=$(LANG=C TZ=UTC date -u "+%b %d %H:%M UTC %Y")
@@ -27,15 +66,18 @@ EXE_64_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
 EXE_32_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
 MSI_64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.msi"
 MSI_32_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.msi"
-appc_j=update/appcast.json
-appc_x=update/appcast.xml
-clog_en=update/changes.html
-clog_ru=update/changes_ru.html
 
-rm -rfv update
-mkdir -pv update
+rm -rfv $UPDATE_DIR $S3_TEMP_DIR
+mkdir -pv $UPDATE_DIR
 
 # APPCAST JSON
+s3_head_object $ZIP_64_KEY &
+s3_head_object $EXE_64_KEY &
+s3_head_object $MSI_64_KEY &
+s3_head_object $ZIP_32_KEY &
+s3_head_object $EXE_32_KEY &
+s3_head_object $MSI_32_KEY &
+wait
 tee $appc_j << EOF
 {
   "version": "$BUILD_VERSION.$BUILD_NUMBER",
@@ -161,11 +203,17 @@ EOF
 done
 
 # UPLOAD
-for f in update/*; do
-  sha256=$(sha256sum $f | cut -d' ' -f1)
-  sha1=$(sha1sum $f | cut -d' ' -f1)
-  md5=$(md5sum $f | cut -d' ' -f1)
-  aws s3 cp --no-progress --acl public-read --metadata sha256=$sha256,sha1=$sha1,md5=$md5 \
-    $f s3://$S3_BUCKET/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/
-  echo "URL: $S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/${f##*/}"
-done
+if [[ "${DEPLOY:-}" -eq 1 ]]; then
+  for f in $UPDATE_DIR/*; do
+    {
+      sha256=$(sha256sum $f | cut -d' ' -f1)
+      sha1=$(sha1sum $f | cut -d' ' -f1)
+      md5=$(md5sum $f | cut -d' ' -f1)
+      aws s3 cp --no-progress --metadata sha256=$sha256,sha1=$sha1,md5=$md5 \
+        $f s3://$S3_BUCKET/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/
+    } &
+  done
+  wait
+  find $UPDATE_DIR -type f -printf \
+    "URL: $S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/%f\n"
+fi
