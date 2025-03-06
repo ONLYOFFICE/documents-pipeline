@@ -61,7 +61,7 @@ pipeline {
   options {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
     checkoutToSubdirectory 'documents-pipeline'
-    timeout(activity: true, time: 1, unit: 'HOURS')
+    timeout(activity: true, time: 3, unit: 'HOURS')
     timestamps()
   }
   parameters {
@@ -508,11 +508,12 @@ void start(String platform) {
 
   resolveRepos(platform, defaults.repo)
 
-  buildArtifacts(platform, 'opensource')
-  buildPackages(platform, 'opensource')
-
-  buildArtifacts(platform, 'commercial')
-  buildPackages(platform, 'commercial')
+  timeout(time: 30, activity: true) {
+    buildArtifacts(platform, 'opensource')
+    buildPackages(platform, 'opensource')
+    buildArtifacts(platform, 'commercial')
+    buildPackages(platform, 'commercial')
+  }
 
   if (platform == 'linux_x86_64') {
     buildDesktopAppimage()
