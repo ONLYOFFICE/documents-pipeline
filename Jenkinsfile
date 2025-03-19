@@ -61,7 +61,7 @@ pipeline {
   options {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
     checkoutToSubdirectory 'documents-pipeline'
-    timeout(activity: true, time: 1, unit: 'HOURS')
+    timeout(activity: true, time: 3, unit: 'HOURS')
     timestamps()
   }
   parameters {
@@ -508,11 +508,12 @@ void start(String platform) {
 
   resolveRepos(platform, defaults.repo)
 
-  buildArtifacts(platform, 'opensource')
-  buildPackages(platform, 'opensource')
-
-  buildArtifacts(platform, 'commercial')
-  buildPackages(platform, 'commercial')
+  timeout(time: 30, activity: true) {
+    buildArtifacts(platform, 'opensource')
+    buildPackages(platform, 'opensource')
+    buildArtifacts(platform, 'commercial')
+    buildPackages(platform, 'commercial')
+  }
 
   if (platform == 'linux_x86_64') {
     buildDesktopAppimage()
@@ -610,13 +611,13 @@ ArrayList getModuleList(String platform, String license = 'any') {
     windows_x64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.os,
+      builder: p.builder && l.com,
       server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
     ],
     windows_x86: [
       core: p.core && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.os,
+      builder: p.builder && l.com,
     ],
     windows_x64_xp: [
       desktop: p.desktop && l.com,
@@ -626,12 +627,12 @@ ArrayList getModuleList(String platform, String license = 'any') {
     ],
     darwin_x86_64: [
       core: p.core && l.com,
-      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
+      builder: p.builder && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_arm64: [
       core: p.core && l.com,
-      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
+      builder: p.builder && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_x86_64_v8: [
@@ -640,11 +641,11 @@ ArrayList getModuleList(String platform, String license = 'any') {
     linux_x86_64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.os,
+      builder: p.builder && l.com,
       server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
     ],
     linux_aarch64: [
-      builder: p.builder && l.os,
+      builder: p.builder && l.com,
       server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
     ],
     android: [
@@ -670,7 +671,7 @@ ArrayList getTargetList(String platform, String license = 'any') {
     windows_x64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.os,
+      builder: p.builder && l.com,
       server_community: p.server_ce && l.os,
       server_developer: p.server_de && l.com,
       server_enterprise: p.server_ee && l.com,
@@ -679,7 +680,7 @@ ArrayList getTargetList(String platform, String license = 'any') {
     windows_x86: [
       core: p.core && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.os,
+      builder: p.builder && l.com,
     ],
     windows_x64_xp: [
       desktop: p.desktop && l.com,
@@ -690,29 +691,29 @@ ArrayList getTargetList(String platform, String license = 'any') {
     darwin_x86_64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
+      builder: p.builder && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_arm64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-      builder: p.builder && l.os && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
+      builder: p.builder && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     darwin_x86_64_v8: [
       desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
     ],
     linux_x86_64: [
       core: p.core && l.com,
-      closuremaps_sdkjs_opensource: (p.builder || p.server_ce) && l.os,
-      closuremaps_sdkjs_commercial: (p.core || p.server_de || p.server_ee) && l.com,
+      closuremaps_sdkjs_opensource: p.server_ce && l.os,
+      closuremaps_sdkjs_commercial: (p.core || p.desktop || p.builder || p.server_de || p.server_ee) && l.com,
       closuremaps_webapps: (p.core || p.server_de || p.server_ee) && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.os,
+      builder: p.builder && l.com,
       server_community: p.server_ce && l.os,
       server_developer: p.server_de && l.com,
       server_enterprise: p.server_ee && l.com,
     ],
     linux_aarch64: [
-      builder: p.builder && l.os,
+      builder: p.builder && l.com,
       server_community: p.server_ce && l.os,
       server_developer: p.server_de && l.com,
       server_enterprise: p.server_ee && l.com,
@@ -877,7 +878,12 @@ void buildAppcast() {
   if (!(stageStats['Windows x64'] == 0 && stageStats['Windows x86'] == 0))
     return
   try {
-    sh label: 'APPCAST', script: './appcast.sh'
+    sh label: 'APPCAST', script: """
+      ./appcast.sh \
+        --version \$BUILD_VERSION \
+        --number \$BUILD_NUMBER \
+        --deploy
+    """
   } catch (err) {
     echo err.toString()
   }
