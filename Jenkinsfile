@@ -28,25 +28,21 @@ defaults = [
   repo:             'onlyoffice',
 ]
 
-if (env.BRANCH_NAME == 'develop') {
-  defaults.putAll([
-    channel:          'nightly',
-    darwin_x86_64:    false,
-    darwin_x86_64_v8: false,
-    android:          false,
-    server_ce:        false,
-    server_de:        false,
-    mobile:           false,
-    beta:             true,
-  ])
-}
-if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) {
-  defaults.putAll([
-    channel:          'test',
-    version:          env.BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
-    schedule:         'H 2 * * *',
-  ])
-}
+if (env.BRANCH_NAME == 'develop') { defaults.putAll([
+  channel:          'nightly',
+  darwin_x86_64:    false,
+  darwin_x86_64_v8: false,
+  android:          false,
+  server_ce:        false,
+  server_de:        false,
+  mobile:           false,
+  beta:             true,
+]) }
+else if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) { defaults.putAll([
+  channel:          'test',
+  version:          env.BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
+  schedule:         'H 2 * * *',
+]) }
 
 pipeline {
   agent none
@@ -60,131 +56,131 @@ pipeline {
   }
   options {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
-    checkoutToSubdirectory 'documents-pipeline'
+    checkoutToSubdirectory('documents-pipeline')
     timeout(activity: true, time: 3, unit: 'HOURS')
     timestamps()
   }
   parameters {
-    booleanParam (
-      name:         'wipe',
-      description:  'Wipe out current workspace',
-      defaultValue: false
+    booleanParam(
+      name: 'wipe',
+      defaultValue: false,
+      description: 'Wipe out current workspace'
     )
-    booleanParam (
-      name:         'clean',
-      description:  'Rebuild binaries from the "core" repo',
-      defaultValue: defaults.clean
+    booleanParam(
+      name: 'clean',
+      defaultValue: defaults.clean,
+      description: 'Rebuild binaries from the "core" repo'
     )
     // Windows
-    booleanParam (
-      name:         'windows_x64',
-      description:  'Build Windows x64 targets (Visual Studio 2019)',
-      defaultValue: defaults.windows_x64
+    booleanParam(
+      name: 'windows_x64',
+      defaultValue: defaults.windows_x64,
+      description: 'Build Windows x64 targets (Visual Studio 2019)'
     )
-    booleanParam (
-      name:         'windows_x86',
-      description:  'Build Windows x86 targets (Visual Studio 2019)',
-      defaultValue: defaults.windows_x86
+    booleanParam(
+      name: 'windows_x86',
+      defaultValue: defaults.windows_x86,
+      description: 'Build Windows x86 targets (Visual Studio 2019)'
     )
-    booleanParam (
-      name:         'windows_x64_xp',
-      description:  'Build Windows x64 XP targets (Visual Studio 2015)',
-      defaultValue: defaults.windows_x64_xp
+    booleanParam(
+      name: 'windows_x64_xp',
+      defaultValue: defaults.windows_x64_xp,
+      description: 'Build Windows x64 XP targets (Visual Studio 2015)'
     )
-    booleanParam (
-      name:         'windows_x86_xp',
-      description:  'Build Windows x86 XP targets (Visual Studio 2015)',
-      defaultValue: defaults.windows_x86_xp
+    booleanParam(
+      name: 'windows_x86_xp',
+      defaultValue: defaults.windows_x86_xp,
+      description: 'Build Windows x86 XP targets (Visual Studio 2015)'
     )
     // macOS
-    booleanParam (
-      name:         'darwin_arm64',
-      description:  'Build macOS arm64 targets',
-      defaultValue: defaults.darwin_arm64
+    booleanParam(
+      name: 'darwin_arm64',
+      defaultValue: defaults.darwin_arm64,
+      description: 'Build macOS arm64 targets'
     )
-    booleanParam (
-      name:         'darwin_x86_64',
-      description:  'Build macOS x86-64 targets',
-      defaultValue: defaults.darwin_x86_64
+    booleanParam(
+      name: 'darwin_x86_64',
+      defaultValue: defaults.darwin_x86_64,
+      description: 'Build macOS x86-64 targets'
     )
-    booleanParam (
-      name:         'darwin_x86_64_v8',
-      description:  'Build macOS x86-64 V8 targets',
-      defaultValue: defaults.darwin_x86_64_v8
+    booleanParam(
+      name: 'darwin_x86_64_v8',
+      defaultValue: defaults.darwin_x86_64_v8,
+      description: 'Build macOS x86-64 V8 targets'
     )
     // Linux
-    booleanParam (
-      name:         'linux_x86_64',
-      description:  'Build Linux x86-64 targets',
-      defaultValue: defaults.linux_x86_64
+    booleanParam(
+      name: 'linux_x86_64',
+      defaultValue: defaults.linux_x86_64,
+      description: 'Build Linux x86-64 targets'
     )
-    booleanParam (
-      name:         'linux_aarch64',
-      description:  'Build Linux aarch64 targets',
-      defaultValue: defaults.linux_aarch64
+    booleanParam(
+      name: 'linux_aarch64',
+      defaultValue: defaults.linux_aarch64,
+      description: 'Build Linux aarch64 targets'
     )
     // Android
-    booleanParam (
-      name:         'android',
-      description:  'Build Android targets',
-      defaultValue: defaults.android
+    booleanParam(
+      name: 'android',
+      defaultValue: defaults.android,
+      description: 'Build Android targets'
     )
     // Modules
-    booleanParam (
-      name:         'core',
-      description:  'Build and publish "core" binaries',
-      defaultValue: defaults.core
+    booleanParam(
+      name: 'core',
+      defaultValue: defaults.core,
+      description: 'Build and publish "core" binaries'
     )
-    booleanParam (
-      name:         'desktop',
-      description:  'Build and publish DesktopEditors packages',
-      defaultValue: defaults.desktop
+    booleanParam(
+      name: 'desktop',
+      defaultValue: defaults.desktop,
+      description: 'Build and publish DesktopEditors packages'
     )
-    booleanParam (
-      name:         'builder',
-      description:  'Build and publish DocumentBuilder packages',
-      defaultValue: defaults.builder
+    booleanParam(
+      name: 'builder',
+      defaultValue: defaults.builder,
+      description: 'Build and publish DocumentBuilder packages'
     )
-    booleanParam (
-      name:         'server_ce',
-      description:  'Build and publish DocumentServer packages',
-      defaultValue: defaults.server_ce
+    booleanParam(
+      name: 'server_ce',
+      defaultValue: defaults.server_ce,
+      description: 'Build and publish DocumentServer packages'
     )
-    booleanParam (
-      name:         'server_ee',
-      description:  'Build and publish DocumentServer-EE packages',
-      defaultValue: defaults.server_ee
+    booleanParam(
+      name: 'server_ee',
+      defaultValue: defaults.server_ee,
+      description: 'Build and publish DocumentServer-EE packages'
     )
-    booleanParam (
-      name:         'server_de',
-      description:  'Build and publish DocumentServer-DE packages',
-      defaultValue: defaults.server_de
+    booleanParam(
+      name: 'server_de',
+      defaultValue: defaults.server_de,
+      description: 'Build and publish DocumentServer-DE packages'
     )
-    booleanParam (
-      name:         'mobile',
-      description:  'Build and publish Mobile libraries',
-      defaultValue: defaults.mobile
+    booleanParam(
+      name: 'mobile',
+      defaultValue: defaults.mobile,
+      description: 'Build and publish Mobile libraries'
     )
     // Other
-    booleanParam (
-      name:         'beta',
-      description:  'Beta (enabled anyway on develop)',
-      defaultValue: defaults.beta
+    booleanParam(
+      name: 'beta',
+      defaultValue: defaults.beta,
+      description: 'Beta (enabled anyway on develop)'
     )
-    booleanParam (
-      name:         'sign',
-      description:  'Enable signing',
-      defaultValue: defaults.sign
+    booleanParam(
+      name: 'sign',
+      defaultValue: defaults.sign,
+      description: 'Enable signing'
     )
-    string (
-      name:         'extra_args',
-      description:  'configure.py extra args',
-      defaultValue: ''
+    string(
+      name: 'extra_args',
+      defaultValue: '',
+      description: 'configure.py extra args'
     )
-    booleanParam (
-      name:         'notify',
-      description:  'Telegram notification',
-      defaultValue: defaults.notify
+    booleanParam(
+      name: 'notify',
+      defaultValue: defaults.notify,
+      description: 'Telegram notification'
     )
   }
   triggers {
@@ -192,14 +188,12 @@ pipeline {
   }
   stages {
     stage('Prepare') {
-      steps {
-        script {
-          branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
-          stageStats = [:]
-          gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
-          gitTagRepos = []
-        }
-      }
+      steps { script {
+        branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
+        stageStats = [:]
+        gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
+        gitTagRepos = []
+      } }
     }
     stage('Build') {
       parallel {
@@ -472,24 +466,22 @@ pipeline {
       node('built-in') { script { sendTelegramMessage('aborted') } }
     }
     cleanup {
-      node('built-in') {
-        script {
-          parallel(
-            reports: {
-              deleteDir()
-              checkout scm
-              buildAppcast()
-              buildReports()
-            },
-            docs_docker: {
-              buildDocsDocker()
-            },
-            docs_snap: {
-              buildDocsSnap()
-            }
-          )
-        }
-      }
+      node('built-in') { script {
+        parallel(
+          reports: {
+            deleteDir()
+            checkout scm
+            buildAppcast()
+            buildReports()
+          },
+          docs_docker: {
+            buildDocsDocker()
+          },
+          docs_snap: {
+            buildDocsSnap()
+          }
+        )
+      } }
     }
   }
 }
@@ -569,8 +561,10 @@ void buildPackages(String platform, String license = 'opensource') {
   ArrayList targets = getTargetList(platform, license)
   if (!targets) return
   targets.addAll(['clean', 'deploy'])
-  if (params.sign && platform.startsWith('windows'))
+  if (params.sign) {
     targets.add('sign')
+    env.ENABLE_SIGNING=1
+  }
 
   ArrayList args = [
     "--platform ${platform}",
@@ -584,7 +578,6 @@ void buildPackages(String platform, String license = 'opensource') {
   String label = "packages ${license}".toUpperCase()
 
   try {
-    if (params.sign) env.ENABLE_SIGNING=1
     if (!platform.startsWith('windows')) {
       sh label: label, script: """
         cd build_tools
@@ -607,6 +600,7 @@ ArrayList getModuleList(String platform, String license = 'any') {
     os: license in ['opensource', 'any'],
     com: license in ['commercial', 'any'],
   ]
+  Boolean test = env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/
   LinkedHashMap map = [
     windows_x64: [
       core: p.core && l.com,
@@ -625,18 +619,18 @@ ArrayList getModuleList(String platform, String license = 'any') {
     windows_x86_xp: [
       desktop: p.desktop && l.com,
     ],
-    darwin_x86_64: [
-      core: p.core && l.com,
-      builder: p.builder && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-      desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-    ],
     darwin_arm64: [
       core: p.core && l.com,
-      builder: p.builder && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-      desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
+      desktop: p.desktop && l.com && test,
+      builder: p.builder && l.com && test,
+    ],
+    darwin_x86_64: [
+      core: p.core && l.com,
+      desktop: p.desktop && l.com && test,
+      builder: p.builder && l.com && test,
     ],
     darwin_x86_64_v8: [
-      desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
+      desktop: p.desktop && l.com && test,
     ],
     linux_x86_64: [
       core: p.core && l.com,
@@ -667,6 +661,7 @@ ArrayList getTargetList(String platform, String license = 'any') {
     os: license in ['opensource', 'any'],
     com: license in ['commercial', 'any'],
   ]
+  Boolean test = defaults.channel == 'test'
   LinkedHashMap map = [
     windows_x64: [
       core: p.core && l.com,
@@ -688,29 +683,29 @@ ArrayList getTargetList(String platform, String license = 'any') {
     windows_x86_xp: [
       desktop: p.desktop && l.com,
     ],
-    darwin_x86_64: [
-      core: p.core && l.com,
-      desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-      builder: p.builder && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-    ],
     darwin_arm64: [
       core: p.core && l.com,
-      desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
-      builder: p.builder && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
+      desktop: p.desktop && l.com && test,
+      builder: p.builder && l.com && test,
+    ],
+    darwin_x86_64: [
+      core: p.core && l.com,
+      desktop: p.desktop && l.com && test,
+      builder: p.builder && l.com && test,
     ],
     darwin_x86_64_v8: [
-      desktop: p.desktop && l.com && (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/),
+      desktop: p.desktop && l.com && test,
     ],
     linux_x86_64: [
       core: p.core && l.com,
-      closuremaps_sdkjs_opensource: p.server_ce && l.os,
-      closuremaps_sdkjs_commercial: (p.core || p.desktop || p.builder || p.server_de || p.server_ee) && l.com,
-      closuremaps_webapps: (p.core || p.server_de || p.server_ee) && l.com,
       desktop: p.desktop && l.com,
       builder: p.builder && l.com,
       server_community: p.server_ce && l.os,
       server_developer: p.server_de && l.com,
       server_enterprise: p.server_ee && l.com,
+      closuremaps_sdkjs_opensource: p.server_ce && l.os,
+      closuremaps_sdkjs_commercial: (p.core || p.desktop || p.builder || p.server_de || p.server_ee) && l.com,
+      closuremaps_webapps: (p.core || p.server_de || p.server_ee) && l.com,
     ],
     linux_aarch64: [
       builder: p.builder && l.com,
@@ -737,8 +732,8 @@ String getPrefix(String platform) {
     windows_x86:      'win_32',
     windows_x64_xp:   'win_64_xp',
     windows_x86_xp:   'win_32_xp',
-    darwin_x86_64:    'mac_64',
     darwin_arm64:     'mac_arm64',
+    darwin_x86_64:    'mac_64',
     darwin_x86_64_v8: 'mac_64',
     linux_x86_64:     'linux_64',
     linux_aarch64:    'linux_arm64',
