@@ -4,37 +4,6 @@ set -Eeuo pipefail
 
 cd "${0%/*}"
 
-usage() {
-  cat << EOF
-Usage: ./${0##*/} [OPTION]
-Build artifacts reports.
-
-      --json                   build JSON only
-      --html                   build HTML from JSON only
-  -c, --company                var COMPANY_NAME (optional)
-  -b, --branch                 var BRANCH_NAME
-  -r, --version                var BUILD_VERSION (optional)
-  -n, --number                 var BUILD_NUMBER
-  -s, --s3-bucket              var S3_BUCKET (optional)
-  -u, --s3-base-url            var S3_BASE_URL (optional)
-  -v, --verbose                print script debug info
-  -h, --help                   print this help and exit
-EOF
-  exit
-}
-
-setup_colors() {
-  if [[ -z "${NO_COLOR-}" ]]; then
-    NOFORMAT='\033[0m'  BOLD='\033[1m'      RED='\033[0;31m'
-    GREEN='\033[0;32m'  ORANGE='\033[0;33m' BLUE='\033[0;34m'
-    PURPLE='\033[0;35m' CYAN='\033[0;36m'   YELLOW='\033[1;33m'
-  else
-    NOFORMAT=''         BOLD=''             RED=''
-    GREEN=''            ORANGE=''           BLUE=''
-    PURPLE=''           CYAN=''             YELLOW=''
-  fi
-}
-
 msg() {
   echo >&2 -e "${1-}"
 }
@@ -47,29 +16,56 @@ die() {
 }
 
 parse_params() {
-  COMPANY_NAME="ONLYOFFICE"
-  S3_BUCKET="repo-doc-onlyoffice-com"
-  S3_BASE_URL="https://s3.eu-west-1.amazonaws.com/$S3_BUCKET"
+  : "${COMPANY_NAME:=ONLYOFFICE}"
+  : "${S3_BUCKET:=repo-doc-onlyoffice-com}"
+  : "${S3_BASE_URL:=https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com}"
+  REPORTS_DIR=reports
+  S3_TEMP_DIR=s3
+  JSON=0
+  HTML=0
+  DEPLOY=0
+  JOBS=8
 
   while :; do
     case "${1-}" in
-      -h | --help)             usage ;;
-      -v | --verbose)          set -x ;;
-      --no-color)              NO_COLOR=1 ;;
-      --json)                  JSON_ONLY=1 ;;
-      --html)                  HTML_ONLY=1 ;;
-      -c | --company)          COMPANY_NAME="${2-}"  ; shift ;;
-      -b | --branch)           BRANCH_NAME="${2-}"   ; shift ;;
-      -r | --version)          BUILD_VERSION="${2-}" ; shift ;;
-      -n | --number)           BUILD_NUMBER="${2-}"  ; shift ;;
-      -s | --s3-bucket)        S3_BUCKET="${2-}"     ; shift ;;
-      -?*)                     die "Unknown option: $1" ;;
-      *)                       break ;;
+      -v | --verbose )
+        set -x
+        ;;
+      --no-color )
+        NO_COLOR=1
+        ;;
+      -b | --branch )
+        BRANCH_NAME="${2-}"
+        shift
+        ;;
+      -r | --version )
+        BUILD_VERSION="${2-}"
+        shift
+        ;;
+      -n | --number )
+        BUILD_NUMBER="${2-}"
+        shift
+        ;;
+      --json )
+        JSON=1
+        ;;
+      --html )
+        HTML=1
+        ;;
+      -d | --deploy )
+        DEPLOY=1
+        ;;
+      -j | --jobs )
+        JOBS="${2-}"
+        shift
+        ;;
+      -?*)
+        echo "Unknown option: $1" >&2 ;;
+      *)
+        break ;;
     esac
     shift
   done
-
-  args=("$@")
 
   [[ -z "${BRANCH_NAME-}"  ]] && die "Missing parameter: BRANCH_NAME"
   [[ -z "${BUILD_NUMBER-}" ]] && die "Missing parameter: BUILD_NUMBER"
@@ -81,40 +77,113 @@ parse_params() {
     esac
   fi
 
-  COMPANY_NAME_LC="${COMPANY_NAME,,}"
+  DATE_NOW=$(LANG=C TZ=Etc/GMT-3 date '+%F %R %Z')
   VERSION="$BUILD_VERSION-$BUILD_NUMBER"
   VERSION_DOT="$BUILD_VERSION.$BUILD_NUMBER"
+
+  if [[ -z "${NO_COLOR-}" ]]; then
+    NOFORMAT='\033[0m'  BOLD='\033[1m'      RED='\033[0;31m'
+    GREEN='\033[0;32m'  ORANGE='\033[0;33m' BLUE='\033[0;34m'
+    PURPLE='\033[0;35m' CYAN='\033[0;36m'   YELLOW='\033[1;33m'
+  else
+    NOFORMAT=''         BOLD=''             RED=''
+    GREEN=''            ORANGE=''           BLUE=''
+    PURPLE=''           CYAN=''             YELLOW=''
+  fi
 
   return 0
 }
 
 parse_params "$@"
-setup_colors
 
-msg "${BOLD}Read parameters:${NOFORMAT}"
-msg "- COMPANY_NAME:     $COMPANY_NAME"
-msg "- BRANCH_NAME:      $BRANCH_NAME"
-msg "- BUILD_VERSION:    $BUILD_VERSION"
-msg "- BUILD_NUMBER:     $BUILD_NUMBER"
-msg "- S3_BUCKET:        $S3_BUCKET"
-msg "- S3_BASE_URL:      $S3_BASE_URL"
+msg "- BRANCH_NAME:      $BOLD$BRANCH_NAME$NOFORMAT"
+msg "- BUILD_VERSION:    $BOLD$BUILD_VERSION$NOFORMAT"
+msg "- BUILD_NUMBER:     $BOLD$BUILD_NUMBER$NOFORMAT"
+msg "- COMPANY_NAME:     $BOLD$COMPANY_NAME$NOFORMAT"
+msg "- S3_BUCKET:        $BOLD$S3_BUCKET$NOFORMAT"
+msg "- S3_BASE_URL:      $BOLD$S3_BASE_URL$NOFORMAT"
 
-json=reports/data.json
+list=$REPORTS_DIR/data.tsv
+json=$REPORTS_DIR/data.json
 desc=build.html
-UPDATEDATE=$(LANG=C TZ=Etc/GMT-3 date '+%F %R %Z')
 
-json_add() {
-  msg "$BLUE$1 > $2 > $3$NOFORMAT"
-  aws s3api list-objects-v2 --bucket $S3_BUCKET --prefix $4 \
-    --query 'Contents[].Key' | jq -r '.[]?' | while read key; do
+mkdir -pv $REPORTS_DIR
+> $list
+rm -rfv $S3_TEMP_DIR
+if [[ "${JSON-}" -eq 1 ]]; then
+  echo '{}' > $json
+fi
+if [[ "${HTML-}" -eq 1 ]]; then
+  rm -rfv $REPORTS_DIR/*.html $desc
+fi
+
+while read product platform type prefix filter; do
+  msg "$BLUE$product > $platform > $type $GREEN[$prefix]${filter:+ $YELLOW[$filter]}$NOFORMAT"
+  aws s3api list-objects-v2 --bucket $S3_BUCKET --prefix $prefix \
+    --query "Contents[${filter:+?contains(Key,'$filter')}].Key" \
+    | jq -r '.[]?' | while read key; do
     msg "  $key"
-    object=$(aws s3api head-object --bucket $S3_BUCKET --key $key || jq -n {})
-    size=$(<<<$object jq -er '.ContentLength // 0')
-    sha256=$(<<<$object jq -er '.Metadata.sha256 // empty' || :)
-    sha1=$(<<<$object jq -er '.Metadata.sha1 // empty' || :)
-    md5=$(<<<$object jq -er '.Metadata.md5 // empty' || :)
-    [[ ! -f $json ]] && jq -n '{}' > $json
-    jq ".$1.$2.$3 += [{
+    echo -e "$product\t$platform\t$type\t$key" >> $list
+  done
+done << EOF
+core      win       archive       archive/$BRANCH_NAME/$BUILD_NUMBER/core-win
+core      mac       archive       archive/$BRANCH_NAME/$BUILD_NUMBER/core-mac
+core      linux     archive       archive/$BRANCH_NAME/$BUILD_NUMBER/core-linux
+builder   win       archive       archive/$BRANCH_NAME/$BUILD_NUMBER/builder-win
+builder   mac       archive       archive/$BRANCH_NAME/$BUILD_NUMBER/builder-mac
+builder   linux     archive       archive/$BRANCH_NAME/$BUILD_NUMBER/builder-linux
+core      linux     cm_sdkjs_oss  closure-maps/sdkjs/opensource/$BUILD_VERSION/$BUILD_NUMBER
+core      linux     cm_sdkjs_com  closure-maps/sdkjs/commercial/$BUILD_VERSION/$BUILD_NUMBER
+core      linux     cm_webapps    closure-maps/web-apps/opensource/$BUILD_VERSION/$BUILD_NUMBER
+desktop   win       generic       desktop/win/generic/    $VERSION_DOT
+desktop   win       inno          desktop/win/inno/       $VERSION_DOT
+desktop   win       advinst       desktop/win/advinst/    $VERSION_DOT
+desktop   win       online        desktop/win/online/     $VERSION_DOT
+desktop   win       update        desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER
+desktop   mac       arm           desktop/mac/arm/$BUILD_VERSION/$BUILD_NUMBER
+desktop   mac       x86_64        desktop/mac/x86_64/$BUILD_VERSION/$BUILD_NUMBER
+desktop   mac       v8            desktop/mac/v8/$BUILD_VERSION/$BUILD_NUMBER
+desktop   linux     generic       desktop/linux/generic/  $VERSION
+desktop   linux     debian        desktop/linux/debian/   $VERSION
+desktop   linux     rhel          desktop/linux/rhel/     $VERSION
+desktop   linux     suse          desktop/linux/suse/     $VERSION
+builder   win       generic       builder/win/generic/    $VERSION_DOT
+builder   win       inno          builder/win/inno/       $VERSION_DOT
+builder   mac       generic       builder/mac/generic/    $VERSION
+builder   linux     generic       builder/linux/generic/  $VERSION
+builder   linux     debian        builder/linux/debian/   $VERSION
+builder   linux     rhel          builder/linux/rhel/     $VERSION
+server    win       inno          server/win/inno/        $VERSION_DOT
+server    linux     debian        server/linux/debian/    $VERSION
+server    linux     rhel          server/linux/rhel/      $VERSION
+server    linux     snap          server/linux/snap/      $VERSION
+mobile    android   archive       mobile/android/build-$VERSION
+EOF
+
+while read product platform type key; do
+  until [[ $(jobs -lr | wc -l) -lt $JOBS ]]; do
+    sleep 1
+  done
+  {
+    install -D -m 644 /dev/null $S3_TEMP_DIR/$key
+    aws s3api head-object --bucket $S3_BUCKET --key $key > $S3_TEMP_DIR/$key
+  } &
+done < $list
+wait
+
+if [[ "${JSON-}" -eq 1 ]]; then
+
+  msg
+  msg "${BOLD}JSON:${NOFORMAT}"
+
+  while read product platform type key; do
+    msg "$GREEN$product > $platform > $type > $key$NOFORMAT"
+    obj=$(jq -c '.' $S3_TEMP_DIR/$key)
+    size=$(<<<$obj jq -r '.ContentLength // 0')
+    sha256=$(<<<$obj jq -r '.Metadata.sha256 // empty')
+    sha1=$(<<<$obj jq -r '.Metadata.sha1 // empty')
+    md5=$(<<<$obj jq -r '.Metadata.md5 // empty')
+    jq ".$product.$platform.$type += [{
       key: \"$key\",
       size: $size,
       sha256: \"$sha256\",
@@ -122,72 +191,7 @@ json_add() {
       md5: \"$md5\"
     }]" $json \
       > $json.tmp && mv -f $json.tmp $json
-  done
-}
-
-if [[ -z "${HTML_ONLY-}" ]]; then
-
-  msg
-  msg "${BOLD}JSON:${NOFORMAT}"
-  rm -rfv $desc reports
-  mkdir -pv reports
-
-  # CORE
-  json_add core win   archive archive/$BRANCH_NAME/$BUILD_NUMBER/core-win
-  json_add core mac   archive archive/$BRANCH_NAME/$BUILD_NUMBER/core-mac
-  json_add core linux archive archive/$BRANCH_NAME/$BUILD_NUMBER/core-linux
-  json_add core linux closuremaps_sdkjs_opensource closure-maps/sdkjs/opensource/$BUILD_VERSION/$BUILD_NUMBER
-  json_add core linux closuremaps_sdkjs_commercial closure-maps/sdkjs/commercial/$BUILD_VERSION/$BUILD_NUMBER
-  json_add core linux closuremaps_webapps          closure-maps/web-apps/opensource/$BUILD_VERSION/$BUILD_NUMBER
-
-  # DESKTOP
-  json_add desktop win   generic desktop/win/generic/${COMPANY_NAME}-DesktopEditors-${VERSION_DOT}
-  json_add desktop win   inno    desktop/win/inno/${COMPANY_NAME}-DesktopEditors-${VERSION_DOT}
-  json_add desktop win   inno    desktop/win/inno/${COMPANY_NAME}-DesktopEditors-Standalone-${VERSION_DOT}
-  json_add desktop win   inno    desktop/win/inno/${COMPANY_NAME}-DesktopEditors-Update-${VERSION_DOT}
-  json_add desktop win   advinst desktop/win/advinst/${COMPANY_NAME}-DesktopEditors-${VERSION_DOT}
-  json_add desktop win   update  desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER
-  json_add desktop win   online  desktop/win/online/OnlineInstaller-${VERSION_DOT}
-  json_add desktop mac   arm     desktop/mac/arm/$BUILD_VERSION/$BUILD_NUMBER
-  json_add desktop mac   x86_64  desktop/mac/x86_64/$BUILD_VERSION/$BUILD_NUMBER
-  json_add desktop mac   v8      desktop/mac/v8/$BUILD_VERSION/$BUILD_NUMBER
-  json_add desktop linux generic desktop/linux/generic/${COMPANY_NAME_LC}-desktopeditors-${VERSION}
-  json_add desktop linux generic desktop/linux/generic/${COMPANY_NAME_LC}-desktopeditors-help-${VERSION}
-  json_add desktop linux debian  desktop/linux/debian/${COMPANY_NAME_LC}-desktopeditors_${VERSION}
-  json_add desktop linux debian  desktop/linux/debian/${COMPANY_NAME_LC}-desktopeditors-help_${VERSION}
-  json_add desktop linux rhel    desktop/linux/rhel/${COMPANY_NAME_LC}-desktopeditors-${VERSION}
-  json_add desktop linux rhel    desktop/linux/rhel/${COMPANY_NAME_LC}-desktopeditors-help-${VERSION}
-  json_add desktop linux suse    desktop/linux/suse/${COMPANY_NAME_LC}-desktopeditors-${VERSION}
-  json_add desktop linux suse    desktop/linux/suse/${COMPANY_NAME_LC}-desktopeditors-help-${VERSION}
-
-  # BUILDER
-  json_add builder win   archive archive/$BRANCH_NAME/$BUILD_NUMBER/builder-win
-  json_add builder mac   archive archive/$BRANCH_NAME/$BUILD_NUMBER/builder-mac
-  json_add builder linux archive archive/$BRANCH_NAME/$BUILD_NUMBER/builder-linux
-  json_add builder win   generic builder/win/generic/${COMPANY_NAME}-DocumentBuilder-${VERSION_DOT}
-  json_add builder win   inno    builder/win/inno/${COMPANY_NAME}-DocumentBuilder-${VERSION_DOT}
-  json_add builder mac   generic builder/mac/generic/${COMPANY_NAME_LC}-documentbuilder-${VERSION}
-  json_add builder linux generic builder/linux/generic/${COMPANY_NAME_LC}-documentbuilder-${VERSION}
-  json_add builder linux debian  builder/linux/debian/${COMPANY_NAME_LC}-documentbuilder_${VERSION}
-  json_add builder linux rhel    builder/linux/rhel/${COMPANY_NAME_LC}-documentbuilder-${VERSION}
-
-  # SERVER
-  json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-${VERSION_DOT}
-  json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-EE-${VERSION_DOT}
-  json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-DE-${VERSION_DOT}
-  json_add server win   inno   server/win/inno/${COMPANY_NAME}-DocumentServer-Prerequisites-${VERSION_DOT}
-  json_add server linux debian server/linux/debian/${COMPANY_NAME_LC}-documentserver_${VERSION}
-  json_add server linux debian server/linux/debian/${COMPANY_NAME_LC}-documentserver-ee_${VERSION}
-  json_add server linux debian server/linux/debian/${COMPANY_NAME_LC}-documentserver-de_${VERSION}
-  json_add server linux rhel   server/linux/rhel/${COMPANY_NAME_LC}-documentserver-${VERSION}
-  json_add server linux rhel   server/linux/rhel/${COMPANY_NAME_LC}-documentserver-ee-${VERSION}
-  json_add server linux rhel   server/linux/rhel/${COMPANY_NAME_LC}-documentserver-de-${VERSION}
-  json_add server linux snap   server/linux/snap/${COMPANY_NAME_LC}-documentserver-${VERSION}
-  json_add server linux snap   server/linux/snap/${COMPANY_NAME_LC}-documentserver-ee-${VERSION}
-  json_add server linux snap   server/linux/snap/${COMPANY_NAME_LC}-documentserver-de-${VERSION}
-
-  # MOBILE
-  json_add mobile android archive mobile/android/build-${VERSION}
+  done < $list
 
 fi
 
@@ -209,9 +213,9 @@ declare -A PRODUCT_TITLES=(
 
 declare -A TYPE_TITLES=(
   [archive]="Archive"
-  [closuremaps_sdkjs_opensource]="SDKJS Closure Maps Opensource"
-  [closuremaps_sdkjs_commercial]="SDKJS Closure Maps Commercial"
-  [closuremaps_webapps]="WEB-APPS Closure Maps"
+  [cm_sdkjs_oss]="SDKJS Closure Maps Open Source"
+  [cm_sdkjs_com]="SDKJS Closure Maps Commercial"
+  [cm_webapps]="WEB-APPS Closure Maps"
   [generic]="Portable"
   [update]="Update"
   [inno]="Inno Setup"
@@ -228,17 +232,16 @@ declare -A TYPE_TITLES=(
   [suse]="SUSE Linux / OpenSUSE"
 )
 
-if [[ -z "${JSON_ONLY-}" ]]; then
+if [[ "${HTML-}" -eq 1 ]]; then
 
   msg
   msg "${BOLD}HTML:${NOFORMAT}"
-  rm -rfv $desc reports/*.html
 
   [[ ! -f $json ]] && die "Artifacts not found" 0
   jq -r "keys_unsorted[]" $json | while read product; do
 
     msg "$BLUE$product$NOFORMAT"
-    html=reports/$product.html
+    html=$REPORTS_DIR/$product.html
 
     cat << EOF > $html
 <!DOCTYPE html>
@@ -251,7 +254,7 @@ if [[ -z "${JSON_ONLY-}" ]]; then
 <body>
   <div class="container-lg px-3 my-5 markdown-body">
   <h1>$COMPANY_NAME ${PRODUCT_TITLES[$product]} - $BRANCH_NAME - $BUILD_NUMBER</h1>
-  <p class="color-fg-muted">$UPDATEDATE</p>
+  <p class="color-fg-muted">$DATE_NOW</p>
 EOF
 
     jq -r ".$product | keys_unsorted[]" $json | while read platform; do
@@ -309,20 +312,21 @@ EOF
 
   done
 
-  msg
-  msg "${BOLD}Upload:${NOFORMAT}"
+  if [[ "${DEPLOY-}" -eq 1 ]]; then
+    msg
+    msg "${BOLD}Upload:${NOFORMAT}"
 
-  aws s3 sync --no-progress --acl public-read \
-    reports \
-    s3://$S3_BUCKET/reports/$BRANCH_NAME/$BUILD_NUMBER
-  aws s3 sync --no-progress --acl public-read --delete \
-    s3://$S3_BUCKET/reports/$BRANCH_NAME/$BUILD_NUMBER \
-    s3://$S3_BUCKET/reports/$BRANCH_NAME/latest
-  for f in reports/*; do
-    echo "URL: $S3_BASE_URL/reports/$BRANCH_NAME/$BUILD_NUMBER/${f##*/}"
-  done
-  for f in reports/*; do
-    echo "URL: $S3_BASE_URL/reports/$BRANCH_NAME/latest/${f##*/}"
-  done
+    aws s3 sync --no-progress --acl public-read \
+      $REPORTS_DIR \
+      s3://$S3_BUCKET/reports/$BRANCH_NAME/$BUILD_NUMBER
+    aws s3 sync --no-progress --acl public-read --delete \
+      s3://$S3_BUCKET/reports/$BRANCH_NAME/$BUILD_NUMBER \
+      s3://$S3_BUCKET/reports/$BRANCH_NAME/latest
+
+    find $REPORTS_DIR -type f -printf \
+      "URL: $S3_BASE_URL/reports/$BRANCH_NAME/$BUILD_NUMBER/%f\n"
+    find $REPORTS_DIR -type f -printf \
+      "URL: $S3_BASE_URL/reports/$BRANCH_NAME/latest/%f\n"
+  fi
 
 fi

@@ -894,8 +894,14 @@ void buildReports() {
       || params.server_ee || params.server_de || params.mobile ))
     return
   try {
-    sh label: 'REPORTS', script: \
-      './reports.sh -b ' + env.BRANCH_NAME + ' -n ' + env.BUILD_NUMBER
+    sh label: 'REPORTS', script: """
+      ./reports.sh \
+        --branch \$BRANCH_NAME \
+        --number \$BUILD_NUMBER \
+        --json \
+        --html \
+        --deploy
+    """
   } catch (err) {
     echo err.toString()
   }
