@@ -56,8 +56,8 @@ pipeline {
       defaultValue: true,
       description: 'Protect branch (for start & rename only)'
     string \
-      name: 'extra_branch',
-      description: 'Extra branch (for finish only)'
+      name: 'extra_branches',
+      description: 'Extra branches (space separated, for finish only)'
     booleanParam \
       name: 'notify',
       defaultValue: true,
@@ -126,8 +126,8 @@ pipeline {
           } else if (params.action == 'finish') {
 
             baseBranches = ['master', 'develop']
-            if (!params.extra_branch.isEmpty())
-              baseBranches.add(params.extra_branch)
+            if (!params.extra_branches.isEmpty())
+              baseBranches.addAll(params.extra_branches.split(' '))
 
             stats.repos.each { repo, status ->
               if (!checkRemoteBranch(repo, branch)) {
