@@ -7,6 +7,7 @@ parse_params() {
   : "${COMPANY_NAME:=ONLYOFFICE}"
   : "${S3_BUCKET:=repo-doc-onlyoffice-com}"
   : "${S3_BASE_URL:=https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com}"
+  GITHUB_BASE_URL="https://github.com/ONLYOFFICE/4testing-DesktopEditors/releases/download"
   UPDATE_DIR=update
   S3_TEMP_DIR=s3
   DEPLOY=0
@@ -42,6 +43,7 @@ parse_params() {
   DESKTOP_NAME="$COMPANY_NAME Desktop Editors"
   PACKAGE_NAME="$COMPANY_NAME-DesktopEditors"
   CHANGES_URL="$S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER"
+
   UPD_64_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
   UPD_32_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
   ZIP_64_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.zip"
@@ -50,6 +52,10 @@ parse_params() {
   EXE_32_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
   MSI_64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.msi"
   MSI_32_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.msi"
+
+  ZIP_64_GH="v$BUILD_VERSION-$BUILD_NUMBER/$PACKAGE_NAME-x64.zip"
+  ZIP_32_GH="v$BUILD_VERSION-$BUILD_NUMBER/$PACKAGE_NAME-x86.zip"
+
   DATE_JSON=$(LANG=C TZ=UTC date -u "+%b %d %H:%M UTC %Y")
   DATE_XML=$(LANG=C TZ=UTC date -u "+%a, %d %b %Y %H:%M:%S +0000")
 
@@ -93,17 +99,20 @@ tee $UPDATE_DIR/appcast.json << EOF
       "url": "$S3_BASE_URL/$UPD_64_KEY",
       "installArguments": "/silent /update",
       "archive": {
-        "url": "$S3_BASE_URL/$ZIP_64_KEY",
+        "url": "$GITHUB_BASE_URL/$ZIP_64_GH",
+        "url2": "$S3_BASE_URL/$ZIP_64_KEY",
         "md5": "$(s3_md5 $ZIP_64_KEY)"
       },
       "iss": {
         "url": "$S3_BASE_URL/$EXE_64_KEY",
+        "url2": "$S3_BASE_URL/$EXE_64_KEY",
         "md5": "$(s3_md5 $EXE_64_KEY)",
         "arguments": "/silent /update",
         "maxVersion": "7.3.3"
       },
       "msi": {
         "url": "$S3_BASE_URL/$MSI_64_KEY",
+        "url2": "$S3_BASE_URL/$MSI_64_KEY",
         "md5": "$(s3_md5 $MSI_64_KEY)",
         "arguments": "/qr /norestart",
         "maxVersion": "7.5.0"
@@ -113,17 +122,20 @@ tee $UPDATE_DIR/appcast.json << EOF
       "url": "$S3_BASE_URL/$UPD_32_KEY",
       "installArguments": "/silent /update",
       "archive": {
-        "url": "$S3_BASE_URL/$ZIP_32_KEY",
+        "url": "$GITHUB_BASE_URL/$ZIP_32_GH",
+        "url2": "$S3_BASE_URL/$ZIP_32_KEY",
         "md5": "$(s3_md5 $ZIP_32_KEY)"
       },
       "iss": {
         "url": "$S3_BASE_URL/$EXE_32_KEY",
+        "url2": "$S3_BASE_URL/$EXE_32_KEY",
         "md5": "$(s3_md5 $EXE_32_KEY)",
         "arguments": "/silent /update",
         "maxVersion": "7.3.3"
       },
       "msi": {
         "url": "$S3_BASE_URL/$MSI_32_KEY",
+        "url2": "$S3_BASE_URL/$MSI_32_KEY",
         "md5": "$(s3_md5 $MSI_32_KEY)",
         "arguments": "/qr /norestart",
         "maxVersion": "7.5.0"
