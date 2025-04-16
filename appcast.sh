@@ -10,75 +10,77 @@ parse_params() {
   UPDATE_DIR=update
   S3_TEMP_DIR=s3
   DEPLOY=0
+  JOBS=8
 
   while :; do
     case "${1-}" in
-      -v | --version)
-        BUILD_VERSION="${2:-0.0.0}"
+      -v | --version )
+        BUILD_VERSION="${2-}"
         shift
         ;;
-      -n | --number)
-        BUILD_NUMBER="${2:-0}"
+      -n | --number )
+        BUILD_NUMBER="${2-}"
         shift
         ;;
-      -d | --deploy)
-        DEPLOY="1"
+      -d | --deploy )
+        DEPLOY=1
         ;;
-      -?*)
+      -j | --jobs )
+        JOBS="${2-}"
+        shift
+        ;;
+      -?* )
         echo "Unknown option: $1" >&2
         ;;
-      *)
+      * )
         break
         ;;
     esac
     shift
   done
 
+  DESKTOP_NAME="$COMPANY_NAME Desktop Editors"
+  PACKAGE_NAME="$COMPANY_NAME-DesktopEditors"
+  CHANGES_URL="$S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER"
+  UPD_64_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
+  UPD_32_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
+  ZIP_64_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.zip"
+  ZIP_32_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.zip"
+  EXE_64_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
+  EXE_32_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
+  MSI_64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.msi"
+  MSI_32_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.msi"
+  DATE_JSON=$(LANG=C TZ=UTC date -u "+%b %d %H:%M UTC %Y")
+  DATE_XML=$(LANG=C TZ=UTC date -u "+%a, %d %b %Y %H:%M:%S +0000")
+
   return 0
 }
 
-s3_head_object() {
-  install -D -m 644 /dev/null $S3_TEMP_DIR/$1.json
-  aws s3api head-object --bucket $S3_BUCKET --key $1 > $S3_TEMP_DIR/$1.json
-}
-
-s3_md5() {
-  jq -r '.Metadata.md5 // empty' $S3_TEMP_DIR/$1.json
-}
-
 parse_params "$@"
-
-appc_j="$UPDATE_DIR/appcast.json"
-appc_x="$UPDATE_DIR/appcast.xml"
-clog_en="$UPDATE_DIR/changes.html"
-clog_ru="$UPDATE_DIR/changes_ru.html"
-
-DESKTOP_NAME="$COMPANY_NAME Desktop Editors"
-PACKAGE_NAME="$COMPANY_NAME-DesktopEditors"
-DATE_JSON=$(LANG=C TZ=UTC date -u "+%b %d %H:%M UTC %Y")
-DATE_XML=$(LANG=C TZ=UTC date -u "+%a, %d %b %Y %H:%M:%S +0000")
-CHANGES_URL="$S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER"
-EXEUPD_64_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
-EXEUPD_32_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
-ZIP_64_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.zip"
-ZIP_32_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.zip"
-EXE_64_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
-EXE_32_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
-MSI_64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.msi"
-MSI_32_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.msi"
 
 rm -rfv $UPDATE_DIR $S3_TEMP_DIR
 mkdir -pv $UPDATE_DIR
 
 # APPCAST JSON
-s3_head_object $ZIP_64_KEY &
-s3_head_object $EXE_64_KEY &
-s3_head_object $MSI_64_KEY &
-s3_head_object $ZIP_32_KEY &
-s3_head_object $EXE_32_KEY &
-s3_head_object $MSI_32_KEY &
+for key in \
+  $ZIP_64_KEY $EXE_64_KEY $MSI_64_KEY \
+  $ZIP_32_KEY $EXE_32_KEY $MSI_32_KEY
+do
+  until [[ $(jobs -lr | wc -l) -lt $JOBS ]]; do
+    sleep 1
+  done
+  {
+    install -D -m 644 /dev/null $S3_TEMP_DIR/$key
+    aws s3api head-object --bucket $S3_BUCKET --key $key > $S3_TEMP_DIR/$key
+  } &
+done
 wait
-tee $appc_j << EOF
+
+s3_md5() {
+  jq -r '.Metadata.md5 // empty' $S3_TEMP_DIR/$1
+}
+
+tee $UPDATE_DIR/appcast.json << EOF
 {
   "version": "$BUILD_VERSION.$BUILD_NUMBER",
   "date": "$DATE_JSON",
@@ -88,7 +90,7 @@ tee $appc_j << EOF
   },
   "package": {
     "win_64": {
-      "url": "$S3_BASE_URL/$EXEUPD_64_KEY",
+      "url": "$S3_BASE_URL/$UPD_64_KEY",
       "installArguments": "/silent /update",
       "archive": {
         "url": "$S3_BASE_URL/$ZIP_64_KEY",
@@ -108,7 +110,7 @@ tee $appc_j << EOF
       }
     },
     "win_32": {
-      "url": "$S3_BASE_URL/$EXEUPD_32_KEY",
+      "url": "$S3_BASE_URL/$UPD_32_KEY",
       "installArguments": "/silent /update",
       "archive": {
         "url": "$S3_BASE_URL/$ZIP_32_KEY",
@@ -132,7 +134,7 @@ tee $appc_j << EOF
 EOF
 
 # APPCAST XML
-tee $appc_x << EOF
+tee $UPDATE_DIR/appcast.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
   <channel>
@@ -144,26 +146,32 @@ tee $appc_x << EOF
       <pubDate>$DATE_XML</pubDate>
       <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
       <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
-      <enclosure url="$S3_BASE_URL/$EXEUPD_64_KEY" sparkle:os="windows-x64" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
+      <enclosure url="$S3_BASE_URL/$UPD_64_KEY" sparkle:os="windows-x64" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
     </item>
     <item>
       <title>Version $BUILD_VERSION.$BUILD_NUMBER</title>
       <pubDate>$DATE_XML</pubDate>
       <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
       <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
-      <enclosure url="$S3_BASE_URL/$EXEUPD_32_KEY" sparkle:os="windows-x86" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
+      <enclosure url="$S3_BASE_URL/$UPD_32_KEY" sparkle:os="windows-x86" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
     </item>
   </channel>
 </rss>
 EOF
 
 # APPCAST CHANGES
-for clog in $clog_en $clog_ru; do
-  case "$clog" in
-    $clog_en ) HTML_TITLE="%s Release Notes"; HTML_MORE="See list of the changes" ;;
-    $clog_ru ) HTML_TITLE="История изменений %s"; HTML_MORE="Список изменений" ;;
+for c in changes changes_ru; do
+  case $c in
+    changes )
+      HTML_TITLE="%s Release Notes"
+      HTML_MORE="See list of the changes"
+      ;;
+    changes_ru )
+      HTML_TITLE="История изменений %s"
+      HTML_MORE="Список изменений"
+      ;;
   esac
-  tee $clog << EOF
+  tee $UPDATE_DIR/$c.html << EOF
 <!DOCTYPE html>
 <html>
 <head>
@@ -203,8 +211,11 @@ EOF
 done
 
 # UPLOAD
-if [[ "${DEPLOY:-}" -eq 1 ]]; then
+if [[ "${DEPLOY-}" -eq 1 ]]; then
   for f in $UPDATE_DIR/*; do
+    until [[ $(jobs -lr | wc -l) -lt $JOBS ]]; do
+      sleep 1
+    done
     {
       sha256=$(sha256sum $f | cut -d' ' -f1)
       sha1=$(sha1sum $f | cut -d' ' -f1)
