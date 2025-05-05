@@ -200,10 +200,7 @@ pipeline {
         // Windows
         stage('Windows x64') {
           agent {
-            node {
-              label 'windows_x64'
-              customWorkspace "C:\\oo\\${branchDir}_x64"
-            }
+            label 'windows_x64_new'
           }
           when {
             expression { params.windows_x64 }
@@ -224,10 +221,7 @@ pipeline {
         }
         stage('Windows x86') {
           agent {
-            node {
-              label 'windows_x86'
-              customWorkspace "C:\\oo\\${branchDir}_x86"
-            }
+            label 'windows_x86_new'
           }
           when {
             expression { params.windows_x86 }
