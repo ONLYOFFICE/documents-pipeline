@@ -388,6 +388,7 @@ pipeline {
             RPM_RELEASE_SUFFIX = '.el7'
             RPM_SUSE_RELEASE_SUFFIX = '.suse12'
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
+            PKG_TARGET = 'node18-linux-x64'
           }
           steps {
             start('linux_x86_64')
@@ -413,6 +414,7 @@ pipeline {
             RPM_RELEASE_SUFFIX = '.el7'
             RPM_SUSE_RELEASE_SUFFIX = '.suse12'
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
+            PKG_TARGET = 'node18-linux-arm64'
           }
           steps {
             start('linux_aarch64')
