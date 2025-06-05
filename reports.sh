@@ -149,10 +149,13 @@ desktop   linux     rhel          desktop/linux/rhel/     $VERSION
 desktop   linux     suse          desktop/linux/suse/     $VERSION
 builder   win       generic       builder/win/generic/    $VERSION_DOT
 builder   win       inno          builder/win/inno/       $VERSION_DOT
+builder   win       python        builder/win/python/     $VERSION_DOT
 builder   mac       generic       builder/mac/generic/    $VERSION
+builder   mac       python        builder/mac/python/     $VERSION_DOT
 builder   linux     generic       builder/linux/generic/  $VERSION
 builder   linux     debian        builder/linux/debian/   $VERSION
 builder   linux     rhel          builder/linux/rhel/     $VERSION
+builder   linux     python        builder/linux/python/   $VERSION_DOT
 server    win       inno          server/win/inno/        $VERSION_DOT
 server    linux     debian        server/linux/debian/    $VERSION
 server    linux     rhel          server/linux/rhel/      $VERSION
@@ -179,10 +182,10 @@ if [[ "${JSON-}" -eq 1 ]]; then
   while read product platform type key; do
     msg "$GREEN$product > $platform > $type > $key$NOFORMAT"
     obj=$(jq -c '.' $S3_TEMP_DIR/$key)
-    size=$(<<<$obj jq -r '.ContentLength // 0')
-    sha256=$(<<<$obj jq -r '.Metadata.sha256 // empty')
-    sha1=$(<<<$obj jq -r '.Metadata.sha1 // empty')
-    md5=$(<<<$obj jq -r '.Metadata.md5 // empty')
+    size=$(<<<$obj jq -er '.ContentLength' || echo -n "0")
+    sha256=$(<<<$obj jq -er '.Metadata.sha256' ||:)
+    sha1=$(<<<$obj jq -er '.Metadata.sha1' ||:)
+    md5=$(<<<$obj jq -er '.Metadata.md5' ||:)
     jq ".$product.$platform.$type += [{
       key: \"$key\",
       size: $size,
@@ -230,6 +233,7 @@ declare -A TYPE_TITLES=(
   [rhel]="RHEL / CentOS"
   [snap]="Snapcraft"
   [suse]="SUSE Linux / OpenSUSE"
+  [python]="Python"
 )
 
 if [[ "${HTML-}" -eq 1 ]]; then
@@ -308,7 +312,7 @@ EOF
 
     [[ -f $desc ]] && echo -n ' &centerdot; ' >> $desc
     echo -n "<a href=\"$S3_BASE_URL/reports/$BRANCH_NAME/$BUILD_NUMBER" >> $desc
-    echo -n "/$product.html\" target=\"_blank\">${product^}</a>" >> $desc
+    echo -n "/$product.html\" target=\"_blank\">$product</a>" >> $desc
 
   done
 
