@@ -17,13 +17,14 @@ pipeline {
         expression { !params.branch.isEmpty() }
       }
       steps { script {
-        parallel winCleanStages()
+        currentBuild.displayName += ' ' + params.branch
+        parallel cleanStages()
       } }
     }
   }
 }
 
-def winCleanStages() {
+def cleanStages() {
   Map nodes = [:]
   String customDir = params.workspace
   String branchDir = params.branch.replaceAll(/\//,'_')
@@ -32,6 +33,14 @@ def winCleanStages() {
     nodes["${it}"] = { ->
       node(it) { stage("${it}") {
         powershell "Remove-Item -Recurse -Force C:\\${customDir}\\${branchDir}*"
+      } }
+    }
+  }
+
+  nodesByLabel("linux").each {
+    nodes["${it}"] = { ->
+      node(it) { stage("${it}") {
+        sh "rm -rf /home/jenkins/workspace/oo_${branchDir}"
       } }
     }
   }
