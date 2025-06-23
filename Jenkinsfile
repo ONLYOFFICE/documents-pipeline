@@ -810,7 +810,7 @@ void checkoutRepos(ArrayList repos) {
     dir(it.repo) {
       int retryCount = 0
       retry(3) {
-        if (retryCount > 0) sleep(30)
+        if (retryCount > 0) sleep(10)
         retryCount++
         checkout scmGit(
           userRemoteConfigs: [
@@ -825,10 +825,12 @@ void checkoutRepos(ArrayList repos) {
           ],
           extensions: [
             authorInChangelog(),
+            checkoutOption(30),
             cloneOption(
               noTags: true,
               // shallow: true,
               // depth: 1
+              timeout: 30
             ),
             submodule(
               recursiveSubmodules: true,
