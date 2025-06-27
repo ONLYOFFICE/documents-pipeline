@@ -200,10 +200,7 @@ pipeline {
         // Windows
         stage('Windows x64') {
           agent {
-            node {
-              label 'windows_x64'
-              customWorkspace "C:\\oo\\${branchDir}_x64"
-            }
+            label 'windows_x64_new'
           }
           when {
             expression { params.windows_x64 }
@@ -224,10 +221,7 @@ pipeline {
         }
         stage('Windows x86') {
           agent {
-            node {
-              label 'windows_x86'
-              customWorkspace "C:\\oo\\${branchDir}_x86"
-            }
+            label 'windows_x86_new'
           }
           when {
             expression { params.windows_x86 }
@@ -394,6 +388,7 @@ pipeline {
             RPM_RELEASE_SUFFIX = '.el7'
             RPM_SUSE_RELEASE_SUFFIX = '.suse12'
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
+            PKG_TARGET = 'node18-linux-x64'
           }
           steps {
             start('linux_x86_64')
@@ -419,6 +414,7 @@ pipeline {
             RPM_RELEASE_SUFFIX = '.el7'
             RPM_SUSE_RELEASE_SUFFIX = '.suse12'
             SUSE_RPM_RELEASE_SUFFIX = '.suse12'
+            PKG_TARGET = 'node18-linux-arm64'
           }
           steps {
             start('linux_aarch64')

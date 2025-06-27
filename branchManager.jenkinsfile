@@ -430,12 +430,12 @@ def protectBranch(String repo, String branch) {
 }
 
 def unprotectBranch(String repo, String branch) {
-  String branchUrl = URLEncoder.encode(branch)
   return sh (
     label: "${repo}: unprotect ${branch}".toUpperCase(),
     script: """
+      BRANCH=\$(echo -n "${branch}" | jq -sRr @uri)
       HTTP_CODE=\$(curl -s -X 'DELETE' \
-        "https://\$GIT_SERVER/api/v1/repos/\$GIT_OWNER/${repo}/branch_protections/${branchUrl}" \
+        "https://\$GIT_SERVER/api/v1/repos/\$GIT_OWNER/${repo}/branch_protections/\$BRANCH" \
         -H "Authorization: token \$GITEA_TOKEN" \
         -w '%{http_code}' \
         -o output.json)
