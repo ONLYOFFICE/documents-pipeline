@@ -200,7 +200,7 @@ pipeline {
         // Windows
         stage('Windows x64') {
           agent {
-            label 'windows_x64_new'
+            label 'windows_x64'
           }
           when {
             expression { params.windows_x64 }
@@ -221,7 +221,7 @@ pipeline {
         }
         stage('Windows x86') {
           agent {
-            label 'windows_x86_new'
+            label 'windows_x86'
           }
           when {
             expression { params.windows_x86 }
@@ -244,10 +244,7 @@ pipeline {
         }
         stage('Windows x64 XP') {
           agent {
-            node {
-              label 'windows_x64_xp'
-              customWorkspace "C:\\oo\\${branchDir}_x64_xp"
-            }
+            label 'windows_x64_xp'
           }
           when {
             expression { params.windows_x64_xp }
@@ -269,10 +266,7 @@ pipeline {
         }
         stage('Windows x86 XP') {
           agent {
-            node {
-              label 'windows_x86_xp'
-              customWorkspace "C:\\oo\\${branchDir}_x86_xp"
-            }
+            label 'windows_x86_xp'
           }
           when {
             expression { params.windows_x86_xp }
