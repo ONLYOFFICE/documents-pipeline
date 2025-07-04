@@ -32,15 +32,15 @@ if (env.BRANCH_NAME == 'develop') { defaults.putAll([
   channel:          'nightly',
   darwin_x86_64:    false,
   darwin_x86_64_v8: false,
-  android:          false,
   server_ce:        false,
   server_de:        false,
-  mobile:           false,
   beta:             true,
 ]) }
 else if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) { defaults.putAll([
   channel:          'test',
   version:          env.BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
+  android:          false,
+  mobile:           false,
   schedule:         'H 2 * * *',
 ]) }
 
