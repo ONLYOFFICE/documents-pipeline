@@ -384,7 +384,7 @@ def printBranches(String repo) {
         -w '%{http_code}' \
         -o output.json)
       test \$HTTP_CODE -eq 200
-      jq -r '.[] | [.name, .protected] | @tsv' output.json
+      jq -r '.[]|[.name, .protected]|@tsv' output.json | sort | column -t
     """,
     returnStatus: true
   ) == 0
