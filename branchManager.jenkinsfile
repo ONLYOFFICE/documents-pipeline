@@ -57,7 +57,7 @@ pipeline {
       description: 'Protect branch (for start & rename only)'
     string \
       name: 'extra_branches',
-      description: 'Extra branches (space separated, for finish only)'
+      description: 'Extra branches (space separated, for merge & finish only)'
     booleanParam \
       name: 'notify',
       defaultValue: true,
@@ -109,6 +109,8 @@ pipeline {
           } else if (params.action == 'merge') {
 
             baseBranches = ['master']
+            if (!params.extra_branches.isEmpty())
+              baseBranches.addAll(params.extra_branches.split(' '))
 
             stats.repos.each { repo, status ->
               if (!checkRemoteBranch(repo, branch)) {
@@ -453,10 +455,7 @@ def sendNotification() {
     case 'start':
       text = "Branch `${stats.branch}` created from `${stats.baseBranches[0]}`"
       break
-    case 'merge':
-      text = "Branch `${stats.branch}` merged into `${stats.baseBranches[0]}`"
-      break
-    case 'finish':
+    case ['merge', 'finish']:
       text = "Branch `${stats.branch}` merged into "
       text += stats.baseBranches.collect({"`$it`"}).join(', ')
       break
