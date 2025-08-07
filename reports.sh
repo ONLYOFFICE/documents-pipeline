@@ -148,13 +148,10 @@ desktop   linux     debian        desktop/linux/debian/   $VERSION
 desktop   linux     rhel          desktop/linux/rhel/     $VERSION
 desktop   linux     suse          desktop/linux/suse/     $VERSION
 builder   win       generic       builder/win/generic/    $VERSION_DOT
-builder   win       inno          builder/win/inno/       $VERSION_DOT
 builder   win       python        builder/win/python/     $VERSION_DOT
 builder   mac       generic       builder/mac/generic/    $VERSION
 builder   mac       python        builder/mac/python/     $VERSION_DOT
 builder   linux     generic       builder/linux/generic/  $VERSION
-builder   linux     debian        builder/linux/debian/   $VERSION
-builder   linux     rhel          builder/linux/rhel/     $VERSION
 builder   linux     python        builder/linux/python/   $VERSION_DOT
 server    win       inno          server/win/inno/        $VERSION_DOT
 server    linux     debian        server/linux/debian/    $VERSION
@@ -162,6 +159,9 @@ server    linux     rhel          server/linux/rhel/      $VERSION
 server    linux     snap          server/linux/snap/      $VERSION
 mobile    android   archive       mobile/android/build-$VERSION
 EOF
+# builder   win       inno          builder/win/inno/       $VERSION_DOT
+# builder   linux     debian        builder/linux/debian/   $VERSION
+# builder   linux     rhel          builder/linux/rhel/     $VERSION
 
 while read product platform type key; do
   until [[ $(jobs -lr | wc -l) -lt $JOBS ]]; do
