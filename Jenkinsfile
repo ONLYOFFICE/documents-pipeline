@@ -469,6 +469,9 @@ pipeline {
           },
           docs_snap: {
             buildDocsSnap()
+          },
+          docker_docs: {
+            buildDockerDocs()
           }
         )
       } }
@@ -1024,6 +1027,45 @@ void buildDocsDocker() {
     stageStats['Linux Docs Docker'] = 2
   } finally {
     if (!stageStats['Linux Docs Docker']) stageStats['Linux Docs Docker'] = 0
+  }
+}
+
+void buildDockerDocs() {
+  if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
+    return
+  if (!(params.server_ee || params.server_de))
+    return
+  try {
+    String edition = [
+      params.server_ee ? 'ee' : null,
+      params.server_de ? 'de' : null
+    ].findAll { it }.join(',')
+
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: 'DOCKER DOCS BUILD', script: """
+        repo=ONLYOFFICE/Docker-Docs
+        gh workflow run build.yaml \
+          --repo \$repo \
+          --ref \$BRANCH_NAME \
+          -f amd64=${stageStats['Linux x86_64'] == 0} \
+          -f arm64=${stageStats['Linux aarch64'] == 0} \
+          -f edition='${edition}' \
+          -f docs-utils=true \
+          -f docs-balancer=true \
+          -f docs-non-plugins=false \
+          -f tag=\$BUILD_VERSION.\$BUILD_NUMBER \
+          -f version=\$BUILD_VERSION-\$BUILD_NUMBER \
+          -f package-url='s3' \
+          -f test-repo=false
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+    stageStats['Linux Docker Docs'] = 2
+  } finally {
+    if (!stageStats['Linux Docker Docs']) stageStats['Linux Docker Docs'] = 0
   }
 }
 

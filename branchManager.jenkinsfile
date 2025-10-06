@@ -258,6 +258,7 @@ def getRepos() {
       'web-apps',
       'web-apps-mobile',
       'Docker-DocumentServer',
+      'Docker-Docs',
       'DocumentBuilder'
     ]
   }
