@@ -470,8 +470,8 @@ pipeline {
           docs_snap: {
             buildDocsSnap()
           },
-          docker_docs: {
-            buildDockerDocs()
+          docs_cluster_docker: {
+            buildDocsClusterDocker()
           }
         )
       } }
@@ -1030,7 +1030,7 @@ void buildDocsDocker() {
   }
 }
 
-void buildDockerDocs() {
+void buildDocsClusterDocker() {
   if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
     return
   if (!(params.server_ee || params.server_de))
@@ -1044,7 +1044,7 @@ void buildDockerDocs() {
     withCredentials([
       string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
     ]) {
-      sh label: 'DOCS DOCKER BUILD', script: """
+      sh label: 'DOCS CLUSTER DOCKER BUILD', script: """
         repo=ONLYOFFICE/Docker-Docs
         gh workflow run build.yaml \
           --repo \$repo \
@@ -1063,9 +1063,9 @@ void buildDockerDocs() {
     }
   } catch (err) {
     echo err.toString()
-    stageStats['Linux Docker Docs'] = 2
+    stageStats['Linux Cluster Docker Docs'] = 2
   } finally {
-    if (!stageStats['Linux Docker Docs']) stageStats['Linux Docker Docs'] = 0
+    if (!stageStats['Linux Cluster Docker Docs']) stageStats['Linux Cluster Docker Docs'] = 0
   }
 }
 
