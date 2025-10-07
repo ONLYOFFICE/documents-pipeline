@@ -1044,7 +1044,7 @@ void buildDockerDocs() {
     withCredentials([
       string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
     ]) {
-      sh label: 'DOCKER DOCS BUILD', script: """
+      sh label: 'DOCS DOCKER BUILD', script: """
         repo=ONLYOFFICE/Docker-Docs
         gh workflow run build.yaml \
           --repo \$repo \
