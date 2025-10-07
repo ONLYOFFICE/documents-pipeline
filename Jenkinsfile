@@ -1009,7 +1009,7 @@ void buildDocsDocker() {
     withCredentials([
       string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
     ]) {
-      sh label: 'DOCS DOCKER BUILD', script: """
+      sh label: 'DOCKER DOCS BUILD', script: """
         repo=ONLYOFFICE/Docker-DocumentServer
         gh workflow run 4testing-build.yml \
           --repo \$repo \
