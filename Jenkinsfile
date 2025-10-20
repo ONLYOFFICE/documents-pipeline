@@ -2,6 +2,7 @@ defaults = [
   channel:          'other',
   version:          '99.99.99',
   clean:            true,
+  build_js:         true,
   windows_x64:      true,
   windows_x86:      true,
   windows_x64_xp:   true,
@@ -70,6 +71,11 @@ pipeline {
       name: 'clean',
       defaultValue: defaults.clean,
       description: 'Rebuild binaries from the "core" repo'
+    )
+    booleanParam(
+      name: 'build_js',
+      defaultValue: defaults.build_js,
+      description: 'Build JS'
     )
     // Windows
     booleanParam(
@@ -509,6 +515,9 @@ void start(String platform) {
 void buildArtifacts(String platform, String license = 'opensource') {
   ArrayList modules = getModuleList(platform, license)
   if (!modules) return
+  if (!params.build_js) {
+    env.OO_NO_BUILD_JS = 1
+  }
 
   ArrayList args = []
   args.add("--module \"${modules.join(' ')}\"")
