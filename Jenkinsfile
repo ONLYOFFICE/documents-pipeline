@@ -1,6 +1,9 @@
 defaults = [
+  repo_owner:       'ONLYOFFICE',
+  branding:         'onlyoffice',
   channel:          'other',
   version:          '99.99.99',
+  schedule:         'H 20 * * *',
   clean:            true,
   build_js:         true,
   windows_x64:      true,
@@ -40,9 +43,9 @@ if (env.BRANCH_NAME == 'develop') { defaults.putAll([
 else if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) { defaults.putAll([
   channel:          'test',
   version:          env.BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
+  schedule:         'H 2 * * *',
   android:          false,
   mobile:           false,
-  schedule:         'H 2 * * *',
 ]) }
 
 pipeline {
@@ -186,7 +189,7 @@ pipeline {
     string(
       name: 'extra_args',
       defaultValue: '',
-      description: 'configure.py extra args'
+      description: 'Extra configure arguments'
     )
     booleanParam(
       name: 'notify',
@@ -494,7 +497,7 @@ void start(String platform) {
 
   if (params.wipe)
     deleteDir()
-  else if (params.clean && params.desktop && platform != 'android')
+  else if (params.desktop && platform != 'android')
     dir ('desktop-apps') { deleteDir() }
 
   if (!getModuleList(platform)) return
@@ -567,7 +570,7 @@ void buildPackages(String platform, String license = 'opensource') {
   targets.addAll(['clean', 'deploy'])
   if (params.sign) {
     targets.add('sign')
-    env.ENABLE_SIGNING=1
+    env.ENABLE_SIGNING = 1
   }
 
   ArrayList args = [
