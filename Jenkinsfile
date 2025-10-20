@@ -25,8 +25,8 @@ defaults = [
   sign:             true,
   notify:           true,
   schedule:         'H 20 * * *',
-  owner:            'ONLYOFFICE',
-  repo:             'onlyoffice',
+  repo_owner:       'ONLYOFFICE',
+  branding:         'onlyoffice',
 ]
 
 if (env.BRANCH_NAME == 'develop') { defaults.putAll([
@@ -177,6 +177,11 @@ pipeline {
       name: 'sign',
       defaultValue: defaults.sign,
       description: 'Enable signing'
+    )
+    string(
+      name: 'branding',
+      defaultValue: defaults.branding,
+      description: 'Branding'
     )
     string(
       name: 'extra_args',
@@ -494,7 +499,7 @@ void start(String platform) {
 
   if (!getModuleList(platform)) return
 
-  resolveRepos(platform, defaults.repo)
+  resolveRepos(platform, params.branding)
 
   timeout(time: 40, activity: true) {
     buildArtifacts(platform, 'opensource')
@@ -528,7 +533,7 @@ void buildArtifacts(String platform, String license = 'opensource') {
   if (platform in ["windows_x64_xp", "windows_x86_xp"])
     args.add("--qt-dir-xp ${env.QT_PATH}")
   if (license == "commercial")
-    args.add("--branding ${defaults.repo}")
+    args.add("--branding ${params.branding}")
   if (platform in ["windows_x64", "windows_x86"])
     args.add("--vs-version 2019")
   if (platform == "darwin_x86_64_v8")
@@ -572,7 +577,7 @@ void buildPackages(String platform, String license = 'opensource') {
     "--build ${env.BUILD_NUMBER}",
   ]
   if (env.COMPANY_NAME != 'ONLYOFFICE')
-    args.add("--branding ${defaults.repo}")
+    args.add("--branding ${params.branding}")
 
   String label = "packages ${license}".toUpperCase()
 
@@ -744,8 +749,8 @@ String getPrefix(String platform) {
 
 void resolveRepos(String platform, String branding = '') {
   ArrayList baseRepos = [
-    [owner: 'ONLYOFFICE',   repo: 'build_tools'],
-    [owner: defaults.owner, repo: defaults.repo]
+    [owner: 'ONLYOFFICE',        repo: 'build_tools'],
+    [owner: defaults.repo_owner, repo: params.branding]
   ].each {
     it.branch = env.BRANCH_NAME
     if (platform == 'linux_x86_64') {
