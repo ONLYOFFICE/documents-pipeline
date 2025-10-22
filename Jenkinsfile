@@ -8,6 +8,7 @@ defaults = [
   build_js:         true,
   windows_x64:      true,
   windows_x86:      true,
+  windows_arm64:    false,
   windows_x64_xp:   true,
   windows_x86_xp:   true,
   darwin_arm64:     true,
@@ -90,6 +91,11 @@ pipeline {
       name: 'windows_x86',
       defaultValue: defaults.windows_x86,
       description: 'Build Windows x86 targets (Visual Studio 2019)'
+    )
+    booleanParam(
+      name: 'windows_arm64',
+      defaultValue: defaults.windows_arm64,
+      description: 'Build Windows arm64 targets (Visual Studio 2019)'
     )
     booleanParam(
       name: 'windows_x64_xp',
@@ -248,6 +254,28 @@ pipeline {
           }
           steps {
             start('windows_x86')
+          }
+          post {
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
+          }
+        }
+        stage('Windows arm64') {
+          agent {
+            label 'windows_arm64'
+          }
+          when {
+            expression { params.windows_arm64 }
+            beforeAgent true
+          }
+          environment {
+            ARCH = 'arm64'
+            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
+          }
+          steps {
+            start('windows_arm64')
           }
           post {
             success  { setStageStats(0) }
@@ -537,7 +565,7 @@ void buildArtifacts(String platform, String license = 'opensource') {
     args.add("--qt-dir-xp ${env.QT_PATH}")
   if (license == "commercial")
     args.add("--branding ${params.branding}")
-  if (platform in ["windows_x64", "windows_x86"])
+  if (platform in ["windows_x64", "windows_x86", "windows_arm64"])
     args.add("--vs-version 2019")
   if (platform == "darwin_x86_64_v8")
     args.add("--config use_v8")
@@ -620,6 +648,9 @@ ArrayList getModuleList(String platform, String license = 'any') {
       desktop: p.desktop && l.com,
       builder: p.builder && l.com,
     ],
+    windows_arm64: [
+      desktop: p.desktop && l.com,
+    ],
     windows_x64_xp: [
       desktop: p.desktop && l.com,
     ],
@@ -684,6 +715,9 @@ ArrayList getTargetList(String platform, String license = 'any') {
       desktop: p.desktop && l.com,
       builder: p.builder && l.com,
     ],
+    windows_arm64: [
+      desktop: p.desktop && l.com,
+    ],
     windows_x64_xp: [
       desktop: p.desktop && l.com,
     ],
@@ -737,6 +771,7 @@ String getPrefix(String platform) {
   return [
     windows_x64:      'win_64',
     windows_x86:      'win_32',
+    windows_arm64:    'win_arm64',
     windows_x64_xp:   'win_64_xp',
     windows_x86_xp:   'win_32_xp',
     darwin_arm64:     'mac_arm64',
