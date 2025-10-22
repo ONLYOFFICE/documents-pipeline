@@ -213,6 +213,13 @@ pipeline {
         stageStats = [:]
         gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
         gitTagRepos = []
+        if ( params.core || params.desktop || params.builder || params.mobile
+            || params.server_ce || params.server_ee || params.server_de )
+          currentBuild.description = [
+            ( params.branding != defaults.branding ) ? params.branding : null,
+            ( params.clean    != defaults.clean    ) ? "no clean"      : null,
+            ( params.build_js != defaults.build_js ) ? "no build JS"   : null
+          ].findAll().join(" &centerdot; ")
       } }
     }
     stage('Build') {
@@ -929,8 +936,8 @@ void buildAppcast() {
 }
 
 void buildReports() {
-  if (!( params.core || params.desktop || params.builder || params.server_ce
-      || params.server_ee || params.server_de || params.mobile ))
+  if (!( params.core || params.desktop || params.builder || params.mobile
+      || params.server_ce || params.server_ee || params.server_de ))
     return
   try {
     sh label: 'REPORTS', script: """
@@ -945,7 +952,9 @@ void buildReports() {
     echo err.toString()
   }
   if (fileExists('build.html'))
-    currentBuild.description = readFile 'build.html'
+    if (!currentBuild.description.isEmpty())
+      currentBuild.description += "<br>"
+    currentBuild.description += readFile 'build.html'
 }
 
 void buildDesktopAppimage() {
