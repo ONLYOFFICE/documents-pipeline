@@ -567,7 +567,10 @@ void buildArtifacts(String platform, String license = 'opensource') {
   args.add("--platform ${getPrefix(platform)}")
   args.add("--update false")
   args.add("--clean ${params.clean.toString()}")
-  args.add("--qt-dir ${env.QT_PATH}")
+  if (platform == "windows_arm64")
+    args.add("--qt-dir ${env.QT_PATH_ARM64}")
+  else
+    args.add("--qt-dir ${env.QT_PATH}")
   if (platform in ["windows_x64_xp", "windows_x86_xp"])
     args.add("--qt-dir-xp ${env.QT_PATH}")
   if (license == "commercial")
