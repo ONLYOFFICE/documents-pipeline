@@ -214,12 +214,13 @@ pipeline {
         gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
         gitTagRepos = []
         if ( params.core || params.desktop || params.builder || params.mobile
-            || params.server_ce || params.server_ee || params.server_de )
-          currentBuild.description = [
-            ( params.branding != defaults.branding ) ? params.branding : null,
-            ( params.clean    != defaults.clean    ) ? "no clean"      : null,
-            ( params.build_js != defaults.build_js ) ? "no build JS"   : null
-          ].findAll().join(" &centerdot; ")
+            || params.server_ce || params.server_ee || params.server_de ) {
+          ArrayList arr = []
+          if ( params.branding != defaults.branding ) arr.add(params.branding)
+          if ( params.clean    != defaults.clean    ) arr.add("no clean")
+          if ( params.build_js != defaults.build_js ) arr.add("no build JS")
+          currentBuild.description = arr.join(" &centerdot; ")
+        }
       } }
     }
     stage('Build') {
