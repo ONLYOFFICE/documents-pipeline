@@ -955,10 +955,11 @@ void buildReports() {
   } catch (err) {
     echo err.toString()
   }
-  if (fileExists('build.html'))
+  if (fileExists('build.html')) {
     if (!currentBuild.description.isEmpty())
       currentBuild.description += "<br>"
     currentBuild.description += readFile 'build.html'
+  }
 }
 
 void buildDesktopAppimage() {
