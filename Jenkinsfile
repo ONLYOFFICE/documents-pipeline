@@ -490,7 +490,7 @@ void start(String platform) {
 
   resolveRepos(platform, defaults.repo)
 
-  timeout(time: 30, activity: true) {
+  timeout(time: 40, activity: true) {
     buildArtifacts(platform, 'opensource')
     buildPackages(platform, 'opensource')
     buildArtifacts(platform, 'commercial')
