@@ -52,12 +52,9 @@ else if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) { defaults.putAll([
 pipeline {
   agent none
   environment {
-    COMPANY_NAME = 'ONLYOFFICE'
     BUILD_CHANNEL = "${defaults.channel}"
     BUILD_VERSION = "${defaults.version}"
     PRODUCT_VERSION = "${defaults.version}"
-    S3_BASE_URL = 'https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com'
-    S3_BUCKET = 'repo-doc-onlyoffice-com'
   }
   options {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
@@ -220,6 +217,14 @@ pipeline {
           if ( params.clean    != defaults.clean    ) arr.add("no clean")
           if ( params.build_js != defaults.build_js ) arr.add("no build JS")
           currentBuild.description = arr.join(" &centerdot; ")
+        }
+        env.COMPANY_NAME = "ONLYOFFICE"
+        env.S3_BASE_URL = "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com"
+        env.S3_BUCKET = "repo-doc-onlyoffice-com"
+        if (params.branding == "humain") {
+          env.COMPANY_NAME = "Humain"
+          env.S3_BASE_URL = "https://s3.eu-west-1.amazonaws.com/repo-doc-humain"
+          env.S3_BUCKET = "repo-doc-humain"
         }
       } }
     }
