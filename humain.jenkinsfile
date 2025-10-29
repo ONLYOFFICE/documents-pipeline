@@ -596,9 +596,8 @@ void buildPackages(String platform, String license = 'opensource') {
     "--targets ${targets.join(' ')}",
     "--version ${env.BUILD_VERSION}",
     "--build ${env.BUILD_NUMBER}",
+    "--branding ${params.branding}",
   ]
-  if (params.branding != defaults.branding)
-    args.add("--branding ${params.branding}")
 
   String label = "packages ${license}".toUpperCase()
 
