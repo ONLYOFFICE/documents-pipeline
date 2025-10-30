@@ -42,6 +42,9 @@ else if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) { defaults.putAll([
   schedule:         'H 2 * * *',
 ]) }
 
+@Field def stageStats = [:]
+@Field def gitTagRepos = []
+
 pipeline {
   agent none
   environment {
@@ -90,16 +93,16 @@ pipeline {
       defaultValue: defaults.windows_arm64,
       description: 'Build Windows arm64 targets (Visual Studio 2019)'
     )
-    booleanParam(
-      name: 'windows_x64_xp',
-      defaultValue: defaults.windows_x64_xp,
-      description: 'Build Windows x64 XP targets (Visual Studio 2015)'
-    )
-    booleanParam(
-      name: 'windows_x86_xp',
-      defaultValue: defaults.windows_x86_xp,
-      description: 'Build Windows x86 XP targets (Visual Studio 2015)'
-    )
+    // booleanParam(
+    //   name: 'windows_x64_xp',
+    //   defaultValue: defaults.windows_x64_xp,
+    //   description: 'Build Windows x64 XP targets (Visual Studio 2015)'
+    // )
+    // booleanParam(
+    //   name: 'windows_x86_xp',
+    //   defaultValue: defaults.windows_x86_xp,
+    //   description: 'Build Windows x86 XP targets (Visual Studio 2015)'
+    // )
     // macOS
     booleanParam(
       name: 'darwin_arm64',
@@ -111,11 +114,11 @@ pipeline {
       defaultValue: defaults.darwin_x86_64,
       description: 'Build macOS x86-64 targets'
     )
-    booleanParam(
-      name: 'darwin_x86_64_v8',
-      defaultValue: defaults.darwin_x86_64_v8,
-      description: 'Build macOS x86-64 V8 targets'
-    )
+    // booleanParam(
+    //   name: 'darwin_x86_64_v8',
+    //   defaultValue: defaults.darwin_x86_64_v8,
+    //   description: 'Build macOS x86-64 V8 targets'
+    // )
     // Linux
     booleanParam(
       name: 'linux_x86_64',
@@ -128,11 +131,11 @@ pipeline {
       description: 'Build Linux aarch64 targets'
     )
     // Android
-    booleanParam(
-      name: 'android',
-      defaultValue: defaults.android,
-      description: 'Build Android targets'
-    )
+    // booleanParam(
+    //   name: 'android',
+    //   defaultValue: defaults.android,
+    //   description: 'Build Android targets'
+    // )
     // Modules
     booleanParam(
       name: 'core',
@@ -181,11 +184,6 @@ pipeline {
       description: 'Enable signing'
     )
     string(
-      name: 'branding',
-      defaultValue: defaults.branding,
-      description: 'Branding'
-    )
-    string(
       name: 'extra_args',
       defaultValue: '',
       description: 'Extra configure arguments'
@@ -200,22 +198,6 @@ pipeline {
     cron(defaults.schedule)
   }
   stages {
-    stage('Prepare') {
-      steps { script {
-        branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
-        stageStats = [:]
-        gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
-        gitTagRepos = []
-        if ( params.core || params.desktop || params.builder || params.mobile
-            || params.server_ce || params.server_ee || params.server_de ) {
-          ArrayList arr = []
-          if ( params.branding != defaults.branding ) arr.add(params.branding)
-          if ( params.clean    != defaults.clean    ) arr.add("no clean")
-          if ( params.build_js != defaults.build_js ) arr.add("no build JS")
-          currentBuild.description = arr.join(" &centerdot; ")
-        }
-      } }
-    }
     stage('Build') {
       parallel {
         // Windows
@@ -285,52 +267,52 @@ pipeline {
             aborted  { setStageStats(3) }
           }
         }
-        stage('Windows x64 XP') {
-          agent {
-            label 'windows_x64_xp'
-          }
-          when {
-            expression { params.windows_x64_xp }
-            beforeAgent true
-          }
-          environment {
-            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
-            _WIN_XP = '1'
-          }
-          steps {
-            start('windows_x64_xp')
-          }
-          post {
-            success  { setStageStats(0) }
-            unstable { setStageStats(1) }
-            failure  { setStageStats(2) }
-            aborted  { setStageStats(3) }
-          }
-        }
-        stage('Windows x86 XP') {
-          agent {
-            label 'windows_x86_xp'
-          }
-          when {
-            expression { params.windows_x86_xp }
-            beforeAgent true
-          }
-          environment {
-            ARCH = 'x86'
-            UNAME_M = 'i686'
-            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
-            _WIN_XP = '1'
-          }
-          steps {
-            start('windows_x86_xp')
-          }
-          post {
-            success  { setStageStats(0) }
-            unstable { setStageStats(1) }
-            failure  { setStageStats(2) }
-            aborted  { setStageStats(3) }
-          }
-        }
+        // stage('Windows x64 XP') {
+        //   agent {
+        //     label 'windows_x64_xp'
+        //   }
+        //   when {
+        //     expression { params.windows_x64_xp }
+        //     beforeAgent true
+        //   }
+        //   environment {
+        //     WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
+        //     _WIN_XP = '1'
+        //   }
+        //   steps {
+        //     start('windows_x64_xp')
+        //   }
+        //   post {
+        //     success  { setStageStats(0) }
+        //     unstable { setStageStats(1) }
+        //     failure  { setStageStats(2) }
+        //     aborted  { setStageStats(3) }
+        //   }
+        // }
+        // stage('Windows x86 XP') {
+        //   agent {
+        //     label 'windows_x86_xp'
+        //   }
+        //   when {
+        //     expression { params.windows_x86_xp }
+        //     beforeAgent true
+        //   }
+        //   environment {
+        //     ARCH = 'x86'
+        //     UNAME_M = 'i686'
+        //     WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
+        //     _WIN_XP = '1'
+        //   }
+        //   steps {
+        //     start('windows_x86_xp')
+        //   }
+        //   post {
+        //     success  { setStageStats(0) }
+        //     unstable { setStageStats(1) }
+        //     failure  { setStageStats(2) }
+        //     aborted  { setStageStats(3) }
+        //   }
+        // }
         // macOS
         stage('macOS arm64') {
           agent {
@@ -384,32 +366,32 @@ pipeline {
             aborted  { setStageStats(3) }
           }
         }
-        stage('macOS x86_64 V8') {
-          agent {
-            label 'darwin_x86_64_v8'
-          }
-          when {
-            expression { params.darwin_x86_64_v8 }
-            beforeAgent true
-          }
-          environment {
-            FASTLANE_HIDE_TIMESTAMP = '1'
-            FASTLANE_SKIP_UPDATE_CHECK = '1'
-            APPLE_ID = credentials('macos-apple-id')
-            TEAM_ID = credentials('macos-team-id')
-            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
-            CODESIGNING_IDENTITY = 'Developer ID Application'
-          }
-          steps {
-            start('darwin_x86_64_v8')
-          }
-          post {
-            success  { setStageStats(0) }
-            unstable { setStageStats(1) }
-            failure  { setStageStats(2) }
-            aborted  { setStageStats(3) }
-          }
-        }
+        // stage('macOS x86_64 V8') {
+        //   agent {
+        //     label 'darwin_x86_64_v8'
+        //   }
+        //   when {
+        //     expression { params.darwin_x86_64_v8 }
+        //     beforeAgent true
+        //   }
+        //   environment {
+        //     FASTLANE_HIDE_TIMESTAMP = '1'
+        //     FASTLANE_SKIP_UPDATE_CHECK = '1'
+        //     APPLE_ID = credentials('macos-apple-id')
+        //     TEAM_ID = credentials('macos-team-id')
+        //     FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+        //     CODESIGNING_IDENTITY = 'Developer ID Application'
+        //   }
+        //   steps {
+        //     start('darwin_x86_64_v8')
+        //   }
+        //   post {
+        //     success  { setStageStats(0) }
+        //     unstable { setStageStats(1) }
+        //     failure  { setStageStats(2) }
+        //     aborted  { setStageStats(3) }
+        //   }
+        // }
         // Linux
         stage('Linux x86_64') {
           agent {
@@ -506,6 +488,12 @@ pipeline {
             checkout scm
             buildAppcast()
             buildReports()
+          // },
+          // docs_docker: {
+          //   ghaDocsDocker()
+          // },
+          // docs_snap: {
+          //   ghaDocsSnap()
           }
         )
       } }
@@ -525,7 +513,7 @@ void start(String platform) {
 
   if (!getModuleList(platform)) return
 
-  resolveRepos(platform, params.branding)
+  resolveRepos(platform, defaults.branding)
 
   timeout(time: 40, activity: true) {
     buildArtifacts(platform, 'opensource')
@@ -533,6 +521,14 @@ void start(String platform) {
     buildArtifacts(platform, 'commercial')
     buildPackages(platform, 'commercial')
   }
+
+  // if (platform == 'linux_x86_64') {
+  //   ghaDesktopAppimage()
+  //   ghaDesktopFlatpak()
+  //   ghaDesktopSnap()
+  //   // buildDocsDockerLocal()
+  //   tagRepos()
+  // }
 }
 
 void buildArtifacts(String platform, String license = 'opensource') {
@@ -554,7 +550,7 @@ void buildArtifacts(String platform, String license = 'opensource') {
   if (platform in ["windows_x64_xp", "windows_x86_xp"])
     args.add("--qt-dir-xp ${env.QT_PATH}")
   if (license == "commercial")
-    args.add("--branding ${params.branding}")
+    args.add("--branding ${defaults.branding}")
   if (platform in ["windows_x64", "windows_x86", "windows_arm64"])
     args.add("--vs-version 2019")
   if (platform == "darwin_x86_64_v8")
@@ -596,8 +592,9 @@ void buildPackages(String platform, String license = 'opensource') {
     "--targets ${targets.join(' ')}",
     "--version ${env.BUILD_VERSION}",
     "--build ${env.BUILD_NUMBER}",
-    "--branding ${params.branding}",
   ]
+  if (defaults.branding != "onlyoffice")
+    args.add("--branding ${defaults.branding}")
 
   String label = "packages ${license}".toUpperCase()
 
@@ -711,7 +708,7 @@ String getPrefix(String platform) {
 void resolveRepos(String platform, String branding = '') {
   ArrayList baseRepos = [
     [owner: 'ONLYOFFICE',        repo: 'build_tools'],
-    [owner: defaults.repo_owner, repo: params.branding]
+    [owner: defaults.repo_owner, repo: defaults.branding]
   ].each {
     it.branch = env.BRANCH_NAME
     if (platform == 'linux_x86_64') {
@@ -817,7 +814,10 @@ void checkoutRepos(ArrayList repos) {
   }
 }
 
-void tagRepos(ArrayList repos = gitTagRepos, String tag = gitTag) {
+void tagRepos(
+  ArrayList repos = gitTagRepos,
+  String tag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
+) {
   if (!(params.server_ce || params.server_ee || params.server_de))
     return
   if (env.COMPANY_NAME != 'ONLYOFFICE')
@@ -855,6 +855,12 @@ void buildReports() {
   if (!( params.core || params.desktop || params.builder || params.mobile
       || params.server_ce || params.server_ee || params.server_de ))
     return
+
+  ArrayList arr = []
+  if ( params.clean    != defaults.clean    ) arr.add("no clean")
+  if ( params.build_js != defaults.build_js ) arr.add("no build JS")
+  currentBuild.description = arr.join(" &centerdot; ")
+
   try {
     sh label: 'REPORTS', script: """
       ./reports.sh \

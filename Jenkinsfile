@@ -1,4 +1,6 @@
-defaults = [
+import groovy.transform.Field
+
+@Field def defaults = [
   repo_owner:       'ONLYOFFICE',
   branding:         'onlyoffice',
   channel:          'other',
@@ -8,7 +10,7 @@ defaults = [
   build_js:         true,
   windows_x64:      true,
   windows_x86:      true,
-  windows_arm64:    false,
+  windows_arm64:    true,
   windows_x64_xp:   true,
   windows_x86_xp:   true,
   darwin_arm64:     true,
@@ -28,9 +30,6 @@ defaults = [
   beta:             false,
   sign:             true,
   notify:           true,
-  schedule:         'H 20 * * *',
-  repo_owner:       'ONLYOFFICE',
-  branding:         'onlyoffice',
 ]
 
 if (env.BRANCH_NAME == 'develop') { defaults.putAll([
@@ -49,12 +48,18 @@ else if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) { defaults.putAll([
   mobile:           false,
 ]) }
 
+@Field def stageStats = [:]
+@Field def gitTagRepos = []
+
 pipeline {
   agent none
   environment {
     BUILD_CHANNEL = "${defaults.channel}"
     BUILD_VERSION = "${defaults.version}"
     PRODUCT_VERSION = "${defaults.version}"
+    COMPANY_NAME = "ONLYOFFICE"
+    S3_BASE_URL = "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com"
+    S3_BUCKET = "repo-doc-onlyoffice-com"
   }
   options {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
@@ -185,11 +190,6 @@ pipeline {
       description: 'Enable signing'
     )
     string(
-      name: 'branding',
-      defaultValue: defaults.branding,
-      description: 'Branding'
-    )
-    string(
       name: 'extra_args',
       defaultValue: '',
       description: 'Extra configure arguments'
@@ -204,30 +204,6 @@ pipeline {
     cron(defaults.schedule)
   }
   stages {
-    stage('Prepare') {
-      steps { script {
-        branchDir = env.BRANCH_NAME.replaceAll(/\//,'_')
-        stageStats = [:]
-        gitTag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
-        gitTagRepos = []
-        if ( params.core || params.desktop || params.builder || params.mobile
-            || params.server_ce || params.server_ee || params.server_de ) {
-          ArrayList arr = []
-          if ( params.branding != defaults.branding ) arr.add(params.branding)
-          if ( params.clean    != defaults.clean    ) arr.add("no clean")
-          if ( params.build_js != defaults.build_js ) arr.add("no build JS")
-          currentBuild.description = arr.join(" &centerdot; ")
-        }
-        env.COMPANY_NAME = "ONLYOFFICE"
-        env.S3_BASE_URL = "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com"
-        env.S3_BUCKET = "repo-doc-onlyoffice-com"
-        if (params.branding == "humain") {
-          env.COMPANY_NAME = "Humain"
-          env.S3_BASE_URL = "https://s3.eu-west-1.amazonaws.com/repo-doc-humain"
-          env.S3_BUCKET = "repo-doc-humain"
-        }
-      } }
-    }
     stage('Build') {
       parallel {
         // Windows
@@ -520,10 +496,10 @@ pipeline {
             buildReports()
           },
           docs_docker: {
-            buildDocsDocker()
+            ghaDocsDocker()
           },
           docs_snap: {
-            buildDocsSnap()
+            ghaDocsSnap()
           }
         )
       } }
@@ -543,7 +519,7 @@ void start(String platform) {
 
   if (!getModuleList(platform)) return
 
-  resolveRepos(platform, params.branding)
+  resolveRepos(platform, defaults.branding)
 
   timeout(time: 40, activity: true) {
     buildArtifacts(platform, 'opensource')
@@ -553,9 +529,9 @@ void start(String platform) {
   }
 
   if (platform == 'linux_x86_64') {
-    buildDesktopAppimage()
-    buildDesktopFlatpak()
-    buildDesktopSnap()
+    ghaDesktopAppimage()
+    ghaDesktopFlatpak()
+    ghaDesktopSnap()
     // buildDocsDockerLocal()
     tagRepos()
   }
@@ -580,7 +556,7 @@ void buildArtifacts(String platform, String license = 'opensource') {
   if (platform in ["windows_x64_xp", "windows_x86_xp"])
     args.add("--qt-dir-xp ${env.QT_PATH}")
   if (license == "commercial")
-    args.add("--branding ${params.branding}")
+    args.add("--branding ${defaults.branding}")
   if (platform in ["windows_x64", "windows_x86", "windows_arm64"])
     args.add("--vs-version 2019")
   if (platform == "darwin_x86_64_v8")
@@ -623,8 +599,8 @@ void buildPackages(String platform, String license = 'opensource') {
     "--version ${env.BUILD_VERSION}",
     "--build ${env.BUILD_NUMBER}",
   ]
-  if (params.branding != defaults.branding)
-    args.add("--branding ${params.branding}")
+  if (defaults.branding != "onlyoffice")
+    args.add("--branding ${defaults.branding}")
 
   String label = "packages ${license}".toUpperCase()
 
@@ -804,7 +780,7 @@ String getPrefix(String platform) {
 void resolveRepos(String platform, String branding = '') {
   ArrayList baseRepos = [
     [owner: 'ONLYOFFICE',        repo: 'build_tools'],
-    [owner: defaults.repo_owner, repo: params.branding]
+    [owner: defaults.repo_owner, repo: defaults.branding]
   ].each {
     it.branch = env.BRANCH_NAME
     if (platform == 'linux_x86_64') {
@@ -910,7 +886,10 @@ void checkoutRepos(ArrayList repos) {
   }
 }
 
-void tagRepos(ArrayList repos = gitTagRepos, String tag = gitTag) {
+void tagRepos(
+  ArrayList repos = gitTagRepos,
+  String tag = "v${env.BUILD_VERSION}.${env.BUILD_NUMBER}"
+) {
   if (!(params.server_ce || params.server_ee || params.server_de))
     return
   if (env.COMPANY_NAME != 'ONLYOFFICE')
@@ -948,6 +927,12 @@ void buildReports() {
   if (!( params.core || params.desktop || params.builder || params.mobile
       || params.server_ce || params.server_ee || params.server_de ))
     return
+
+  ArrayList arr = []
+  if ( params.clean    != defaults.clean    ) arr.add("no clean")
+  if ( params.build_js != defaults.build_js ) arr.add("no build JS")
+  currentBuild.description = arr.join(" &centerdot; ")
+
   try {
     sh label: 'REPORTS', script: """
       ./reports.sh \
@@ -967,7 +952,7 @@ void buildReports() {
   }
 }
 
-void buildDesktopAppimage() {
+void ghaDesktopAppimage() {
   if (!params.desktop)
     return
   try {
@@ -985,14 +970,10 @@ void buildDesktopAppimage() {
     }
   } catch (err) {
     echo err.toString()
-  //   stageStats['Linux Desktop Appimage'] = 2
-  // } finally {
-  //   if (!stageStats['Linux Desktop Appimage'])
-  //     stageStats['Linux Desktop Appimage'] = 0
   }
 }
 
-void buildDesktopFlatpak() {
+void ghaDesktopFlatpak() {
   if (!params.desktop)
     return
   try {
@@ -1010,14 +991,10 @@ void buildDesktopFlatpak() {
     }
   } catch (err) {
     echo err.toString()
-  //   stageStats['Linux Desktop Flatpak'] = 2
-  // } finally {
-  //   if (!stageStats['Linux Desktop Flatpak'])
-  //     stageStats['Linux Desktop Flatpak'] = 0
   }
 }
 
-void buildDesktopSnap() {
+void ghaDesktopSnap() {
   if (!params.desktop)
     return
   try {
@@ -1035,14 +1012,10 @@ void buildDesktopSnap() {
     }
   } catch (err) {
     echo err.toString()
-  //   stageStats['Linux Desktop Snap'] = 2
-  // } finally {
-  //   if (!stageStats['Linux Desktop Snap'])
-  //     stageStats['Linux Desktop Snap'] = 0
   }
 }
 
-void buildDocsSnap() {
+void ghaDocsSnap() {
   if (!(params.server_ce || params.server_ee || params.server_de))
     return
   if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
@@ -1062,13 +1035,10 @@ void buildDocsSnap() {
     }
   } catch (err) {
     echo err.toString()
-    stageStats['Linux Docs Snap'] = 2
-  } finally {
-    if (!stageStats['Linux Docs Snap']) stageStats['Linux Docs Snap'] = 0
   }
 }
 
-void buildDocsDocker() {
+void ghaDocsDocker() {
   if (!(params.server_ce || params.server_ee || params.server_de))
     return
   if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
@@ -1092,9 +1062,6 @@ void buildDocsDocker() {
     }
   } catch (err) {
     echo err.toString()
-    stageStats['Linux Docs Docker'] = 2
-  } finally {
-    if (!stageStats['Linux Docs Docker']) stageStats['Linux Docs Docker'] = 0
   }
 }
 
