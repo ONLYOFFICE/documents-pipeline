@@ -419,7 +419,10 @@ pipeline {
             start('linux_x86_64')
           }
           post {
-            success  { setStageStats(0) }
+            success  { 
+                setStageStats(0) 
+                script { ghaDocsDockerAmd64() }
+            }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
             aborted  { setStageStats(3) }
@@ -445,7 +448,10 @@ pipeline {
             start('linux_aarch64')
           }
           post {
-            success  { setStageStats(0) }
+            success  {
+                setStageStats(0)
+                script { ghaDocsDockerArm64() }
+            }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
             aborted  { setStageStats(3) }
@@ -494,9 +500,6 @@ pipeline {
             checkout scm
             buildAppcast()
             buildReports()
-          },
-          docs_docker: {
-            ghaDocsDocker()
           },
           docs_snap: {
             ghaDocsSnap()
@@ -1038,23 +1041,40 @@ void ghaDocsSnap() {
   }
 }
 
-void ghaDocsDocker() {
+void ghaDocsDockerAmd64() {
   if (!(params.server_ce || params.server_ee || params.server_de))
     return
-  if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
-    return
   try {
-    withCredentials([
-      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-    ]) {
-      sh label: 'DOCKER DOCS BUILD', script: """
+    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+      sh label: 'DOCKER DOCS BUILD AMD64', script: """
         repo=ONLYOFFICE/Docker-DocumentServer
         gh workflow run 4testing-build.yml \
           --repo \$repo \
           --ref \$BRANCH_NAME \
           -f build=\$BUILD_NUMBER \
-          -f amd64=${stageStats['Linux x86_64'] == 0} \
-          -f arm64=${stageStats['Linux aarch64'] == 0} \
+          -f amd64=true \
+          -f community=${params.server_ce} \
+          -f enterprise=${params.server_ee} \
+          -f developer=${params.server_de}
+      """
+    }
+  } catch (err) {
+    echo err.toString()
+  }
+}
+
+void ghaDocsDockerArm64() {
+  if (!(params.server_ce || params.server_ee || params.server_de))
+    return
+  try {
+    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+      sh label: 'DOCKER DOCS BUILD ARM64', script: """
+        repo=ONLYOFFICE/Docker-DocumentServer
+        gh workflow run 4testing-build.yml \
+          --repo \$repo \
+          --ref \$BRANCH_NAME \
+          -f build=\$BUILD_NUMBER \
+          -f arm64=true \
           -f community=${params.server_ce} \
           -f enterprise=${params.server_ee} \
           -f developer=${params.server_de}
