@@ -34,6 +34,7 @@ import groovy.transform.Field
 
 if (env.BRANCH_NAME == 'develop') { defaults.putAll([
   channel:          'nightly',
+  windows_arm64:    false,
   darwin_x86_64:    false,
   darwin_x86_64_v8: false,
   server_ce:        false,
