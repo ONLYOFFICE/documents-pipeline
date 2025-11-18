@@ -257,8 +257,8 @@ def getRepos() {
       'server-lockstorage',
       'web-apps',
       'web-apps-mobile',
-      'Docker-DocumentServer',
       'Docker-Docs',
+      'Docker-DocumentServer',
       'DocumentBuilder'
     ]
   }

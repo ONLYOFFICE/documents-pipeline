@@ -43,14 +43,17 @@ parse_params() {
   CHANGES_URL="$S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER"
   GITHUB_BASE_URL="https://github.com/ONLYOFFICE/4testing-DesktopEditors/releases/download/v$BUILD_VERSION-$BUILD_NUMBER"
 
-  UPD_64_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
-  UPD_32_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
-  ZIP_64_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.zip"
-  ZIP_32_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.zip"
-  EXE_64_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
-  EXE_32_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
-  MSI_64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.msi"
-  MSI_32_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.msi"
+  UPD_X64_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
+  UPD_X86_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
+  ZIP_X64_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.zip"
+  ZIP_X86_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.zip"
+  ZIP_ARM64_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-arm64.zip"
+  EXE_X64_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
+  EXE_X86_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
+  EXE_ARM64_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-arm64.exe"
+  MSI_X64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.msi"
+  MSI_X86_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.msi"
+  MSI_ARM64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-arm64.msi"
 
   DATE_JSON=$(LANG=C TZ=UTC date -u "+%b %d %H:%M UTC %Y")
   DATE_XML=$(LANG=C TZ=UTC date -u "+%a, %d %b %Y %H:%M:%S +0000")
@@ -65,8 +68,9 @@ mkdir -pv $UPDATE_DIR
 
 # APPCAST JSON
 for key in \
-  $ZIP_64_KEY $EXE_64_KEY $MSI_64_KEY \
-  $ZIP_32_KEY $EXE_32_KEY $MSI_32_KEY
+  $ZIP_X64_KEY $EXE_X64_KEY $MSI_X64_KEY \
+  $ZIP_X86_KEY $EXE_X86_KEY $MSI_X86_KEY \
+  $ZIP_ARM64_KEY $EXE_ARM64_KEY $MSI_ARM64_KEY
 do
   until [[ $(jobs -lr | wc -l) -lt $JOBS ]]; do
     sleep 1
@@ -92,47 +96,69 @@ tee $UPDATE_DIR/appcast.json << EOF
   },
   "package": {
     "win_64": {
-      "url": "$S3_BASE_URL/$UPD_64_KEY",
+      "url": "$S3_BASE_URL/$UPD_X64_KEY",
       "installArguments": "/silent /update",
       "archive": {
         "url": "$GITHUB_BASE_URL/$PACKAGE_NAME-x64.zip",
-        "url2": "$S3_BASE_URL/$ZIP_64_KEY",
-        "md5": "$(s3_md5 $ZIP_64_KEY)"
+        "url2": "$S3_BASE_URL/$ZIP_X64_KEY",
+        "md5": "$(s3_md5 $ZIP_X64_KEY)"
       },
       "iss": {
         "url": "$GITHUB_BASE_URL/$PACKAGE_NAME-x64.exe",
-        "url2": "$S3_BASE_URL/$EXE_64_KEY",
-        "md5": "$(s3_md5 $EXE_64_KEY)",
+        "url2": "$S3_BASE_URL/$EXE_X64_KEY",
+        "md5": "$(s3_md5 $EXE_X64_KEY)",
         "arguments": "/silent /update",
         "maxVersion": "7.3.3"
       },
       "msi": {
         "url": "$GITHUB_BASE_URL/$PACKAGE_NAME-x64.msi",
-        "url2": "$S3_BASE_URL/$MSI_64_KEY",
-        "md5": "$(s3_md5 $MSI_64_KEY)",
+        "url2": "$S3_BASE_URL/$MSI_X64_KEY",
+        "md5": "$(s3_md5 $MSI_X64_KEY)",
         "arguments": "/qr /norestart",
         "maxVersion": "7.5.0"
       }
     },
     "win_32": {
-      "url": "$S3_BASE_URL/$UPD_32_KEY",
+      "url": "$S3_BASE_URL/$UPD_X86_KEY",
       "installArguments": "/silent /update",
       "archive": {
         "url": "$GITHUB_BASE_URL/$PACKAGE_NAME-x86.zip",
-        "url2": "$S3_BASE_URL/$ZIP_32_KEY",
-        "md5": "$(s3_md5 $ZIP_32_KEY)"
+        "url2": "$S3_BASE_URL/$ZIP_X86_KEY",
+        "md5": "$(s3_md5 $ZIP_X86_KEY)"
       },
       "iss": {
         "url": "$GITHUB_BASE_URL/$PACKAGE_NAME-x86.exe",
-        "url2": "$S3_BASE_URL/$EXE_32_KEY",
-        "md5": "$(s3_md5 $EXE_32_KEY)",
+        "url2": "$S3_BASE_URL/$EXE_X86_KEY",
+        "md5": "$(s3_md5 $EXE_X86_KEY)",
         "arguments": "/silent /update",
         "maxVersion": "7.3.3"
       },
       "msi": {
         "url": "$GITHUB_BASE_URL/$PACKAGE_NAME-x86.msi",
-        "url2": "$S3_BASE_URL/$MSI_32_KEY",
-        "md5": "$(s3_md5 $MSI_32_KEY)",
+        "url2": "$S3_BASE_URL/$MSI_X86_KEY",
+        "md5": "$(s3_md5 $MSI_X86_KEY)",
+        "arguments": "/qr /norestart",
+        "maxVersion": "7.5.0"
+      }
+    },
+    "win_arm64": {
+      "installArguments": "/silent /update",
+      "archive": {
+        "url": "$GITHUB_BASE_URL/$PACKAGE_NAME-arm64.zip",
+        "url2": "$S3_BASE_URL/$ZIP_ARM64_KEY",
+        "md5": "$(s3_md5 $ZIP_ARM64_KEY)"
+      },
+      "iss": {
+        "url": "$GITHUB_BASE_URL/$PACKAGE_NAME-arm64.exe",
+        "url2": "$S3_BASE_URL/$EXE_ARM64_KEY",
+        "md5": "$(s3_md5 $EXE_ARM64_KEY)",
+        "arguments": "/silent /update",
+        "maxVersion": "7.3.3"
+      },
+      "msi": {
+        "url": "$GITHUB_BASE_URL/$PACKAGE_NAME-arm64.msi",
+        "url2": "$S3_BASE_URL/$MSI_ARM64_KEY",
+        "md5": "$(s3_md5 $MSI_ARM64_KEY)",
         "arguments": "/qr /norestart",
         "maxVersion": "7.5.0"
       }
@@ -154,14 +180,14 @@ tee $UPDATE_DIR/appcast.xml << EOF
       <pubDate>$DATE_XML</pubDate>
       <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
       <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
-      <enclosure url="$S3_BASE_URL/$UPD_64_KEY" sparkle:os="windows-x64" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
+      <enclosure url="$S3_BASE_URL/$UPD_X64_KEY" sparkle:os="windows-x64" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
     </item>
     <item>
       <title>Version $BUILD_VERSION.$BUILD_NUMBER</title>
       <pubDate>$DATE_XML</pubDate>
       <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
       <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
-      <enclosure url="$S3_BASE_URL/$UPD_32_KEY" sparkle:os="windows-x86" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
+      <enclosure url="$S3_BASE_URL/$UPD_X86_KEY" sparkle:os="windows-x86" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
     </item>
   </channel>
 </rss>
