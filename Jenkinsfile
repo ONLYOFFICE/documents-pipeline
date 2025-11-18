@@ -419,8 +419,8 @@ pipeline {
             start('linux_x86_64')
           }
           post {
-            success  { 
-                setStageStats(0) 
+            success  {
+                setStageStats(0)
                 script { ghaDocsDockerAmd64() }
             }
             unstable { setStageStats(1) }
@@ -955,67 +955,63 @@ void buildReports() {
   }
 }
 
+void ghaWorkflowRun(
+  String repo, String workflow, String ref = 'master', Map fields = [:]
+) {
+  ArrayList args = [workflow, "--repo", repo, "--ref", ref]
+  fields.each { key, value ->
+    args += ["--raw-field", key + "=" + value]
+  }
+
+  withCredentials([
+    string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+  ]) {
+    sh label: "GITHUB ACTION: ${repo} - ${workflow}", script: """
+      gh workflow run ${args.join(' ')}
+    """
+  }
+}
+
 void ghaDesktopAppimage() {
   if (!params.desktop)
     return
-  try {
-    withCredentials([
-      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-    ]) {
-      sh label: 'DESKTOP APPIMAGE BUILD', script: """
-        repo=ONLYOFFICE/appimage-desktopeditors
-        gh workflow run 4testing-build.yml \
-          --repo \$repo \
-          --ref master \
-          -f version=\$BUILD_VERSION \
-          -f build=\$BUILD_NUMBER
-      """
-    }
-  } catch (err) {
-    echo err.toString()
-  }
+  ghaWorkflowRun(
+    'ONLYOFFICE/appimage-desktopeditors',
+    '4testing-build.yml',
+    'master',
+    [
+      'version': env.BUILD_VERSION,
+      'build': env.BUILD_NUMBER
+    ]
+  )
 }
 
 void ghaDesktopFlatpak() {
   if (!params.desktop)
     return
-  try {
-    withCredentials([
-      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-    ]) {
-      sh label: 'DESKTOP FLATPAK BUILD', script: """
-        repo=ONLYOFFICE/org.onlyoffice.desktopeditors
-        gh workflow run 4testing-build.yml \
-          --repo \$repo \
-          --ref master \
-          -f version=\$BUILD_VERSION \
-          -f build=\$BUILD_NUMBER
-      """
-    }
-  } catch (err) {
-    echo err.toString()
-  }
+  ghaWorkflowRun(
+    'ONLYOFFICE/org.onlyoffice.desktopeditors',
+    '4testing-build.yml',
+    'master',
+    [
+      'version': env.BUILD_VERSION,
+      'build': env.BUILD_NUMBER
+    ]
+  )
 }
 
 void ghaDesktopSnap() {
   if (!params.desktop)
     return
-  try {
-    withCredentials([
-      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-    ]) {
-      sh label: 'DESKTOP SNAP BUILD', script: """
-        repo=ONLYOFFICE/snap-desktopeditors
-        gh workflow run 4testing-build.yml \
-          --repo \$repo \
-          --ref master \
-          -f version=\$BUILD_VERSION \
-          -f build=\$BUILD_NUMBER
-      """
-    }
-  } catch (err) {
-    echo err.toString()
-  }
+  ghaWorkflowRun(
+    'ONLYOFFICE/snap-desktopeditors',
+    '4testing-build.yml',
+    'master',
+    [
+      'version': env.BUILD_VERSION,
+      'build': env.BUILD_NUMBER
+    ]
+  )
 }
 
 void ghaDocsSnap() {
@@ -1023,66 +1019,49 @@ void ghaDocsSnap() {
     return
   if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
     return
-  try {
-    withCredentials([
-      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-    ]) {
-      sh label: 'DOCS SNAP BUILD', script: """
-        repo=ONLYOFFICE/snap-documentserver
-        gh workflow run 4testing-build.yml \
-          --repo \$repo \
-          --ref master \
-          -f version=\$BUILD_VERSION \
-          -f build=\$BUILD_NUMBER
-      """
-    }
-  } catch (err) {
-    echo err.toString()
-  }
+  ghaWorkflowRun(
+    'ONLYOFFICE/snap-documentserver',
+    '4testing-build.yml',
+    'master',
+    [
+      'version': env.BUILD_VERSION,
+      'build': env.BUILD_NUMBER
+    ]
+  )
 }
 
 void ghaDocsDockerAmd64() {
   if (!(params.server_ce || params.server_ee || params.server_de))
     return
-  try {
-    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
-      sh label: 'DOCKER DOCS BUILD AMD64', script: """
-        repo=ONLYOFFICE/Docker-DocumentServer
-        gh workflow run 4testing-build.yml \
-          --repo \$repo \
-          --ref \$BRANCH_NAME \
-          -f build=\$BUILD_NUMBER \
-          -f amd64=true \
-          -f community=${params.server_ce} \
-          -f enterprise=${params.server_ee} \
-          -f developer=${params.server_de}
-      """
-    }
-  } catch (err) {
-    echo err.toString()
-  }
+  ghaWorkflowRun(
+    'ONLYOFFICE/Docker-DocumentServer',
+    '4testing-build.yml',
+    env.BRANCH_NAME,
+    [
+      'build': env.BUILD_NUMBER,
+      'amd64': 'true',
+      'community': params.server_ce,
+      'enterprise': params.server_ee,
+      'developer': params.server_de
+    ]
+  )
 }
 
 void ghaDocsDockerArm64() {
   if (!(params.server_ce || params.server_ee || params.server_de))
     return
-  try {
-    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
-      sh label: 'DOCKER DOCS BUILD ARM64', script: """
-        repo=ONLYOFFICE/Docker-DocumentServer
-        gh workflow run 4testing-build.yml \
-          --repo \$repo \
-          --ref \$BRANCH_NAME \
-          -f build=\$BUILD_NUMBER \
-          -f arm64=true \
-          -f community=${params.server_ce} \
-          -f enterprise=${params.server_ee} \
-          -f developer=${params.server_de}
-      """
-    }
-  } catch (err) {
-    echo err.toString()
-  }
+  ghaWorkflowRun(
+    'ONLYOFFICE/Docker-DocumentServer',
+    '4testing-build.yml',
+    env.BRANCH_NAME,
+    [
+      'build': env.BUILD_NUMBER,
+      'arm64': 'true',
+      'community': params.server_ce,
+      'enterprise': params.server_ee,
+      'developer': params.server_de
+    ]
+  )
 }
 
 void buildDocsDockerLocal() {
