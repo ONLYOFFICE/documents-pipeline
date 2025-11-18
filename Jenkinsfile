@@ -420,8 +420,8 @@ pipeline {
           }
           post {
             success  {
-                setStageStats(0)
-                script { ghaDocsDockerAmd64() }
+              setStageStats(0)
+              ghaDocsDocker('amd64')
             }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
@@ -449,8 +449,8 @@ pipeline {
           }
           post {
             success  {
-                setStageStats(0)
-                script { ghaDocsDockerArm64() }
+              setStageStats(0)
+              ghaDocsDocker('arm64')
             }
             unstable { setStageStats(1) }
             failure  { setStageStats(2) }
@@ -1030,8 +1030,10 @@ void ghaDocsSnap() {
   )
 }
 
-void ghaDocsDockerAmd64() {
+void ghaDocsDocker(String arch) {
   if (!(params.server_ce || params.server_ee || params.server_de))
+    return
+  if (!(arch in ['amd64', 'arm64']))
     return
   ghaWorkflowRun(
     'ONLYOFFICE/Docker-DocumentServer',
@@ -1039,24 +1041,8 @@ void ghaDocsDockerAmd64() {
     env.BRANCH_NAME,
     [
       'build': env.BUILD_NUMBER,
-      'amd64': 'true',
-      'community': params.server_ce,
-      'enterprise': params.server_ee,
-      'developer': params.server_de
-    ]
-  )
-}
-
-void ghaDocsDockerArm64() {
-  if (!(params.server_ce || params.server_ee || params.server_de))
-    return
-  ghaWorkflowRun(
-    'ONLYOFFICE/Docker-DocumentServer',
-    '4testing-build.yml',
-    env.BRANCH_NAME,
-    [
-      'build': env.BUILD_NUMBER,
-      'arm64': 'true',
+      'amd64': arch == 'amd64',
+      'arm64': arch == 'arm64',
       'community': params.server_ce,
       'enterprise': params.server_ee,
       'developer': params.server_de
