@@ -476,34 +476,26 @@ pipeline {
   }
   post {
     fixed {
-      node('built-in') { script { sendTelegramMessage('fixed') } }
+      node('built-in') { sendTelegramMessage('fixed') }
     }
     unstable {
-      node('built-in') { script { sendTelegramMessage('unstable') } }
+      node('built-in') { sendTelegramMessage('unstable') }
     }
     failure {
-      node('built-in') { script { sendTelegramMessage('failure') } }
+      node('built-in') { sendTelegramMessage('failure') }
     }
     aborted {
-      node('built-in') { script { sendTelegramMessage('aborted') } }
+      node('built-in') { sendTelegramMessage('aborted') }
     }
     cleanup {
-      node('built-in') { script {
-        parallel(
-          reports: {
-            deleteDir()
-            checkout scm
-            buildAppcast()
-            buildReports()
-          },
-          docs_docker: {
-            ghaDocsDocker()
-          },
-          docs_snap: {
-            ghaDocsSnap()
-          }
-        )
-      } }
+      node('built-in') {
+        ghaDocsDocker()
+        ghaDocsSnap()
+        deleteDir()
+        checkout scm
+        buildAppcast()
+        buildReports()
+      }
     }
   }
 }
@@ -962,12 +954,18 @@ void ghaWorkflowRun(
     args += ["--raw-field", key + "=" + value]
   }
 
-  withCredentials([
-    string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-  ]) {
-    sh label: "GITHUB ACTION: ${repo} - ${workflow}", script: """
-      gh workflow run ${args.join(' ')}
-    """
+  catchError(
+    buildResult: 'UNSTABLE',
+    stageResult: 'FAILURE',
+    message: 'GitHub Action failure'
+  ) {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: "GITHUB ACTION: ${repo} - ${workflow}", script: """
+        gh workflow run ${args.join(' ')}
+      """
+    }
   }
 }
 
