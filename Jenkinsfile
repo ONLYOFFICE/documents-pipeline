@@ -1075,7 +1075,7 @@ void setStageStats(int status, String stageName = env.STAGE_NAME) {
 void sendTelegramMessage(String jobStatus, String chatId = '-1001773122025') {
   if (!params.notify) return
   String text = 'Build [' + currentBuild.fullDisplayName \
-      + '](' + currentBuild.absoluteUrl + ') ' + jobStatus
+      + '](' + currentBuild.absoluteUrl + 'pipeline-overview/) ' + jobStatus
   ArrayList icons = ['🟢', '🟡', '🔴', '⚫️']
   stageStats.sort().each { stage, code ->
     text += '\n' + icons[code] + ' ' + stage.replaceAll('_','\\\\_')
