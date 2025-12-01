@@ -39,7 +39,7 @@ if (env.BRANCH_NAME == 'develop') { defaults.putAll([
 else if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) { defaults.putAll([
   channel:          'test',
   version:          env.BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
-  schedule:         'H 2 * * *',
+  schedule:         'H 6 * * *',
 ]) }
 
 @Field def stageStats = [:]
@@ -93,16 +93,18 @@ pipeline {
       defaultValue: defaults.windows_arm64,
       description: 'Build Windows arm64 targets (Visual Studio 2019)'
     )
-    // booleanParam(
-    //   name: 'windows_x64_xp',
-    //   defaultValue: defaults.windows_x64_xp,
-    //   description: 'Build Windows x64 XP targets (Visual Studio 2015)'
-    // )
-    // booleanParam(
-    //   name: 'windows_x86_xp',
-    //   defaultValue: defaults.windows_x86_xp,
-    //   description: 'Build Windows x86 XP targets (Visual Studio 2015)'
-    // )
+    /*
+    booleanParam(
+      name: 'windows_x64_xp',
+      defaultValue: defaults.windows_x64_xp,
+      description: 'Build Windows x64 XP targets (Visual Studio 2015)'
+    )
+    booleanParam(
+      name: 'windows_x86_xp',
+      defaultValue: defaults.windows_x86_xp,
+      description: 'Build Windows x86 XP targets (Visual Studio 2015)'
+    )
+    */
     // macOS
     booleanParam(
       name: 'darwin_arm64',
@@ -114,11 +116,13 @@ pipeline {
       defaultValue: defaults.darwin_x86_64,
       description: 'Build macOS x86-64 targets'
     )
-    // booleanParam(
-    //   name: 'darwin_x86_64_v8',
-    //   defaultValue: defaults.darwin_x86_64_v8,
-    //   description: 'Build macOS x86-64 V8 targets'
-    // )
+    /*
+    booleanParam(
+      name: 'darwin_x86_64_v8',
+      defaultValue: defaults.darwin_x86_64_v8,
+      description: 'Build macOS x86-64 V8 targets'
+    )
+    */
     // Linux
     booleanParam(
       name: 'linux_x86_64',
@@ -131,11 +135,13 @@ pipeline {
       description: 'Build Linux aarch64 targets'
     )
     // Android
-    // booleanParam(
-    //   name: 'android',
-    //   defaultValue: defaults.android,
-    //   description: 'Build Android targets'
-    // )
+    /*
+    booleanParam(
+      name: 'android',
+      defaultValue: defaults.android,
+      description: 'Build Android targets'
+    )
+    */
     // Modules
     booleanParam(
       name: 'core',
@@ -267,52 +273,54 @@ pipeline {
             aborted  { setStageStats(3) }
           }
         }
-        // stage('Windows x64 XP') {
-        //   agent {
-        //     label 'windows_x64_xp'
-        //   }
-        //   when {
-        //     expression { params.windows_x64_xp }
-        //     beforeAgent true
-        //   }
-        //   environment {
-        //     WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
-        //     _WIN_XP = '1'
-        //   }
-        //   steps {
-        //     start('windows_x64_xp')
-        //   }
-        //   post {
-        //     success  { setStageStats(0) }
-        //     unstable { setStageStats(1) }
-        //     failure  { setStageStats(2) }
-        //     aborted  { setStageStats(3) }
-        //   }
-        // }
-        // stage('Windows x86 XP') {
-        //   agent {
-        //     label 'windows_x86_xp'
-        //   }
-        //   when {
-        //     expression { params.windows_x86_xp }
-        //     beforeAgent true
-        //   }
-        //   environment {
-        //     ARCH = 'x86'
-        //     UNAME_M = 'i686'
-        //     WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
-        //     _WIN_XP = '1'
-        //   }
-        //   steps {
-        //     start('windows_x86_xp')
-        //   }
-        //   post {
-        //     success  { setStageStats(0) }
-        //     unstable { setStageStats(1) }
-        //     failure  { setStageStats(2) }
-        //     aborted  { setStageStats(3) }
-        //   }
-        // }
+        /*
+        stage('Windows x64 XP') {
+          agent {
+            label 'windows_x64_xp'
+          }
+          when {
+            expression { params.windows_x64_xp }
+            beforeAgent true
+          }
+          environment {
+            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
+            _WIN_XP = '1'
+          }
+          steps {
+            start('windows_x64_xp')
+          }
+          post {
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
+          }
+        }
+        stage('Windows x86 XP') {
+          agent {
+            label 'windows_x86_xp'
+          }
+          when {
+            expression { params.windows_x86_xp }
+            beforeAgent true
+          }
+          environment {
+            ARCH = 'x86'
+            UNAME_M = 'i686'
+            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
+            _WIN_XP = '1'
+          }
+          steps {
+            start('windows_x86_xp')
+          }
+          post {
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
+          }
+        }
+        */
         // macOS
         stage('macOS arm64') {
           agent {
@@ -366,32 +374,34 @@ pipeline {
             aborted  { setStageStats(3) }
           }
         }
-        // stage('macOS x86_64 V8') {
-        //   agent {
-        //     label 'darwin_x86_64_v8'
-        //   }
-        //   when {
-        //     expression { params.darwin_x86_64_v8 }
-        //     beforeAgent true
-        //   }
-        //   environment {
-        //     FASTLANE_HIDE_TIMESTAMP = '1'
-        //     FASTLANE_SKIP_UPDATE_CHECK = '1'
-        //     APPLE_ID = credentials('macos-apple-id')
-        //     TEAM_ID = credentials('macos-team-id')
-        //     FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
-        //     CODESIGNING_IDENTITY = 'Developer ID Application'
-        //   }
-        //   steps {
-        //     start('darwin_x86_64_v8')
-        //   }
-        //   post {
-        //     success  { setStageStats(0) }
-        //     unstable { setStageStats(1) }
-        //     failure  { setStageStats(2) }
-        //     aborted  { setStageStats(3) }
-        //   }
-        // }
+        /*
+        stage('macOS x86_64 V8') {
+          agent {
+            label 'darwin_x86_64_v8'
+          }
+          when {
+            expression { params.darwin_x86_64_v8 }
+            beforeAgent true
+          }
+          environment {
+            FASTLANE_HIDE_TIMESTAMP = '1'
+            FASTLANE_SKIP_UPDATE_CHECK = '1'
+            APPLE_ID = credentials('macos-apple-id')
+            TEAM_ID = credentials('macos-team-id')
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD = credentials('macos-apple-password')
+            CODESIGNING_IDENTITY = 'Developer ID Application'
+          }
+          steps {
+            start('darwin_x86_64_v8')
+          }
+          post {
+            success  { setStageStats(0) }
+            unstable { setStageStats(1) }
+            failure  { setStageStats(2) }
+            aborted  { setStageStats(3) }
+          }
+        }
+        */
         // Linux
         stage('Linux x86_64') {
           agent {
@@ -488,12 +498,14 @@ pipeline {
             checkout scm
             buildAppcast()
             buildReports()
-          // },
-          // docs_docker: {
-          //   ghaDocsDocker()
-          // },
-          // docs_snap: {
-          //   ghaDocsSnap()
+          /*
+          },
+          docs_docker: {
+            ghaDocsDocker()
+          },
+          docs_snap: {
+            ghaDocsSnap()
+          */
           }
         )
       } }
@@ -522,13 +534,15 @@ void start(String platform) {
     buildPackages(platform, 'commercial')
   }
 
-  // if (platform == 'linux_x86_64') {
-  //   ghaDesktopAppimage()
-  //   ghaDesktopFlatpak()
-  //   ghaDesktopSnap()
-  //   // buildDocsDockerLocal()
-  //   tagRepos()
-  // }
+  /*
+  if (platform == 'linux_x86_64') {
+    ghaDesktopAppimage()
+    ghaDesktopFlatpak()
+    ghaDesktopSnap()
+    // buildDocsDockerLocal()
+    tagRepos()
+  }
+  */
 }
 
 void buildArtifacts(String platform, String license = 'opensource') {
@@ -879,6 +893,122 @@ void buildReports() {
     currentBuild.description += readFile 'build.html'
   }
 }
+
+/*
+void ghaWorkflowRun(
+  String repo, String workflow, String ref = 'master', Map fields = [:]
+) {
+  ArrayList args = [workflow, "--repo", repo, "--ref", ref]
+  fields.each { key, value ->
+    args += ["--raw-field", key + "=" + value]
+  }
+
+  withCredentials([
+    string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+  ]) {
+    sh label: "GITHUB ACTION: ${repo} - ${workflow}", script: """
+      gh workflow run ${args.join(' ')}
+    """
+  }
+}
+
+void ghaDesktopAppimage() {
+  if (!params.desktop)
+    return
+  ghaWorkflowRun(
+    'ONLYOFFICE/appimage-desktopeditors',
+    '4testing-build.yml',
+    'master',
+    [
+      'version': env.BUILD_VERSION,
+      'build': env.BUILD_NUMBER
+    ]
+  )
+}
+
+void ghaDesktopFlatpak() {
+  if (!params.desktop)
+    return
+  ghaWorkflowRun(
+    'ONLYOFFICE/org.onlyoffice.desktopeditors',
+    '4testing-build.yml',
+    'master',
+    [
+      'version': env.BUILD_VERSION,
+      'build': env.BUILD_NUMBER
+    ]
+  )
+}
+
+void ghaDesktopSnap() {
+  if (!params.desktop)
+    return
+  ghaWorkflowRun(
+    'ONLYOFFICE/snap-desktopeditors',
+    '4testing-build.yml',
+    'master',
+    [
+      'version': env.BUILD_VERSION,
+      'build': env.BUILD_NUMBER
+    ]
+  )
+}
+
+void ghaDocsSnap() {
+  if (!(params.server_ce || params.server_ee || params.server_de))
+    return
+  if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
+    return
+  ghaWorkflowRun(
+    'ONLYOFFICE/snap-documentserver',
+    '4testing-build.yml',
+    'master',
+    [
+      'version': env.BUILD_VERSION,
+      'build': env.BUILD_NUMBER
+    ]
+  )
+}
+
+void ghaDocsDocker() {
+  if (!(params.server_ce || params.server_ee || params.server_de))
+    return
+  if (!(stageStats['Linux x86_64'] == 0 || stageStats['Linux aarch64'] == 0))
+    return
+  ghaWorkflowRun(
+    'ONLYOFFICE/Docker-DocumentServer',
+    '4testing-build.yml',
+    env.BRANCH_NAME,
+    [
+      'build': env.BUILD_NUMBER,
+      'amd64': stageStats['Linux x86_64'] == 0,
+      'arm64': stageStats['Linux aarch64'] == 0,
+      'community': params.server_ce,
+      'enterprise': params.server_ee,
+      'developer': params.server_de
+    ]
+  )
+}
+
+void buildDocsDockerLocal() {
+  if (!(params.server_ce || params.server_ee || params.server_de))
+    return
+  if (env.COMPANY_NAME == 'ONLYOFFICE')
+    return
+  ArrayList buildDockerServer = []
+  if (params.server_ee) buildDockerServer.add('-ee')
+  if (params.server_de) buildDockerServer.add('-de')
+  buildDockerServer.each {
+    sh label: 'DOCKER DOCUMENTSERVER' + it.toUpperCase(), script: """
+      cd Docker-DocumentServer
+      make clean
+      make deploy -e PRODUCT_EDITION=${it} -e ONLYOFFICE_VALUE=ds \
+        -e PACKAGE_VERSION=\$BUILD_VERSION-\$BUILD_NUMBER \
+        -e PACKAGE_BASEURL=\$S3_BASE_URL/server/linux/debian
+    """
+  }
+}
+*/
 
 void setStageStats(int status, String stageName = env.STAGE_NAME) {
   stageStats[stageName] = status
