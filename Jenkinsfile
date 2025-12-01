@@ -930,6 +930,7 @@ void buildReports() {
     return
 
   ArrayList arr = []
+  if ( params.wipe )                          arr.add("wipe")
   if ( params.clean    != defaults.clean    ) arr.add("no clean")
   if ( params.build_js != defaults.build_js ) arr.add("no build JS")
   currentBuild.description = arr.join(" &centerdot; ")
