@@ -132,36 +132,36 @@ core      linux     archive       archive/$BRANCH_NAME/$BUILD_NUMBER/core-linux
 builder   win       archive       archive/$BRANCH_NAME/$BUILD_NUMBER/builder-win
 builder   mac       archive       archive/$BRANCH_NAME/$BUILD_NUMBER/builder-mac
 builder   linux     archive       archive/$BRANCH_NAME/$BUILD_NUMBER/builder-linux
-core      linux     cm_sdkjs_oss  closure-maps/sdkjs/opensource/$BUILD_VERSION/$BUILD_NUMBER
-core      linux     cm_sdkjs_com  closure-maps/sdkjs/commercial/$BUILD_VERSION/$BUILD_NUMBER
-core      linux     cm_webapps    closure-maps/web-apps/opensource/$BUILD_VERSION/$BUILD_NUMBER
-desktop   win       generic       desktop/win/generic/    $VERSION_DOT
-desktop   win       inno          desktop/win/inno/       $VERSION_DOT
-desktop   win       advinst       desktop/win/advinst/    $VERSION_DOT
-desktop   win       online        desktop/win/online/     $VERSION_DOT
-desktop   win       update        desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER
-desktop   mac       arm           desktop/mac/arm/$BUILD_VERSION/$BUILD_NUMBER
-desktop   mac       x86_64        desktop/mac/x86_64/$BUILD_VERSION/$BUILD_NUMBER
-desktop   mac       v8            desktop/mac/v8/$BUILD_VERSION/$BUILD_NUMBER
-desktop   linux     generic       desktop/linux/generic/  $VERSION
-desktop   linux     debian        desktop/linux/debian/   $VERSION
-desktop   linux     rhel          desktop/linux/rhel/     $VERSION
-desktop   linux     suse          desktop/linux/suse/     $VERSION
-builder   win       generic       builder/win/generic/    $VERSION_DOT
-builder   win       python        builder/win/python/     $VERSION_DOT
-builder   mac       generic       builder/mac/generic/    $VERSION
-builder   mac       python        builder/mac/python/     $VERSION_DOT
-builder   linux     generic       builder/linux/generic/  $VERSION
-builder   linux     python        builder/linux/python/   $VERSION_DOT
-server    win       inno          server/win/inno/        $VERSION_DOT
-server    linux     debian        server/linux/debian/    $VERSION
-server    linux     rhel          server/linux/rhel/      $VERSION
-server    linux     snap          server/linux/snap/      $VERSION
+core      linux     cm_sdkjs_oss  closure-maps/sdkjs/opensource/$BUILD_VERSION/$BUILD_NUMBER/
+core      linux     cm_sdkjs_com  closure-maps/sdkjs/commercial/$BUILD_VERSION/$BUILD_NUMBER/
+core      linux     cm_webapps    closure-maps/web-apps/opensource/$BUILD_VERSION/$BUILD_NUMBER/
+desktop   win       generic       desktop/win/generic/           ${VERSION_DOT}-
+desktop   win       inno          desktop/win/inno/              ${VERSION_DOT}-
+desktop   win       advinst       desktop/win/advinst/           ${VERSION_DOT}-
+desktop   win       update        desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER/
+desktop   mac       arm           desktop/mac/arm/$BUILD_VERSION/$BUILD_NUMBER/
+desktop   mac       x86_64        desktop/mac/x86_64/$BUILD_VERSION/$BUILD_NUMBER/
+desktop   mac       v8            desktop/mac/v8/$BUILD_VERSION/$BUILD_NUMBER/
+desktop   linux     generic       desktop/linux/generic/         ${VERSION}-
+desktop   linux     debian        desktop/linux/debian/          ${VERSION}_
+desktop   linux     rhel          desktop/linux/rhel/            ${VERSION}.
+desktop   linux     suse          desktop/linux/suse/            ${VERSION}.
+builder   win       generic       builder/win/generic/           ${VERSION_DOT}-
+builder   win       python        builder/win/python/            ${VERSION_DOT}-
+builder   mac       generic       builder/mac/generic/           ${VERSION}-
+builder   mac       python        builder/mac/python/            ${VERSION_DOT}-
+builder   linux     generic       builder/linux/generic/         ${VERSION}-
+builder   linux     python        builder/linux/python/          ${VERSION_DOT}-
+server    win       inno          server/win/inno/               ${VERSION_DOT}-
+server    linux     debian        server/linux/debian/           ${VERSION}_
+server    linux     rhel          server/linux/rhel/             ${VERSION}.
+server    linux     snap          server/linux/snap/             ${VERSION}-
 mobile    android   archive       mobile/android/build-$VERSION
 EOF
-# builder   win       inno          builder/win/inno/       $VERSION_DOT
-# builder   linux     debian        builder/linux/debian/   $VERSION
-# builder   linux     rhel          builder/linux/rhel/     $VERSION
+# desktop   win       online        desktop/win/online/            ${VERSION_DOT}
+# builder   win       inno          builder/win/inno/              ${VERSION_DOT}
+# builder   linux     debian        builder/linux/debian/          ${VERSION}
+# builder   linux     rhel          builder/linux/rhel/            ${VERSION}
 
 while read product platform type key; do
   until [[ $(jobs -lr | wc -l) -lt $JOBS ]]; do
@@ -320,10 +320,10 @@ EOF
     msg
     msg "${BOLD}Upload:${NOFORMAT}"
 
-    aws s3 sync --no-progress --acl public-read \
+    aws s3 sync --no-progress \
       $REPORTS_DIR \
       s3://$S3_BUCKET/reports/$BRANCH_NAME/$BUILD_NUMBER
-    aws s3 sync --no-progress --acl public-read --delete \
+    aws s3 sync --no-progress --delete \
       s3://$S3_BUCKET/reports/$BRANCH_NAME/$BUILD_NUMBER \
       s3://$S3_BUCKET/reports/$BRANCH_NAME/latest
 

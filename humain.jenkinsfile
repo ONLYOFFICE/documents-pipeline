@@ -2,30 +2,30 @@ import groovy.transform.Field
 
 @Field def defaults = [
   repo_owner:       'ONLYOFFICE',
-  branding:         'onlyoffice',
+  branding:         'humain',
   channel:          'other',
   version:          '99.99.99',
   schedule:         'H 20 * * *',
   clean:            true,
   build_js:         true,
   windows_x64:      true,
-  windows_x86:      true,
+  windows_x86:      false,
   windows_arm64:    true,
-  windows_x64_xp:   true,
-  windows_x86_xp:   true,
-  darwin_arm64:     true,
-  darwin_x86_64:    true,
-  darwin_x86_64_v8: true,
-  linux_x86_64:     true,
-  linux_aarch64:    true,
-  android:          true,
-  core:             true,
+  windows_x64_xp:   false,
+  windows_x86_xp:   false,
+  darwin_arm64:     false,
+  darwin_x86_64:    false,
+  darwin_x86_64_v8: false,
+  linux_x86_64:     false,
+  linux_aarch64:    false,
+  android:          false,
+  core:             false,
   desktop:          true,
-  builder:          true,
-  server_ce:        true,
-  server_ee:        true,
-  server_de:        true,
-  mobile:           true,
+  builder:          false,
+  server_ce:        false,
+  server_ee:        false,
+  server_de:        false,
+  mobile:           false,
   password:         false,
   beta:             false,
   sign:             true,
@@ -34,18 +34,12 @@ import groovy.transform.Field
 
 if (env.BRANCH_NAME == 'develop') { defaults.putAll([
   channel:          'nightly',
-  darwin_x86_64:    false,
-  darwin_x86_64_v8: false,
-  server_ce:        false,
-  server_de:        false,
   beta:             true,
 ]) }
 else if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) { defaults.putAll([
   channel:          'test',
   version:          env.BRANCH_NAME.replaceAll(/.+\/v(?=[0-9.]+)/,''),
-  schedule:         'H 2 * * *',
-  android:          false,
-  mobile:           false,
+  schedule:         'H 6 * * *',
 ]) }
 
 @Field def stageStats = [:]
@@ -57,9 +51,9 @@ pipeline {
     BUILD_CHANNEL = "${defaults.channel}"
     BUILD_VERSION = "${defaults.version}"
     PRODUCT_VERSION = "${defaults.version}"
-    COMPANY_NAME = "ONLYOFFICE"
-    S3_BASE_URL = "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com"
-    S3_BUCKET = "repo-doc-onlyoffice-com"
+    COMPANY_NAME = "Humain"
+    S3_BASE_URL = "https://s3.eu-west-1.amazonaws.com/repo-doc-humain"
+    S3_BUCKET = "repo-doc-humain"
   }
   options {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
@@ -99,6 +93,7 @@ pipeline {
       defaultValue: defaults.windows_arm64,
       description: 'Build Windows arm64 targets (Visual Studio 2019)'
     )
+    /*
     booleanParam(
       name: 'windows_x64_xp',
       defaultValue: defaults.windows_x64_xp,
@@ -109,6 +104,7 @@ pipeline {
       defaultValue: defaults.windows_x86_xp,
       description: 'Build Windows x86 XP targets (Visual Studio 2015)'
     )
+    */
     // macOS
     booleanParam(
       name: 'darwin_arm64',
@@ -120,11 +116,13 @@ pipeline {
       defaultValue: defaults.darwin_x86_64,
       description: 'Build macOS x86-64 targets'
     )
+    /*
     booleanParam(
       name: 'darwin_x86_64_v8',
       defaultValue: defaults.darwin_x86_64_v8,
       description: 'Build macOS x86-64 V8 targets'
     )
+    */
     // Linux
     booleanParam(
       name: 'linux_x86_64',
@@ -137,11 +135,13 @@ pipeline {
       description: 'Build Linux aarch64 targets'
     )
     // Android
+    /*
     booleanParam(
       name: 'android',
       defaultValue: defaults.android,
       description: 'Build Android targets'
     )
+    */
     // Modules
     booleanParam(
       name: 'core',
@@ -273,6 +273,7 @@ pipeline {
             aborted  { setStageStats(3) }
           }
         }
+        /*
         stage('Windows x64 XP') {
           agent {
             label 'windows_x64_xp'
@@ -319,6 +320,7 @@ pipeline {
             aborted  { setStageStats(3) }
           }
         }
+        */
         // macOS
         stage('macOS arm64') {
           agent {
@@ -372,6 +374,7 @@ pipeline {
             aborted  { setStageStats(3) }
           }
         }
+        /*
         stage('macOS x86_64 V8') {
           agent {
             label 'darwin_x86_64_v8'
@@ -398,6 +401,7 @@ pipeline {
             aborted  { setStageStats(3) }
           }
         }
+        */
         // Linux
         stage('Linux x86_64') {
           agent {
@@ -494,12 +498,14 @@ pipeline {
             checkout scm
             buildAppcast()
             buildReports()
+          /*
           },
           docs_docker: {
             ghaDocsDocker()
           },
           docs_snap: {
             ghaDocsSnap()
+          */
           }
         )
       } }
@@ -528,6 +534,7 @@ void start(String platform) {
     buildPackages(platform, 'commercial')
   }
 
+  /*
   if (platform == 'linux_x86_64') {
     ghaDesktopAppimage()
     ghaDesktopFlatpak()
@@ -535,6 +542,7 @@ void start(String platform) {
     // buildDocsDockerLocal()
     tagRepos()
   }
+  */
 }
 
 void buildArtifacts(String platform, String license = 'opensource') {
@@ -630,50 +638,22 @@ ArrayList getModuleList(String platform, String license = 'any') {
   Boolean test = env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/
   LinkedHashMap map = [
     windows_x64: [
-      core: p.core && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.com,
-      server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
     ],
     windows_x86: [
-      core: p.core && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.com,
     ],
     windows_arm64: [
       desktop: p.desktop && l.com,
     ],
-    windows_x64_xp: [
-      desktop: p.desktop && l.com,
-    ],
-    windows_x86_xp: [
-      desktop: p.desktop && l.com,
-    ],
     darwin_arm64: [
-      core: p.core && l.com,
-      desktop: p.desktop && l.com && test,
-      builder: p.builder && l.com && test,
+      desktop: p.desktop && l.com,
     ],
     darwin_x86_64: [
-      core: p.core && l.com,
-      desktop: p.desktop && l.com && test,
-      builder: p.builder && l.com && test,
-    ],
-    darwin_x86_64_v8: [
-      desktop: p.desktop && l.com && test,
+      desktop: p.desktop && l.com,
     ],
     linux_x86_64: [
-      core: p.core && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.com,
-      server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
-    ],
-    linux_aarch64: [
-      builder: p.builder && l.com,
-      server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
-    ],
-    android: [
-      mobile: p.mobile && l.com,
     ],
   ]
   ArrayList modules = []
@@ -694,60 +674,22 @@ ArrayList getTargetList(String platform, String license = 'any') {
   Boolean test = defaults.channel == 'test'
   LinkedHashMap map = [
     windows_x64: [
-      core: p.core && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.com,
-      server_community: p.server_ce && l.os,
-      server_developer: p.server_de && l.com,
-      server_enterprise: p.server_ee && l.com,
-      server_prerequisites: (p.server_ee || p.server_de) && l.com,
     ],
     windows_x86: [
-      core: p.core && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.com,
     ],
     windows_arm64: [
       desktop: p.desktop && l.com,
     ],
-    windows_x64_xp: [
-      desktop: p.desktop && l.com,
-    ],
-    windows_x86_xp: [
-      desktop: p.desktop && l.com,
-    ],
     darwin_arm64: [
-      core: p.core && l.com,
-      desktop: p.desktop && l.com && test,
-      builder: p.builder && l.com && test,
+      desktop: p.desktop && l.com,
     ],
     darwin_x86_64: [
-      core: p.core && l.com,
-      desktop: p.desktop && l.com && test,
-      builder: p.builder && l.com && test,
-    ],
-    darwin_x86_64_v8: [
-      desktop: p.desktop && l.com && test,
+      desktop: p.desktop && l.com,
     ],
     linux_x86_64: [
-      core: p.core && l.com,
       desktop: p.desktop && l.com,
-      builder: p.builder && l.com,
-      server_community: p.server_ce && l.os,
-      server_developer: p.server_de && l.com,
-      server_enterprise: p.server_ee && l.com,
-      closuremaps_sdkjs_opensource: p.server_ce && l.os,
-      closuremaps_sdkjs_commercial: (p.core || p.desktop || p.builder || p.server_de || p.server_ee) && l.com,
-      closuremaps_webapps: (p.core || p.server_de || p.server_ee) && l.com,
-    ],
-    linux_aarch64: [
-      builder: p.builder && l.com,
-      server_community: p.server_ce && l.os,
-      server_developer: p.server_de && l.com,
-      server_enterprise: p.server_ee && l.com,
-    ],
-    android: [
-      mobile: p.mobile && l.com,
     ],
   ]
   ArrayList targets = []
@@ -952,6 +894,7 @@ void buildReports() {
   }
 }
 
+/*
 void ghaWorkflowRun(
   String repo, String workflow, String ref = 'master', Map fields = [:]
 ) {
@@ -1065,6 +1008,7 @@ void buildDocsDockerLocal() {
     """
   }
 }
+*/
 
 void setStageStats(int status, String stageName = env.STAGE_NAME) {
   stageStats[stageName] = status

@@ -2,9 +2,9 @@ pipeline {
   agent none
   parameters {
     string(
-      name: 'workspace',
+      name: 'job',
       defaultValue: 'oo',
-      description: 'Custom workspace dir'
+      description: 'Job prefix'
     )
     string(
       name: 'branch',
@@ -17,22 +17,21 @@ pipeline {
         expression { !params.branch.isEmpty() }
       }
       steps { script {
-        currentBuild.displayName += ' ' + params.branch
-        parallel cleanStages()
+        currentBuild.displayName += " ${params.job} ${params.branch}"
+        String dir = params.job + '_' + params.branch.replaceAll(/\//,'_')
+        parallel cleanStages(dir)
       } }
     }
   }
 }
 
-def cleanStages() {
+def cleanStages(String dir) {
   Map nodes = [:]
-  String customDir = params.workspace
-  String branchDir = params.branch.replaceAll(/\//,'_')
 
   nodesByLabel("windows").each {
     nodes["${it}"] = { ->
       node(it) { stage("${it}") {
-        powershell "Remove-Item -Recurse -Force C:\\${customDir}\\${branchDir}*"
+        powershell "ri -Recurse -Force ..\\${dir}*"
       } }
     }
   }
@@ -40,7 +39,7 @@ def cleanStages() {
   nodesByLabel("linux").each {
     nodes["${it}"] = { ->
       node(it) { stage("${it}") {
-        sh "rm -rf /home/jenkins/workspace/oo_${branchDir}"
+        sh "rm -rf ../${dir}*"
       } }
     }
   }
