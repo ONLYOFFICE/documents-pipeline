@@ -1,4 +1,8 @@
-defaults = [
+import groovy.transform.Field
+
+@Field def repos = [:]
+@Field def stats = [:]
+@Field def defaults = [
   actions: ['print_branches'],
   version: '0.0.0'
 ]
@@ -22,6 +26,9 @@ if (env.BRANCH_NAME ==~ /^(hotfix|release)\/v.+/) {
   defaults.actions.add('unprotect')
 }
 
+currentBuild.displayName += ' ' + params.action
+currentBuild.displayName += (params.action == 'start') ? ' ' + params.version : ''
+
 pipeline {
   agent {
     label 'branch_manager'
@@ -34,244 +41,296 @@ pipeline {
   }
   options {
     disableConcurrentBuilds()
+    skipDefaultCheckout(true)
   }
   parameters {
-    booleanParam \
+    booleanParam(
       name: 'wipe',
       description: 'Wipe out current workspace'
-    choice \
+    )
+    choice(
       name: 'repo_list',
-      choices: ['general', 'mobile', 'both'],
+      choices: ['general', 'mobile', 'all'],
       description: 'Repo list'
-    choice \
+    )
+    choice(
       name: 'action',
       choices: defaults.actions,
       description: "Action type"
-    string \
+    )
+    string(
       name: 'version',
       defaultValue: defaults.version,
       description: 'Release version (for start only) [' + defaults.branch_type + ']'
-    booleanParam \
+    )
+    booleanParam(
       name: 'protect_branch',
       defaultValue: true,
       description: 'Protect branch (for start & rename only)'
-    string \
+    )
+    string(
       name: 'extra_branches',
       description: 'Extra branches (space separated, for merge & finish only)'
-    booleanParam \
+    )
+    booleanParam(
       name: 'notify',
       defaultValue: true,
       description: 'Telegram notification (for only start, merge & finish)'
+    )
   }
   stages {
-    stage('Branch Manager') {
-      steps {
-        script {
-          currentBuild.displayName += ' - ' + params.action
-          if (params.action == 'start')
-            currentBuild.displayName += ' ' + params.version
-
-          if (params.wipe) {
-            deleteDir()
-            checkout scm
-          }
-
-          stats = [repos: [:]]
-          String branch = env.BRANCH_NAME
-          ArrayList baseBranches = []
-          getRepos().each {
-            stats.repos.put(it, [:])
-          }
-          Boolean pAction
-          Boolean sAction
-
-          if (params.action == 'print_branches') {
-
-            stats.repos.each { repo, status ->
-              pAction = printBranches(repo)
-              status.primary = (pAction) ? 'success' : 'failure'
-            }
-
-          } else if (params.action == 'start') {
-
-            branch = defaults.branch_type + '/v' + params.version
-            baseBranches = [env.BRANCH_NAME]
-
-            stats.repos.each { repo, status ->
-              pAction = createBranch(repo, branch, baseBranches[0])
-              status.primary = (pAction) ? 'success' : 'failure'
-              if (params.protect_branch) {
-                sAction = protectBranch(repo, branch)
-                status.secondary = (sAction) ? 'lock' : 'none'
-              }
-            }
-
-          } else if (params.action == 'merge') {
-
-            baseBranches = ['master']
-            if (!params.extra_branches.isEmpty())
-              baseBranches.addAll(params.extra_branches.split(' '))
-
-            stats.repos.each { repo, status ->
-              if (!checkRemoteBranch(repo, branch)) {
-                echo "${repo}: Branch doesn't ${branch} exist."
-                status.primary = 'skip'
-              } else {
-                dir ('repos/' + repo) {
-                  checkoutRepo(repo)
-                  pAction = mergeBranch(repo, branch, baseBranches)
-                  status.primary = (pAction) ? 'success' : 'failure'
-                }
-              }
-            }
-
-          } else if (params.action == 'finish') {
-
-            baseBranches = ['master', 'develop']
-            if (!params.extra_branches.isEmpty())
-              baseBranches.addAll(params.extra_branches.split(' '))
-
-            stats.repos.each { repo, status ->
-              if (!checkRemoteBranch(repo, branch)) {
-                echo "${repo}: Branch doesn't ${branch} exist."
-                status.primary = 'skip'
-              } else {
-                dir ('repos/' + repo) {
-                  checkoutRepo(repo)
-                  unprotectBranch(repo, branch)
-                  pAction = mergeBranch(repo, branch, baseBranches)
-                  status.primary = (pAction) ? 'success' : 'failure'
-                  if (pAction) {
-                    sAction = deleteBranch(repo, branch)
-                    status.secondary = (sAction) ? 'delete' : 'none'
-                  }
-                }
-              }
-            }
-
-          } else if (params.action == 'rename') {
-
-            branch = defaults.branch_type + '/v' + params.version
-            baseBranches = [env.BRANCH_NAME]
-
-            stats.repos.each { repo, status ->
-              if (checkRemoteBranch(repo, branch)) {
-                echo "${repo}: Branch already ${branch} exists."
-                status.primary = 'skip'
-              } else {
-                dir ('repos/' + repo) {
-                  checkoutRepo(repo, env.BRANCH_NAME)
-                  pAction = createBranch(repo, branch, env.BRANCH_NAME)
-                  status.primary = (pAction) ? 'success' : 'failure'
-                  if (pAction) {
-                    unprotectBranch(repo, env.BRANCH_NAME)
-                    deleteBranch(repo, env.BRANCH_NAME)
-                    if (params.protect_branch) {
-                      protectBranch(repo, branch)
-                      status.secondary = (sAction) ? 'lock' : 'none'
-                    }
-                  }
-                }
-              }
-            }
-
-          } else if (params.action == 'delete') {
-
-            stats.repos.each { repo, status ->
-              if (!checkRemoteBranch(repo, branch)) {
-                echo "${repo}: Branch doesn't ${branch} exist."
-                status.primary = 'skip'
-              } else {
-                dir ('repos/' + repo) {
-                  checkoutRepo(repo, branch)
-                  unprotectBranch(repo, branch)
-                  pAction = deleteBranch(repo, branch)
-                  status.primary = (pAction) ? 'success' : 'failure'
-                }
-              }
-            }
-
-          } else if (params.action == 'protect') {
-
-            stats.repos.each { repo, status ->
-              pAction = protectBranch(repo, branch)
-              status.primary = (pAction) ? 'success' : 'failure'
-            }
-
-          } else if (params.action == 'unprotect') {
-
-            stats.repos.each { repo, status ->
-              pAction = unprotectBranch(repo, branch)
-              status.primary = (pAction) ? 'success' : 'failure'
-            }
-
-          }
-
-          stats.putAll([
-            branch: branch,
-            baseBranches: baseBranches,
-            success: stats.repos.findAll { repo, status ->
-              status.primary in ['skip', 'success']
-            }.size(),
-            total: stats.repos.size()
-          ])
-          println stats
-
-        }
-      }
+    stage('documents-pipeline') {
+      when { expression { stageExpr() } }
+      steps { start() }
     }
+    stage('build_tools') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('core') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('nonexists') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    // stage('documents-pipeline') { }
+    // stage('build_tools') { }
+    // stage('core') { }
+    // stage('desktop-apps') { }
+    // stage('desktop-sdk') { }
+    // stage('document-builder-package') { }
+    // stage('document-server-package') { }
+    // stage('onlyoffice') { }
+    // stage('sdkjs') { }
+    // stage('sdkjs-forms') { }
+    // stage('sdkjs-ooxml') { }
+    // stage('server') { }
+    // stage('server-license') { }
+    // stage('server-lockstorage') { }
+    // stage('web-apps') { }
+    // stage('web-apps-mobile') { }
+    // stage('Docker-DocumentServer') { }
+    // stage('DocumentBuilder) { }
+    // stage('core-ext') { }
+    // stage('document-android-editors') { }
+    // stage('documents-app-android') { }
+    // stage('documents-app-ios') { }
+    // stage('editors-ios') { }
+    // stage('sdkjs-native') { }
   }
   post {
-    success {
-      script {
-        if (stats.success == 0)
-          currentBuild.result = 'FAILURE'
-        else if (stats.success != stats.total)
-          currentBuild.result = 'UNSTABLE'
-        else if (stats.success == stats.total)
-          currentBuild.result = 'SUCCESS'
+    cleanup { script {
+      stats.success = repos.findAll { repo, result ->
+        result.primary in ['skip', 'success']
+      }.size()
+      stats.total = repos.size()
 
+      println stats
+
+      if (stats.success == 0) {
+        currentBuild.result = 'FAILURE'
+      }
+      else if (stats.success != stats.total) {
+        currentBuild.result = 'UNSTABLE'
         sendNotification()
       }
-    }
+      else if (stats.success == stats.total) {
+        currentBuild.result = 'SUCCESS'
+        sendNotification()
+      }
+    } }
   }
 }
 
-def getRepos() {
-  ArrayList list = []
-  if (params.repo_list == "general" || params.repo_list == "both") {
-    list += [
-      'documents-pipeline',
-      'build_tools',
-      'core',
-      'desktop-apps',
-      'desktop-sdk',
-      'document-builder-package',
-      'document-server-package',
-      'onlyoffice',
-      'sdkjs',
-      'sdkjs-forms',
-      'sdkjs-ooxml',
-      'server',
-      'server-license',
-      'server-lockstorage',
-      'web-apps',
-      'web-apps-mobile',
-      'Docker-DocumentServer',
-      'DocumentBuilder'
-    ]
+Boolean stageExpr(String repo = STAGE_NAME) {
+  switch(params.repo_list) {
+    case 'all':
+      return true
+    case 'general':
+      return repo in [
+        'documents-pipeline',
+        'build_tools',
+        'core',
+        'desktop-apps',
+        'desktop-sdk',
+        'document-builder-package',
+        'document-server-package',
+        'onlyoffice',
+        'sdkjs',
+        'sdkjs-forms',
+        'sdkjs-ooxml',
+        'server',
+        'server-license',
+        'server-lockstorage',
+        'web-apps',
+        'web-apps-mobile',
+        'Docker-DocumentServer',
+        'DocumentBuilder'
+      ]
+    case 'mobile':
+      return repo in [
+        'core-ext',
+        'document-android-editors',
+        'documents-app-android',
+        'documents-app-ios',
+        'editors-ios',
+        'sdkjs-native'
+      ]
+    default:
+      return false
   }
-  if (params.repo_list == "mobile" || params.repo_list == "both") {
-    list += [
-      'core-ext',
-      'document-android-editors',
-      'documents-app-android',
-      'documents-app-ios',
-      'editors-ios',
-      'sdkjs-native'
-    ]
+}
+
+def start(repo = STAGE_NAME) {
+
+  Boolean pAction, sAction
+  Map result = [:]
+  // String branch = env.BRANCH_NAME
+  // ArrayList baseBranches = []
+
+  if (params.action == 'print_branches') {
+
+    pAction = printBranches(repo)
+    if (!pAction) unsable()
+    result.primary = (pAction) ? 'success' : 'failure'
+
   }
-  return list
+
+  repos.put(repo, result)
+
+  println repos
+
+  // if (params.wipe) {
+  //   deleteDir()
+  //   checkout scm
+  // }
+
+  // } else if (params.action == 'start') {
+
+  //   branch = defaults.branch_type + '/v' + params.version
+  //   baseBranches = [env.BRANCH_NAME]
+
+  //   stats.repos.each { repo, status ->
+  //     pAction = createBranch(repo, branch, baseBranches[0])
+  //     status.primary = (pAction) ? 'success' : 'failure'
+  //     if (params.protect_branch) {
+  //       sAction = protectBranch(repo, branch)
+  //       status.secondary = (sAction) ? 'lock' : 'none'
+  //     }
+  //   }
+
+  // } else if (params.action == 'merge') {
+
+  //   baseBranches = ['master']
+  //   if (!params.extra_branches.isEmpty())
+  //     baseBranches.addAll(params.extra_branches.split(' '))
+
+  //   stats.repos.each { repo, status ->
+  //     if (!checkRemoteBranch(repo, branch)) {
+  //       echo "${repo}: Branch doesn't ${branch} exist."
+  //       status.primary = 'skip'
+  //     } else {
+  //       dir ('repos/' + repo) {
+  //         checkoutRepo(repo)
+  //         pAction = mergeBranch(repo, branch, baseBranches)
+  //         status.primary = (pAction) ? 'success' : 'failure'
+  //       }
+  //     }
+  //   }
+
+  // } else if (params.action == 'finish') {
+
+  //   baseBranches = ['master', 'develop']
+  //   if (!params.extra_branches.isEmpty())
+  //     baseBranches.addAll(params.extra_branches.split(' '))
+
+  //   stats.repos.each { repo, status ->
+  //     if (!checkRemoteBranch(repo, branch)) {
+  //       echo "${repo}: Branch doesn't ${branch} exist."
+  //       status.primary = 'skip'
+  //     } else {
+  //       dir ('repos/' + repo) {
+  //         checkoutRepo(repo)
+  //         unprotectBranch(repo, branch)
+  //         pAction = mergeBranch(repo, branch, baseBranches)
+  //         status.primary = (pAction) ? 'success' : 'failure'
+  //         if (pAction) {
+  //           sAction = deleteBranch(repo, branch)
+  //           status.secondary = (sAction) ? 'delete' : 'none'
+  //         }
+  //       }
+  //     }
+  //   }
+
+  // } else if (params.action == 'rename') {
+
+  //   branch = defaults.branch_type + '/v' + params.version
+  //   baseBranches = [env.BRANCH_NAME]
+
+  //   stats.repos.each { repo, status ->
+  //     if (checkRemoteBranch(repo, branch)) {
+  //       echo "${repo}: Branch already ${branch} exists."
+  //       status.primary = 'skip'
+  //     } else {
+  //       dir ('repos/' + repo) {
+  //         checkoutRepo(repo, env.BRANCH_NAME)
+  //         pAction = createBranch(repo, branch, env.BRANCH_NAME)
+  //         status.primary = (pAction) ? 'success' : 'failure'
+  //         if (pAction) {
+  //           unprotectBranch(repo, env.BRANCH_NAME)
+  //           deleteBranch(repo, env.BRANCH_NAME)
+  //           if (params.protect_branch) {
+  //             protectBranch(repo, branch)
+  //             status.secondary = (sAction) ? 'lock' : 'none'
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+
+  // } else if (params.action == 'delete') {
+
+  //   stats.repos.each { repo, status ->
+  //     if (!checkRemoteBranch(repo, branch)) {
+  //       echo "${repo}: Branch doesn't ${branch} exist."
+  //       status.primary = 'skip'
+  //     } else {
+  //       dir ('repos/' + repo) {
+  //         checkoutRepo(repo, branch)
+  //         unprotectBranch(repo, branch)
+  //         pAction = deleteBranch(repo, branch)
+  //         status.primary = (pAction) ? 'success' : 'failure'
+  //       }
+  //     }
+  //   }
+
+  // } else if (params.action == 'protect') {
+
+  //   stats.repos.each { repo, status ->
+  //     pAction = protectBranch(repo, branch)
+  //     status.primary = (pAction) ? 'success' : 'failure'
+  //   }
+
+  // } else if (params.action == 'unprotect') {
+
+  //   stats.repos.each { repo, status ->
+  //     pAction = unprotectBranch(repo, branch)
+  //     status.primary = (pAction) ? 'success' : 'failure'
+  //   }
+
+  // }
+
+  // stats.putAll([
+  //   branch: branch,
+  //   baseBranches: baseBranches,
+  //   success: stats.repos.findAll { repo, status ->
+  //     status.primary in ['skip', 'success']
+  //   }.size(),
+  //   total: stats.repos.size()
+  // ])
+
 }
 
 def checkoutRepo(String repo, String branch = 'master') {
@@ -479,16 +538,17 @@ def sendNotification() {
     text += " [${repo}](https://${env.GIT_SERVER}/${env.GIT_OWNER}/${repo})"
   }
 
-  if (params.action in ['start', 'merge', 'finish']
-      && params.notify && stats.success > 0) {
-    sh label: "Send Telegram Message".toUpperCase(),
-      script: "curl -X POST -s -S \
-        -d chat_id=${chatId} \
-        -d parse_mode=markdown \
-        -d disable_web_page_preview=true \
-        --data-urlencode text='${text}' \
-        https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
-  } else {
-    echo text
-  }
+  // if (params.action in ['start', 'merge', 'finish']
+  //     && params.notify && stats.success > 0) {
+  //   sh label: "Send Telegram Message".toUpperCase(),
+  //     script: "curl -X POST -s -S \
+  //       -d chat_id=${chatId} \
+  //       -d parse_mode=markdown \
+  //       -d disable_web_page_preview=true \
+  //       --data-urlencode text='${text}' \
+  //       https://api.telegram.org/bot\$TELEGRAM_TOKEN/sendMessage"
+  // } else {
+  //   echo text
+  // }
+  echo text
 }
