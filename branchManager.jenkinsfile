@@ -26,7 +26,7 @@ if (env.BRANCH_NAME ==~ /^(hotfix|release)\/v.+/) {
   defaults.actions.add('unprotect')
 }
 
-currentBuild.displayName += ' ' + params.action
+currentBuild.displayName += ' / ' + params.action
 currentBuild.displayName += (params.action == 'start') ? ' ' + params.version : ''
 
 pipeline {
@@ -193,7 +193,7 @@ def start(repo = STAGE_NAME) {
   if (params.action == 'print_branches') {
 
     pAction = printBranches(repo)
-    if (!pAction) unsable()
+    if (!pAction) unstable('printBranches error')
     result.primary = (pAction) ? 'success' : 'failure'
 
   }
