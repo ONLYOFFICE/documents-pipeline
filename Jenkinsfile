@@ -278,7 +278,7 @@ pipeline {
             label 'windows_x64_xp'
           }
           when {
-            expression { params.windows_x64_xp }
+            expression { params.windows_x64_xp && params.desktop }
             beforeAgent true
           }
           environment {
@@ -300,7 +300,7 @@ pipeline {
             label 'windows_x86_xp'
           }
           when {
-            expression { params.windows_x86_xp }
+            expression { params.windows_x86_xp && params.desktop }
             beforeAgent true
           }
           environment {
@@ -377,7 +377,7 @@ pipeline {
             label 'darwin_x86_64_v8'
           }
           when {
-            expression { params.darwin_x86_64_v8 }
+            expression { params.darwin_x86_64_v8 && params.desktop }
             beforeAgent true
           }
           environment {
