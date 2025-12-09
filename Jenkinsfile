@@ -475,34 +475,26 @@ pipeline {
   }
   post {
     fixed {
-      node('built-in') { script { sendTelegramMessage('fixed') } }
+      node('built-in') { sendTelegramMessage('fixed') }
     }
     unstable {
-      node('built-in') { script { sendTelegramMessage('unstable') } }
+      node('built-in') { sendTelegramMessage('unstable') }
     }
     failure {
-      node('built-in') { script { sendTelegramMessage('failure') } }
+      node('built-in') { sendTelegramMessage('failure') }
     }
     aborted {
-      node('built-in') { script { sendTelegramMessage('aborted') } }
+      node('built-in') { sendTelegramMessage('aborted') }
     }
     cleanup {
-      node('built-in') { script {
-        parallel(
-          reports: {
-            deleteDir()
-            checkout scm
-            buildAppcast()
-            buildReports()
-          },
-          docs_docker: {
-            ghaDocsDocker()
-          },
-          docs_snap: {
-            ghaDocsSnap()
-          }
-        )
-      } }
+      node('built-in') {
+        ghaDocsDocker()
+        ghaDocsSnap()
+        deleteDir()
+        checkout scm
+        buildAppcast()
+        buildReports()
+      }
     }
   }
 }
@@ -929,6 +921,7 @@ void buildReports() {
     return
 
   ArrayList arr = []
+  if ( params.wipe )                          arr.add("wipe")
   if ( params.clean    != defaults.clean    ) arr.add("no clean")
   if ( params.build_js != defaults.build_js ) arr.add("no build JS")
   currentBuild.description = arr.join(" &centerdot; ")
@@ -960,12 +953,18 @@ void ghaWorkflowRun(
     args += ["--raw-field", key + "=" + value]
   }
 
-  withCredentials([
-    string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
-  ]) {
-    sh label: "GITHUB ACTION: ${repo} - ${workflow}", script: """
-      gh workflow run ${args.join(' ')}
-    """
+  catchError(
+    buildResult: 'UNSTABLE',
+    stageResult: 'FAILURE',
+    message: 'GitHub Action failure'
+  ) {
+    withCredentials([
+      string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')
+    ]) {
+      sh label: "GITHUB ACTION: ${repo} - ${workflow}", script: """
+        gh workflow run ${args.join(' ')}
+      """
+    }
   }
 }
 
@@ -1073,7 +1072,7 @@ void setStageStats(int status, String stageName = env.STAGE_NAME) {
 void sendTelegramMessage(String jobStatus, String chatId = '-1001773122025') {
   if (!params.notify) return
   String text = 'Build [' + currentBuild.fullDisplayName \
-      + '](' + currentBuild.absoluteUrl + ') ' + jobStatus
+      + '](' + currentBuild.absoluteUrl + 'pipeline-overview/) ' + jobStatus
   ArrayList icons = ['🟢', '🟡', '🔴', '⚫️']
   stageStats.sort().each { stage, code ->
     text += '\n' + icons[code] + ' ' + stage.replaceAll('_','\\\\_')
