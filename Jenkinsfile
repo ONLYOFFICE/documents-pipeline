@@ -11,8 +11,6 @@ import groovy.transform.Field
   windows_x64:      true,
   windows_x86:      true,
   windows_arm64:    true,
-  windows_x64_xp:   false,
-  windows_x86_xp:   false,
   darwin_arm64:     true,
   darwin_x86_64:    true,
   darwin_x86_64_v8: true,
@@ -98,16 +96,6 @@ pipeline {
       name: 'windows_arm64',
       defaultValue: defaults.windows_arm64,
       description: 'Build Windows arm64 targets (Visual Studio 2019)'
-    )
-    booleanParam(
-      name: 'windows_x64_xp',
-      defaultValue: defaults.windows_x64_xp,
-      description: 'Build Windows x64 XP targets (Visual Studio 2015)'
-    )
-    booleanParam(
-      name: 'windows_x86_xp',
-      defaultValue: defaults.windows_x86_xp,
-      description: 'Build Windows x86 XP targets (Visual Studio 2015)'
     )
     // macOS
     booleanParam(
@@ -265,52 +253,6 @@ pipeline {
           }
           steps {
             start('windows_arm64')
-          }
-          post {
-            success  { setStageStats(0) }
-            unstable { setStageStats(1) }
-            failure  { setStageStats(2) }
-            aborted  { setStageStats(3) }
-          }
-        }
-        stage('Windows x64 XP') {
-          agent {
-            label 'windows_x64_xp'
-          }
-          when {
-            expression { params.windows_x64_xp && params.desktop }
-            beforeAgent true
-          }
-          environment {
-            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
-            _WIN_XP = '1'
-          }
-          steps {
-            start('windows_x64_xp')
-          }
-          post {
-            success  { setStageStats(0) }
-            unstable { setStageStats(1) }
-            failure  { setStageStats(2) }
-            aborted  { setStageStats(3) }
-          }
-        }
-        stage('Windows x86 XP') {
-          agent {
-            label 'windows_x86_xp'
-          }
-          when {
-            expression { params.windows_x86_xp && params.desktop }
-            beforeAgent true
-          }
-          environment {
-            ARCH = 'x86'
-            UNAME_M = 'i686'
-            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
-            _WIN_XP = '1'
-          }
-          steps {
-            start('windows_x86_xp')
           }
           post {
             success  { setStageStats(0) }
@@ -545,8 +487,6 @@ void buildArtifacts(String platform, String license = 'opensource') {
     args.add("--qt-dir ${env.QT_PATH_ARM64}")
   else
     args.add("--qt-dir ${env.QT_PATH}")
-  if (platform in ["windows_x64_xp", "windows_x86_xp"])
-    args.add("--qt-dir-xp ${env.QT_PATH}")
   if (license == "commercial")
     args.add("--branding ${defaults.branding}")
   if (platform in ["windows_x64", "windows_x86", "windows_arm64"])
@@ -635,12 +575,6 @@ ArrayList getModuleList(String platform, String license = 'any') {
     windows_arm64: [
       desktop: p.desktop && l.com,
     ],
-    windows_x64_xp: [
-      desktop: p.desktop && l.com,
-    ],
-    windows_x86_xp: [
-      desktop: p.desktop && l.com,
-    ],
     darwin_arm64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com && test,
@@ -702,12 +636,6 @@ ArrayList getTargetList(String platform, String license = 'any') {
     windows_arm64: [
       desktop: p.desktop && l.com,
     ],
-    windows_x64_xp: [
-      desktop: p.desktop && l.com,
-    ],
-    windows_x86_xp: [
-      desktop: p.desktop && l.com,
-    ],
     darwin_arm64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com && test,
@@ -756,8 +684,6 @@ String getPrefix(String platform) {
     windows_x64:      'win_64',
     windows_x86:      'win_32',
     windows_arm64:    'win_arm64',
-    windows_x64_xp:   'win_64_xp',
-    windows_x86_xp:   'win_32_xp',
     darwin_arm64:     'mac_arm64',
     darwin_x86_64:    'mac_64',
     darwin_x86_64_v8: 'mac_64',
