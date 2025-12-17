@@ -1,15 +1,15 @@
-defaults = [
+import groovy.transform.Field
+
+@Field def defaults = [
   actions: ['print_branches'],
   version: '0.0.0'
 ]
-
 if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('hotfix/v')) {
   defaults.branch_type = 'hotfix'
 }
 if (env.BRANCH_NAME == 'develop' || env.BRANCH_NAME.startsWith('release/v')) {
   defaults.branch_type = 'release'
 }
-
 if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'develop') {
   defaults.actions.add('start')
 }
@@ -21,6 +21,27 @@ if (env.BRANCH_NAME ==~ /^(hotfix|release)\/v.+/) {
   defaults.actions.add('protect')
   defaults.actions.add('unprotect')
 }
+
+@Field def repos = [:], score = [:]
+@Field String branch = ''
+@Field ArrayList baseBranches = []
+
+if (params.action in ['start', 'rename']) {
+  branch = defaults.branch_type + '/v' + params.version
+  baseBranches = [env.BRANCH_NAME]
+} else if (params.action in ['merge', 'finish']) {
+  branch = env.BRANCH_NAME
+  baseBranches = ['master']
+  if (params.action == 'finish')
+    baseBranches += ['develop']
+  if (!params.extra_branches.isEmpty())
+    baseBranches.addAll(params.extra_branches.split(' '))
+} else {
+  branch = env.BRANCH_NAME
+}
+
+currentBuild.displayName += (params.action) ? ' / ' + params.action : ''
+currentBuild.displayName += (params.action == 'start') ? ' ' + params.version : ''
 
 pipeline {
   agent {
@@ -34,244 +55,316 @@ pipeline {
   }
   options {
     disableConcurrentBuilds()
+    skipDefaultCheckout(true)
   }
   parameters {
-    booleanParam \
+    booleanParam(
       name: 'wipe',
       description: 'Wipe out current workspace'
-    choice \
+    )
+    choice(
       name: 'repo_list',
-      choices: ['general', 'mobile', 'both'],
+      choices: ['general', 'mobile', 'all'],
       description: 'Repo list'
-    choice \
+    )
+    choice(
       name: 'action',
       choices: defaults.actions,
       description: "Action type"
-    string \
+    )
+    string(
       name: 'version',
       defaultValue: defaults.version,
       description: 'Release version (for start only) [' + defaults.branch_type + ']'
-    booleanParam \
+    )
+    booleanParam(
       name: 'protect_branch',
       defaultValue: true,
       description: 'Protect branch (for start & rename only)'
-    string \
+    )
+    string(
       name: 'extra_branches',
       description: 'Extra branches (space separated, for merge & finish only)'
-    booleanParam \
+    )
+    booleanParam(
       name: 'notify',
       defaultValue: true,
       description: 'Telegram notification (for only start, merge & finish)'
+    )
   }
   stages {
-    stage('Branch Manager') {
-      steps {
-        script {
-          currentBuild.displayName += ' - ' + params.action
-          if (params.action == 'start')
-            currentBuild.displayName += ' ' + params.version
-
-          if (params.wipe) {
-            deleteDir()
-            checkout scm
-          }
-
-          stats = [repos: [:]]
-          String branch = env.BRANCH_NAME
-          ArrayList baseBranches = []
-          getRepos().each {
-            stats.repos.put(it, [:])
-          }
-          Boolean pAction
-          Boolean sAction
-
-          if (params.action == 'print_branches') {
-
-            stats.repos.each { repo, status ->
-              pAction = printBranches(repo)
-              status.primary = (pAction) ? 'success' : 'failure'
-            }
-
-          } else if (params.action == 'start') {
-
-            branch = defaults.branch_type + '/v' + params.version
-            baseBranches = [env.BRANCH_NAME]
-
-            stats.repos.each { repo, status ->
-              pAction = createBranch(repo, branch, baseBranches[0])
-              status.primary = (pAction) ? 'success' : 'failure'
-              if (params.protect_branch) {
-                sAction = protectBranch(repo, branch)
-                status.secondary = (sAction) ? 'lock' : 'none'
-              }
-            }
-
-          } else if (params.action == 'merge') {
-
-            baseBranches = ['master']
-            if (!params.extra_branches.isEmpty())
-              baseBranches.addAll(params.extra_branches.split(' '))
-
-            stats.repos.each { repo, status ->
-              if (!checkRemoteBranch(repo, branch)) {
-                echo "${repo}: Branch doesn't ${branch} exist."
-                status.primary = 'skip'
-              } else {
-                dir ('repos/' + repo) {
-                  checkoutRepo(repo)
-                  pAction = mergeBranch(repo, branch, baseBranches)
-                  status.primary = (pAction) ? 'success' : 'failure'
-                }
-              }
-            }
-
-          } else if (params.action == 'finish') {
-
-            baseBranches = ['master', 'develop']
-            if (!params.extra_branches.isEmpty())
-              baseBranches.addAll(params.extra_branches.split(' '))
-
-            stats.repos.each { repo, status ->
-              if (!checkRemoteBranch(repo, branch)) {
-                echo "${repo}: Branch doesn't ${branch} exist."
-                status.primary = 'skip'
-              } else {
-                dir ('repos/' + repo) {
-                  checkoutRepo(repo)
-                  unprotectBranch(repo, branch)
-                  pAction = mergeBranch(repo, branch, baseBranches)
-                  status.primary = (pAction) ? 'success' : 'failure'
-                  if (pAction) {
-                    sAction = deleteBranch(repo, branch)
-                    status.secondary = (sAction) ? 'delete' : 'none'
-                  }
-                }
-              }
-            }
-
-          } else if (params.action == 'rename') {
-
-            branch = defaults.branch_type + '/v' + params.version
-            baseBranches = [env.BRANCH_NAME]
-
-            stats.repos.each { repo, status ->
-              if (checkRemoteBranch(repo, branch)) {
-                echo "${repo}: Branch already ${branch} exists."
-                status.primary = 'skip'
-              } else {
-                dir ('repos/' + repo) {
-                  checkoutRepo(repo, env.BRANCH_NAME)
-                  pAction = createBranch(repo, branch, env.BRANCH_NAME)
-                  status.primary = (pAction) ? 'success' : 'failure'
-                  if (pAction) {
-                    unprotectBranch(repo, env.BRANCH_NAME)
-                    deleteBranch(repo, env.BRANCH_NAME)
-                    if (params.protect_branch) {
-                      protectBranch(repo, branch)
-                      status.secondary = (sAction) ? 'lock' : 'none'
-                    }
-                  }
-                }
-              }
-            }
-
-          } else if (params.action == 'delete') {
-
-            stats.repos.each { repo, status ->
-              if (!checkRemoteBranch(repo, branch)) {
-                echo "${repo}: Branch doesn't ${branch} exist."
-                status.primary = 'skip'
-              } else {
-                dir ('repos/' + repo) {
-                  checkoutRepo(repo, branch)
-                  unprotectBranch(repo, branch)
-                  pAction = deleteBranch(repo, branch)
-                  status.primary = (pAction) ? 'success' : 'failure'
-                }
-              }
-            }
-
-          } else if (params.action == 'protect') {
-
-            stats.repos.each { repo, status ->
-              pAction = protectBranch(repo, branch)
-              status.primary = (pAction) ? 'success' : 'failure'
-            }
-
-          } else if (params.action == 'unprotect') {
-
-            stats.repos.each { repo, status ->
-              pAction = unprotectBranch(repo, branch)
-              status.primary = (pAction) ? 'success' : 'failure'
-            }
-
-          }
-
-          stats.putAll([
-            branch: branch,
-            baseBranches: baseBranches,
-            success: stats.repos.findAll { repo, status ->
-              status.primary in ['skip', 'success']
-            }.size(),
-            total: stats.repos.size()
-          ])
-          println stats
-
-        }
-      }
+    stage('documents-pipeline') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('build_tools') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('core') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('desktop-apps') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('desktop-sdk') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('document-builder-package') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('document-server-package') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('onlyoffice') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('sdkjs') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('sdkjs-forms') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('sdkjs-ooxml') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('server') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('server-license') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('server-lockstorage') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('web-apps') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('web-apps-mobile') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('Docker-DocumentServer') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('DocumentBuilder') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('core-ext') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('document-android-editors') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('documents-app-android') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('documents-app-ios') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('editors-ios') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
+    stage('sdkjs-native') {
+      when { expression { stageExpr() } }
+      steps { start() }
     }
   }
   post {
-    success {
-      script {
-        if (stats.success == 0)
-          currentBuild.result = 'FAILURE'
-        else if (stats.success != stats.total)
-          currentBuild.result = 'UNSTABLE'
-        else if (stats.success == stats.total)
-          currentBuild.result = 'SUCCESS'
+    always { script {
+      score.success = repos.findAll { repo, result ->
+        result.primary in ['skip', 'success']
+      }.size()
+      score.total = repos.size()
 
-        sendNotification()
+      println repos
+      println score
+
+      if (score.success == 0) {
+        currentBuild.result = 'FAILURE'
+      } else if (score.success != score.total) {
+        currentBuild.result = 'UNSTABLE'
+      } else if (score.success == score.total) {
+        currentBuild.result = 'SUCCESS'
       }
-    }
+
+      sendNotification()
+    } }
   }
 }
 
-def getRepos() {
-  ArrayList list = []
-  if (params.repo_list == "general" || params.repo_list == "both") {
-    list += [
-      'documents-pipeline',
-      'build_tools',
-      'core',
-      'desktop-apps',
-      'desktop-sdk',
-      'document-builder-package',
-      'document-server-package',
-      'onlyoffice',
-      'sdkjs',
-      'sdkjs-forms',
-      'sdkjs-ooxml',
-      'server',
-      'server-license',
-      'server-lockstorage',
-      'web-apps',
-      'web-apps-mobile',
-      'Docker-DocumentServer',
-      'DocumentBuilder'
-    ]
+Boolean stageExpr(String repo = STAGE_NAME) {
+  switch(params.repo_list) {
+    case 'all':
+      return true
+    case 'general':
+      return repo in [
+        'documents-pipeline',
+        'build_tools',
+        'core',
+        'desktop-apps',
+        'desktop-sdk',
+        'document-builder-package',
+        'document-server-package',
+        'onlyoffice',
+        'sdkjs',
+        'sdkjs-forms',
+        'sdkjs-ooxml',
+        'server',
+        'server-license',
+        'server-lockstorage',
+        'web-apps',
+        'web-apps-mobile',
+        'Docker-DocumentServer',
+        'DocumentBuilder'
+      ]
+    case 'mobile':
+      return repo in [
+        'core-ext',
+        'document-android-editors',
+        'documents-app-android',
+        'documents-app-ios',
+        'editors-ios',
+        'sdkjs-native'
+      ]
+    default:
+      return false
   }
-  if (params.repo_list == "mobile" || params.repo_list == "both") {
-    list += [
-      'core-ext',
-      'document-android-editors',
-      'documents-app-android',
-      'documents-app-ios',
-      'editors-ios',
-      'sdkjs-native'
-    ]
+}
+
+def start(repo = STAGE_NAME) {
+
+  Boolean pAction, sAction
+  Map result = [:]
+
+  if (params.action == 'print_branches') {
+
+    pAction = printBranches(repo)
+    if (!pAction) unstable('printBranches')
+    result.primary = (pAction) ? 'success' : 'failure'
+
+  } else if (params.action == 'start') {
+
+    pAction = createBranch(repo, branch, baseBranches[0])
+    if (!pAction) unstable('createBranch')
+    result.primary = (pAction) ? 'success' : 'failure'
+    if (params.protect_branch) {
+      sAction = protectBranch(repo, branch)
+      if (!sAction) unstable('protectBranch')
+      result.secondary = (sAction) ? 'lock' : 'none'
+    }
+
+  } else if (params.action == 'merge') {
+
+    if (!checkRemoteBranch(repo, branch)) {
+      echo "${repo}: Branch doesn't ${branch} exist."
+      result.primary = 'skip'
+    } else {
+      dir ('repos/' + repo) {
+        if (params.wipe) deleteDir()
+        checkoutRepo(repo)
+        pAction = mergeBranch(repo, branch, baseBranches)
+        if (!pAction) unstable('mergeBranch')
+        result.primary = (pAction) ? 'success' : 'failure'
+      }
+    }
+
+  } else if (params.action == 'finish') {
+
+    if (!checkRemoteBranch(repo, branch)) {
+      echo "${repo}: Branch doesn't ${branch} exist."
+      result.primary = 'skip'
+    } else {
+      dir ('repos/' + repo) {
+        if (params.wipe) deleteDir()
+        checkoutRepo(repo)
+        unprotectBranch(repo, branch)
+        pAction = mergeBranch(repo, branch, baseBranches)
+        if (!pAction) unstable('mergeBranch')
+        result.primary = (pAction) ? 'success' : 'failure'
+        if (pAction) {
+          sAction = deleteBranch(repo, branch)
+          if (!sAction) unstable('deleteBranch')
+          result.secondary = (sAction) ? 'delete' : 'none'
+        }
+      }
+    }
+
+  } else if (params.action == 'rename') {
+
+    if (checkRemoteBranch(repo, branch)) {
+      echo "${repo}: Branch already ${branch} exists."
+      result.primary = 'skip'
+    } else {
+      dir ('repos/' + repo) {
+        if (params.wipe) deleteDir()
+        checkoutRepo(repo, env.BRANCH_NAME)
+        pAction = createBranch(repo, branch, env.BRANCH_NAME)
+        if (!pAction) unstable('createBranch')
+        result.primary = (pAction) ? 'success' : 'failure'
+        if (pAction) {
+          if (params.protect_branch) {
+            sAction = protectBranch(repo, branch)
+            if (!sAction) unstable('protectBranch')
+            result.secondary = (sAction) ? 'lock' : 'none'
+          }
+          unprotectBranch(repo, env.BRANCH_NAME)
+          deleteBranch(repo, env.BRANCH_NAME)
+        }
+      }
+    }
+
+  } else if (params.action == 'delete') {
+
+    if (!checkRemoteBranch(repo, branch)) {
+      echo "${repo}: Branch doesn't ${branch} exist."
+      result.primary = 'skip'
+    } else {
+      dir ('repos/' + repo) {
+        if (params.wipe) deleteDir()
+        checkoutRepo(repo, branch)
+        unprotectBranch(repo, branch)
+        pAction = deleteBranch(repo, branch)
+        if (!pAction) unstable('deleteBranch')
+        result.primary = (pAction) ? 'success' : 'failure'
+      }
+    }
+
+  } else if (params.action == 'protect') {
+
+    pAction = protectBranch(repo, branch)
+    result.primary = (pAction) ? 'success' : 'failure'
+
+  } else if (params.action == 'unprotect') {
+
+    pAction = unprotectBranch(repo, branch)
+    result.primary = (pAction) ? 'success' : 'failure'
+
   }
-  return list
+
+  repos.put(repo, result)
+  println result
+
 }
 
 def checkoutRepo(String repo, String branch = 'master') {
@@ -453,24 +546,24 @@ def sendNotification() {
   String text = ''
   switch(params.action) {
     case 'start':
-      text = "Branch `${stats.branch}` created from `${stats.baseBranches[0]}`"
+      text = "Branch `${branch}` created from `${baseBranches[0]}`"
       break
     case ['merge', 'finish']:
-      text = "Branch `${stats.branch}` merged into "
-      text += stats.baseBranches.collect({"`$it`"}).join(', ')
+      text = "Branch `${branch}` merged into "
+      text += baseBranches.collect({"`$it`"}).join(', ')
       break
     default: text = 'Stats'
   }
-  text += " \\[${stats.success}/${stats.total}]"
-  stats.repos.each { repo, status ->
+  text += " \\[${score.success}/${score.total}]"
+  repos.each { repo, result ->
     text += '\n'
-    switch(status.primary) {
+    switch(result.primary) {
       case 'skip':    text += '🔘'; break
       case 'success': text += '☑️'; break
       case 'failure': text += '🚫'; break
       default:        text += '➖'
     }
-    switch(status.secondary) {
+    switch(result.secondary) {
       case 'lock':    text += '🔒'; break
       case 'delete':  text += '♻️'; break
       case 'none':    text += '➖'; break
@@ -480,7 +573,7 @@ def sendNotification() {
   }
 
   if (params.action in ['start', 'merge', 'finish']
-      && params.notify && stats.success > 0) {
+      && params.notify && score.success > 0) {
     sh label: "Send Telegram Message".toUpperCase(),
       script: "curl -X POST -s -S \
         -d chat_id=${chatId} \
