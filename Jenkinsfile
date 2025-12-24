@@ -600,17 +600,17 @@ void buildPackages(String platform, String license = 'opensource') {
 
   try {
     if (!platform.startsWith('windows')) {
-      sh label: label, script: """
-        cd build_tools
-        ./make_package.py ${args.join(' ')}
-      """
+      withEnv(['MAKEFLAGS=-e -j4 -O recurse']) {
+        sh label: label, script: """
+          cd build_tools
+          ./make_package.py ${args.join(' ')}
+        """
+      }
     } else {
-      env.MAKEFLAGS = '-e -j4 -O recurse'
       bat label: label, script: """
         cd build_tools
         python make_package.py ${args.join(' ')}
       """
-      env.MAKEFLAGS = ''
     }
   } catch (err) {
     throw err
