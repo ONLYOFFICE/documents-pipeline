@@ -430,6 +430,9 @@ pipeline {
     }
     cleanup {
       node('built-in') {
+        ghaDesktopFlatpak()
+        ghaDesktopAppimage()
+        ghaDesktopSnap()
         ghaDocsDocker()
         ghaDocsSnap()
         deleteDir()
@@ -463,9 +466,6 @@ void start(String platform) {
   }
 
   if (platform == 'linux_x86_64') {
-    ghaDesktopAppimage()
-    ghaDesktopFlatpak()
-    ghaDesktopSnap()
     // buildDocsDockerLocal()
     tagRepos()
   }
@@ -900,11 +900,11 @@ void ghaWorkflowRun(
   }
 }
 
-void ghaDesktopAppimage() {
+void ghaDesktopFlatpak() {
   if (!params.desktop)
     return
   ghaWorkflowRun(
-    'ONLYOFFICE/appimage-desktopeditors',
+    'ONLYOFFICE/org.onlyoffice.desktopeditors',
     '4testing-build.yml',
     'master',
     [
@@ -914,11 +914,11 @@ void ghaDesktopAppimage() {
   )
 }
 
-void ghaDesktopFlatpak() {
+void ghaDesktopAppimage() {
   if (!params.desktop)
     return
   ghaWorkflowRun(
-    'ONLYOFFICE/org.onlyoffice.desktopeditors',
+    'ONLYOFFICE/appimage-desktopeditors',
     '4testing-build.yml',
     'master',
     [
