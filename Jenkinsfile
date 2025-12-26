@@ -553,6 +553,8 @@ void buildArtifacts(String platform, String license = 'opensource') {
     args.add("--vs-version 2019")
   if (platform == "darwin_x86_64_v8")
     args.add("--config use_v8")
+  if (platform == "linux_aarch64")
+    args.add("--sysroot 1")
   if (platform == "android")
     args.add("--config release")
   if (params.beta)
@@ -598,10 +600,12 @@ void buildPackages(String platform, String license = 'opensource') {
 
   try {
     if (!platform.startsWith('windows')) {
-      sh label: label, script: """
-        cd build_tools
-        ./make_package.py ${args.join(' ')}
-      """
+      withEnv(['MAKEFLAGS=-e -j4 -O recurse']) {
+        sh label: label, script: """
+          cd build_tools
+          ./make_package.py ${args.join(' ')}
+        """
+      }
     } else {
       bat label: label, script: """
         cd build_tools
@@ -661,6 +665,7 @@ ArrayList getModuleList(String platform, String license = 'any') {
       server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
     ],
     linux_aarch64: [
+      desktop: p.desktop && l.com,
       builder: p.builder && l.com,
       server: (p.server_ce && l.os) || ((p.server_de || p.server_ee) && l.com),
     ],
@@ -733,6 +738,7 @@ ArrayList getTargetList(String platform, String license = 'any') {
       closuremaps_webapps: (p.core || p.server_de || p.server_ee) && l.com,
     ],
     linux_aarch64: [
+      desktop: p.desktop && l.com,
       builder: p.builder && l.com,
       server_community: p.server_ce && l.os,
       server_developer: p.server_de && l.com,
