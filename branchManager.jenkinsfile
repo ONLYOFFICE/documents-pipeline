@@ -208,7 +208,9 @@ pipeline {
         currentBuild.result = 'SUCCESS'
       }
 
-      sendNotification()
+      if (currentBuild.currentResult in ['FAILURE', 'UNSTABLE', 'SUCCESS']) {
+        sendNotification()
+      }
     } }
   }
 }
@@ -456,7 +458,7 @@ def mergeBranch(String repo, String branch, ArrayList baseBranches) {
 }
 
 def deleteBranch(String repo, String branch) {
-  if (repo == "documents-pipeline") return false
+  // if (repo == "documents-pipeline") return false
   return sh (
     label: "${repo}: delete ${branch}".toUpperCase(),
     script: """
