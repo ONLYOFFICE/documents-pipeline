@@ -493,7 +493,7 @@ void buildArtifacts(String platform, String license = 'opensource') {
     args.add("--vs-version 2019")
   if (platform == "darwin_x86_64_v8")
     args.add("--config use_v8")
-  if (platform == "linux_aarch64")
+  if (platform.startsWith('linux') && env.NO_SYSROOT != '1')
     args.add("--sysroot 1")
   if (platform == "android")
     args.add("--config release")
