@@ -343,7 +343,7 @@ pipeline {
         // Linux
         stage('Linux x86_64') {
           agent {
-            label 'linux_x86_64'
+            label 'linux_x86_64 && noble'
           }
           when {
             expression { params.linux_x86_64 }
@@ -369,7 +369,7 @@ pipeline {
         }
         stage('Linux aarch64') {
           agent {
-            label 'linux_aarch64'
+            label 'linux_aarch64 && noble'
           }
           when {
             expression { params.linux_aarch64 }
