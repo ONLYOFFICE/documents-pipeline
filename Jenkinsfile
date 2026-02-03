@@ -465,10 +465,7 @@ void start(String platform) {
     buildPackages(platform, 'commercial')
   }
 
-  if (platform == 'linux_x86_64') {
-    // buildDocsDockerLocal()
-    tagRepos()
-  }
+  if (platform == 'linux_x86_64') tagRepos()
 }
 
 void buildArtifacts(String platform, String license = 'opensource') {
@@ -489,7 +486,7 @@ void buildArtifacts(String platform, String license = 'opensource') {
     args.add("--qt-dir ${env.QT_PATH}")
   if (license == "commercial")
     args.add("--branding ${defaults.branding}")
-  if (platform in ["windows_x64", "windows_x86", "windows_arm64"])
+  if (platform.startsWith('windows'))
     args.add("--vs-version 2019")
   if (platform == "darwin_x86_64_v8")
     args.add("--config use_v8")
@@ -521,11 +518,11 @@ void buildArtifacts(String platform, String license = 'opensource') {
 void buildPackages(String platform, String license = 'opensource') {
   ArrayList targets = getTargetList(platform, license)
   if (!targets) return
-  targets.addAll(['clean', 'deploy'])
   if (params.sign) {
     targets.add('sign')
     env.ENABLE_SIGNING = 1
   }
+  targets.addAll(['clean', 'deploy'])
 
   ArrayList args = [
     "--platform ${platform}",
@@ -976,25 +973,6 @@ void ghaDocsDocker() {
       'developer': params.server_de
     ]
   )
-}
-
-void buildDocsDockerLocal() {
-  if (!(params.server_ce || params.server_ee || params.server_de))
-    return
-  if (env.COMPANY_NAME == 'ONLYOFFICE')
-    return
-  ArrayList buildDockerServer = []
-  if (params.server_ee) buildDockerServer.add('-ee')
-  if (params.server_de) buildDockerServer.add('-de')
-  buildDockerServer.each {
-    sh label: 'DOCKER DOCUMENTSERVER' + it.toUpperCase(), script: """
-      cd Docker-DocumentServer
-      make clean
-      make deploy -e PRODUCT_EDITION=${it} -e ONLYOFFICE_VALUE=ds \
-        -e PACKAGE_VERSION=\$BUILD_VERSION-\$BUILD_NUMBER \
-        -e PACKAGE_BASEURL=\$S3_BASE_URL/server/linux/debian
-    """
-  }
 }
 
 void setStageStats(int status, String stageName = env.STAGE_NAME) {
