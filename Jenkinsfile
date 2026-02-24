@@ -11,8 +11,6 @@ import groovy.transform.Field
   windows_x64:      true,
   windows_x86:      true,
   windows_arm64:    true,
-  windows_x64_xp:   true,
-  windows_x86_xp:   true,
   darwin_arm64:     true,
   darwin_x86_64:    true,
   darwin_x86_64_v8: true,
@@ -65,7 +63,7 @@ pipeline {
     buildDiscarder logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30')
     checkoutToSubdirectory('documents-pipeline')
     timeout(activity: true, time: 3, unit: 'HOURS')
-    // timestamps()
+    timestamps()
   }
   parameters {
     booleanParam(
@@ -98,16 +96,6 @@ pipeline {
       name: 'windows_arm64',
       defaultValue: defaults.windows_arm64,
       description: 'Build Windows arm64 targets (Visual Studio 2019)'
-    )
-    booleanParam(
-      name: 'windows_x64_xp',
-      defaultValue: defaults.windows_x64_xp,
-      description: 'Build Windows x64 XP targets (Visual Studio 2015)'
-    )
-    booleanParam(
-      name: 'windows_x86_xp',
-      defaultValue: defaults.windows_x86_xp,
-      description: 'Build Windows x86 XP targets (Visual Studio 2015)'
     )
     // macOS
     booleanParam(
@@ -273,52 +261,6 @@ pipeline {
             aborted  { setStageStats(3) }
           }
         }
-        stage('Windows x64 XP') {
-          agent {
-            label 'windows_x64_xp'
-          }
-          when {
-            expression { params.windows_x64_xp }
-            beforeAgent true
-          }
-          environment {
-            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
-            _WIN_XP = '1'
-          }
-          steps {
-            start('windows_x64_xp')
-          }
-          post {
-            success  { setStageStats(0) }
-            unstable { setStageStats(1) }
-            failure  { setStageStats(2) }
-            aborted  { setStageStats(3) }
-          }
-        }
-        stage('Windows x86 XP') {
-          agent {
-            label 'windows_x86_xp'
-          }
-          when {
-            expression { params.windows_x86_xp }
-            beforeAgent true
-          }
-          environment {
-            ARCH = 'x86'
-            UNAME_M = 'i686'
-            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
-            _WIN_XP = '1'
-          }
-          steps {
-            start('windows_x86_xp')
-          }
-          post {
-            success  { setStageStats(0) }
-            unstable { setStageStats(1) }
-            failure  { setStageStats(2) }
-            aborted  { setStageStats(3) }
-          }
-        }
         // macOS
         stage('macOS arm64') {
           agent {
@@ -377,7 +319,7 @@ pipeline {
             label 'darwin_x86_64_v8'
           }
           when {
-            expression { params.darwin_x86_64_v8 }
+            expression { params.darwin_x86_64_v8 && params.desktop }
             beforeAgent true
           }
           environment {
@@ -401,7 +343,7 @@ pipeline {
         // Linux
         stage('Linux x86_64') {
           agent {
-            label 'linux_x86_64'
+            label 'linux_x86_64 && noble'
           }
           when {
             expression { params.linux_x86_64 }
@@ -427,7 +369,7 @@ pipeline {
         }
         stage('Linux aarch64') {
           agent {
-            label 'linux_aarch64'
+            label 'linux_aarch64 && noble'
           }
           when {
             expression { params.linux_aarch64 }
@@ -488,6 +430,9 @@ pipeline {
     }
     cleanup {
       node('built-in') {
+        ghaDesktopFlatpak()
+        ghaDesktopAppimage()
+        ghaDesktopSnap()
         ghaDocsDocker()
         ghaDocsSnap()
         deleteDir()
@@ -520,13 +465,7 @@ void start(String platform) {
     buildPackages(platform, 'commercial')
   }
 
-  if (platform == 'linux_x86_64') {
-    ghaDesktopAppimage()
-    ghaDesktopFlatpak()
-    ghaDesktopSnap()
-    // buildDocsDockerLocal()
-    tagRepos()
-  }
+  if (platform == 'linux_x86_64') tagRepos()
 }
 
 void buildArtifacts(String platform, String license = 'opensource') {
@@ -545,15 +484,13 @@ void buildArtifacts(String platform, String license = 'opensource') {
     args.add("--qt-dir ${env.QT_PATH_ARM64}")
   else
     args.add("--qt-dir ${env.QT_PATH}")
-  if (platform in ["windows_x64_xp", "windows_x86_xp"])
-    args.add("--qt-dir-xp ${env.QT_PATH}")
   if (license == "commercial")
     args.add("--branding ${defaults.branding}")
-  if (platform in ["windows_x64", "windows_x86", "windows_arm64"])
+  if (platform.startsWith('windows'))
     args.add("--vs-version 2019")
   if (platform == "darwin_x86_64_v8")
     args.add("--config use_v8")
-  if (platform == "linux_aarch64")
+  if (platform.startsWith('linux') && env.NO_SYSROOT != '1')
     args.add("--sysroot 1")
   if (platform == "android")
     args.add("--config release")
@@ -581,11 +518,11 @@ void buildArtifacts(String platform, String license = 'opensource') {
 void buildPackages(String platform, String license = 'opensource') {
   ArrayList targets = getTargetList(platform, license)
   if (!targets) return
-  targets.addAll(['clean', 'deploy'])
   if (params.sign) {
     targets.add('sign')
     env.ENABLE_SIGNING = 1
   }
+  targets.addAll(['clean', 'deploy'])
 
   ArrayList args = [
     "--platform ${platform}",
@@ -637,12 +574,6 @@ ArrayList getModuleList(String platform, String license = 'any') {
       builder: p.builder && l.com,
     ],
     windows_arm64: [
-      desktop: p.desktop && l.com,
-    ],
-    windows_x64_xp: [
-      desktop: p.desktop && l.com,
-    ],
-    windows_x86_xp: [
       desktop: p.desktop && l.com,
     ],
     darwin_arm64: [
@@ -707,12 +638,6 @@ ArrayList getTargetList(String platform, String license = 'any') {
     windows_arm64: [
       desktop: p.desktop && l.com,
     ],
-    windows_x64_xp: [
-      desktop: p.desktop && l.com,
-    ],
-    windows_x86_xp: [
-      desktop: p.desktop && l.com,
-    ],
     darwin_arm64: [
       core: p.core && l.com,
       desktop: p.desktop && l.com && test,
@@ -762,8 +687,6 @@ String getPrefix(String platform) {
     windows_x64:      'win_64',
     windows_x86:      'win_32',
     windows_arm64:    'win_arm64',
-    windows_x64_xp:   'win_64_xp',
-    windows_x86_xp:   'win_32_xp',
     darwin_arm64:     'mac_arm64',
     darwin_x86_64:    'mac_64',
     darwin_x86_64_v8: 'mac_64',
@@ -974,11 +897,11 @@ void ghaWorkflowRun(
   }
 }
 
-void ghaDesktopAppimage() {
+void ghaDesktopFlatpak() {
   if (!params.desktop)
     return
   ghaWorkflowRun(
-    'ONLYOFFICE/appimage-desktopeditors',
+    'ONLYOFFICE/org.onlyoffice.desktopeditors',
     '4testing-build.yml',
     'master',
     [
@@ -988,11 +911,11 @@ void ghaDesktopAppimage() {
   )
 }
 
-void ghaDesktopFlatpak() {
+void ghaDesktopAppimage() {
   if (!params.desktop)
     return
   ghaWorkflowRun(
-    'ONLYOFFICE/org.onlyoffice.desktopeditors',
+    'ONLYOFFICE/appimage-desktopeditors',
     '4testing-build.yml',
     'master',
     [
@@ -1050,25 +973,6 @@ void ghaDocsDocker() {
       'developer': params.server_de
     ]
   )
-}
-
-void buildDocsDockerLocal() {
-  if (!(params.server_ce || params.server_ee || params.server_de))
-    return
-  if (env.COMPANY_NAME == 'ONLYOFFICE')
-    return
-  ArrayList buildDockerServer = []
-  if (params.server_ee) buildDockerServer.add('-ee')
-  if (params.server_de) buildDockerServer.add('-de')
-  buildDockerServer.each {
-    sh label: 'DOCKER DOCUMENTSERVER' + it.toUpperCase(), script: """
-      cd Docker-DocumentServer
-      make clean
-      make deploy -e PRODUCT_EDITION=${it} -e ONLYOFFICE_VALUE=ds \
-        -e PACKAGE_VERSION=\$BUILD_VERSION-\$BUILD_NUMBER \
-        -e PACKAGE_BASEURL=\$S3_BASE_URL/server/linux/debian
-    """
-  }
 }
 
 void setStageStats(int status, String stageName = env.STAGE_NAME) {
