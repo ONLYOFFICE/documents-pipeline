@@ -40,23 +40,21 @@ parse_params() {
 
   DESKTOP_NAME="ONLYOFFICE Desktop Editors"
   PACKAGE_NAME="ONLYOFFICE-DesktopEditors"
+  PACKAGE_VER_NAME="$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER"
   CHANGES_URL="$S3_BASE_URL/desktop/win/update/$BUILD_VERSION/$BUILD_NUMBER"
   GITHUB_BASE_URL="https://github.com/ONLYOFFICE/4testing-DesktopEditors/releases/download/v$BUILD_VERSION-$BUILD_NUMBER"
 
-  UPD_X64_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
-  UPD_X86_KEY="desktop/win/inno/$PACKAGE_NAME-Update-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
-  ZIP_X64_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.zip"
-  ZIP_X86_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.zip"
-  ZIP_ARM64_KEY="desktop/win/generic/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-arm64.zip"
-  EXE_X64_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.exe"
-  EXE_X86_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.exe"
-  EXE_ARM64_KEY="desktop/win/inno/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-arm64.exe"
-  MSI_X64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x64.msi"
-  MSI_X86_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-x86.msi"
-  MSI_ARM64_KEY="desktop/win/advinst/$PACKAGE_NAME-$BUILD_VERSION.$BUILD_NUMBER-arm64.msi"
+  ZIP_X64_KEY="desktop/win/generic/$PACKAGE_VER_NAME-x64.zip"
+  ZIP_X86_KEY="desktop/win/generic/$PACKAGE_VER_NAME-x86.zip"
+  ZIP_ARM64_KEY="desktop/win/generic/$PACKAGE_VER_NAME-arm64.zip"
+  EXE_X64_KEY="desktop/win/inno/$PACKAGE_VER_NAME-x64.exe"
+  EXE_X86_KEY="desktop/win/inno/$PACKAGE_VER_NAME-x86.exe"
+  EXE_ARM64_KEY="desktop/win/inno/$PACKAGE_VER_NAME-arm64.exe"
+  MSI_X64_KEY="desktop/win/advinst/$PACKAGE_VER_NAME-x64.msi"
+  MSI_X86_KEY="desktop/win/advinst/$PACKAGE_VER_NAME-x86.msi"
+  MSI_ARM64_KEY="desktop/win/advinst/$PACKAGE_VER_NAME-arm64.msi"
 
   DATE_JSON=$(LANG=C TZ=UTC date -u "+%b %d %H:%M UTC %Y")
-  DATE_XML=$(LANG=C TZ=UTC date -u "+%a, %d %b %Y %H:%M:%S +0000")
 
   return 0
 }
@@ -96,7 +94,7 @@ tee $UPDATE_DIR/appcast.json << EOF
   },
   "package": {
     "win_64": {
-      "url": "$S3_BASE_URL/$UPD_X64_KEY",
+      "url": "https://download.onlyoffice.com/install/desktop/editors/windows/onlyoffice/updates/editors_update_x64.exe",
       "installArguments": "/silent /update",
       "archive": {
         "url": "$GITHUB_BASE_URL/$PACKAGE_NAME-x64.zip",
@@ -119,7 +117,7 @@ tee $UPDATE_DIR/appcast.json << EOF
       }
     },
     "win_32": {
-      "url": "$S3_BASE_URL/$UPD_X86_KEY",
+      "url": "https://download.onlyoffice.com/install/desktop/editors/windows/onlyoffice/updates/editors_update_x86.exe",
       "installArguments": "/silent /update",
       "archive": {
         "url": "$GITHUB_BASE_URL/$PACKAGE_NAME-x86.zip",
@@ -165,32 +163,6 @@ tee $UPDATE_DIR/appcast.json << EOF
     }
   }
 }
-EOF
-
-# APPCAST XML
-tee $UPDATE_DIR/appcast.xml << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
-  <channel>
-    <title>$DESKTOP_NAME Changelog</title>
-    <description>Most recent changes with links to updates.</description>
-    <language>en</language>
-    <item>
-      <title>Version $BUILD_VERSION.$BUILD_NUMBER</title>
-      <pubDate>$DATE_XML</pubDate>
-      <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
-      <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
-      <enclosure url="$S3_BASE_URL/$UPD_X64_KEY" sparkle:os="windows-x64" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
-    </item>
-    <item>
-      <title>Version $BUILD_VERSION.$BUILD_NUMBER</title>
-      <pubDate>$DATE_XML</pubDate>
-      <sparkle:releaseNotesLink>$CHANGES_URL/changes.html</sparkle:releaseNotesLink>
-      <sparkle:releaseNotesLink xml:lang="ru-RU">$CHANGES_URL/changes_ru.html</sparkle:releaseNotesLink>
-      <enclosure url="$S3_BASE_URL/$UPD_X86_KEY" sparkle:os="windows-x86" sparkle:version="$BUILD_VERSION.$BUILD_NUMBER" sparkle:shortVersionString="$BUILD_VERSION.$BUILD_NUMBER" sparkle:installerArguments="/silent /update" length="0" type="application/octet-stream"/>
-    </item>
-  </channel>
-</rss>
 EOF
 
 # APPCAST CHANGES
