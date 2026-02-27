@@ -141,6 +141,10 @@ pipeline {
       when { expression { stageExpr() } }
       steps { start() }
     }
+    stage('server-admin-panel') {
+      when { expression { stageExpr() } }
+      steps { start() }
+    }
     stage('server-license') {
       when { expression { stageExpr() } }
       steps { start() }
@@ -233,6 +237,7 @@ Boolean stageExpr(String repo = STAGE_NAME) {
         'sdkjs-forms',
         'sdkjs-ooxml',
         'server',
+        'server-admin-panel',
         'server-license',
         'server-lockstorage',
         'web-apps',
