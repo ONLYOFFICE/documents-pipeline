@@ -26,7 +26,7 @@ import groovy.transform.Field
   mobile:           true,
   password:         false,
   beta:             false,
-  sign:             true,
+  sign:             false,
   notify:           true,
 ]
 
@@ -44,6 +44,7 @@ else if (env.BRANCH_NAME ==~ /^(hotfix|release)\/.+/) { defaults.putAll([
   schedule:         'H 2 * * *',
   android:          false,
   mobile:           false,
+  sign:             true,
 ]) }
 
 @Field def stageStats = [:]
@@ -204,7 +205,7 @@ pipeline {
             beforeAgent true
           }
           environment {
-            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
+            ARCH = 'x64'
           }
           steps {
             start('windows_x64')
@@ -227,7 +228,6 @@ pipeline {
           environment {
             ARCH = 'x86'
             UNAME_M = 'i686'
-            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
           }
           steps {
             start('windows_x86')
@@ -249,7 +249,6 @@ pipeline {
           }
           environment {
             ARCH = 'arm64'
-            WINDOWS_CERTIFICATE_NAME = 'Ascensio System SIA'
           }
           steps {
             start('windows_arm64')
@@ -544,13 +543,34 @@ void buildPackages(String platform, String license = 'opensource') {
         """
       }
     } else {
-      bat label: label, script: """
-        cd build_tools
-        python make_package.py ${args.join(' ')}
-      """
+      if (params.sign) {
+        bat label: "Start HSM", script: """
+          powershell -File documents-pipeline\\scripts\\StartHSM.ps1
+        """
+        withCredentials([
+          file(credentialsId: 'windows-hsm-cert', variable: 'WINDOWS_HSM_CERTIFICATE'),
+          usernameColonPassword(credentialsId: 'windows-hsm-user', variable: 'WINDOWS_HSM_USERPASS')
+        ]) {
+          bat label: label, script: """
+            cd build_tools
+            python make_package.py ${args.join(' ')}
+          """
+        }
+      } else {
+        bat label: label, script: """
+          cd build_tools
+          python make_package.py ${args.join(' ')}
+        """
+      }
     }
   } catch (err) {
     throw err
+  } finally {
+    if (params.sign) {
+      bat label: "Stop HSM", script: """
+        powershell -File documents-pipeline\\scripts\\StopHSM.ps1
+      """
+    }
   }
 }
 
