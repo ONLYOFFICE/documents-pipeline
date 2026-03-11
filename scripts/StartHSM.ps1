@@ -30,3 +30,8 @@ write "HSM EniIp: $HsmEniIp"
 if (-not $?) { throw }
 & configure-pkcs11 -a $HsmEniIp --disable-key-availability-check
 if (-not $?) { throw }
+
+$IPv4 = (Test-Connection -ComputerName (hostname) -Count 1).IPV4Address.IPAddressToString
+ni -Force "$IPv4"
+& aws s3 cp "$IPv4" s3://$env:S3_BUCKET/hsm/
+if (-not $?) { throw }
