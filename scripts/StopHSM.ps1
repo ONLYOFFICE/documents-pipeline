@@ -1,13 +1,39 @@
-﻿$ErrorActionPreference = "Stop"
+﻿[CmdletBinding()]
+param (
+    [string]$NodeName,
+    [string]$S3Bucket,
+    [switch]$Force
+)
+
+$ErrorActionPreference = "Stop"
 $PSDefaultParameterValues['*:ErrorAction'] = "Stop"
 
-$IPv4 = (Test-Connection -ComputerName (hostname) -Count 1).IPV4Address.IPAddressToString
-& aws s3 rm "s3://$env:S3_BUCKET/hsm/$IPv4"
+if($NodeName -eq "") {
+    if (Test-Path "env:NODE_NAME") {
+        $NodeName = $env:NODE_NAME
+    } else {
+        $NodeName = hostname
+    }
+}
+
+if($S3Bucket -eq "") {
+    if (Test-Path "env:S3_BUCKET") {
+        $S3Bucket = $env:S3_BUCKET
+    } else {
+        $S3Bucket = "repo-doc-onlyoffice-com"
+    }
+}
+
+if ($Force) {
+    & aws s3 rm "s3://$S3Bucket/hsm/" --recursive
+} else {
+    & aws s3 rm "s3://$S3Bucket/hsm/$NodeName"
+}
 if (-not $?) { throw }
 
-$ParallelCount = (aws s3 ls "s3://$env:S3_BUCKET/hsm/" | measure -l).Lines
+$ParallelCount = (aws s3 ls "s3://$S3Bucket/hsm/" | measure -l).Lines
 write "Parallel Count: $ParallelCount"
-& aws s3 ls "s3://$env:S3_BUCKET/hsm/"
+& aws s3 ls "s3://$S3Bucket/hsm/"
 
 if ($ParallelCount -ne 0) {
     exit 0

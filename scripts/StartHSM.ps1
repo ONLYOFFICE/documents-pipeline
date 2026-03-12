@@ -1,4 +1,10 @@
-﻿$ErrorActionPreference = "Stop"
+﻿[CmdletBinding()]
+param (
+    [string]$NodeName,
+    [string]$S3Bucket
+)
+
+$ErrorActionPreference = "Stop"
 $PSDefaultParameterValues['*:ErrorAction'] = "Stop"
 
 while ($True) {
@@ -31,7 +37,22 @@ if (-not $?) { throw }
 & configure-pkcs11 -a $HsmEniIp --disable-key-availability-check
 if (-not $?) { throw }
 
-$IPv4 = (Test-Connection -ComputerName (hostname) -Count 1).IPV4Address.IPAddressToString
-ni -Force "$IPv4"
-& aws s3 cp "$IPv4" s3://$env:S3_BUCKET/hsm/
+if($NodeName -eq "") {
+    if (Test-Path "env:NODE_NAME") {
+        $NodeName = $env:NODE_NAME
+    } else {
+        $NodeName = hostname
+    }
+}
+
+if($S3Bucket -eq "") {
+    if (Test-Path "env:S3_BUCKET") {
+        $S3Bucket = $env:S3_BUCKET
+    } else {
+        $S3Bucket = "repo-doc-onlyoffice-com"
+    }
+}
+
+ni -Force "$NodeName"
+& aws s3 cp "$NodeName" "s3://$S3Bucket/hsm/$NodeName"
 if (-not $?) { throw }

@@ -566,7 +566,7 @@ void buildPackages(String platform, String license = 'opensource') {
   } catch (err) {
     throw err
   } finally {
-    if (params.sign) {
+    if (platform.startsWith('windows') && params.sign) {
       bat label: "Stop HSM", script: """
         powershell -File documents-pipeline\\scripts\\StopHSM.ps1
       """
