@@ -58,8 +58,7 @@ write "Sign: $File"
     -h sha256
 if (-not $?) { throw }
 
-$Status = $(Get-AuthenticodeSignature "$FileSigned").Status
-write "$Status"
+$Status = (Get-AuthenticodeSignature "$FileSigned").Status
 if ($Status -ne 'Valid') { throw }
 
 write "Move: $FileSigned > $File"

@@ -53,6 +53,6 @@ if($S3Bucket -eq "") {
     }
 }
 
-ni -Force "$NodeName"
-& aws s3 cp "$NodeName" "s3://$S3Bucket/hsm/$NodeName"
+write "Upload: s3://$S3Bucket/hsm/$NodeName"
+& aws s3api put-object --bucket "$S3Bucket" --key "hsm/$NodeName" --content-length 0
 if (-not $?) { throw }

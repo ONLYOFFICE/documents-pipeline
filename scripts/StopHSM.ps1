@@ -25,9 +25,11 @@ if($S3Bucket -eq "") {
 }
 
 if ($Force) {
+    write "Delete: s3://$S3Bucket/hsm/"
     & aws s3 rm "s3://$S3Bucket/hsm/" --recursive
 } else {
-    & aws s3 rm "s3://$S3Bucket/hsm/$NodeName"
+    write "Delete: s3://$S3Bucket/hsm/$NodeName"
+    & aws s3api delete-object --bucket "$S3Bucket" --key "hsm/$NodeName"
 }
 if (-not $?) { throw }
 
