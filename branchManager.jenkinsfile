@@ -232,6 +232,7 @@ Boolean stageExpr(String repo = STAGE_NAME) {
         'desktop-sdk',
         'document-builder-package',
         'document-server-package',
+        'document-server-integration',
         'onlyoffice',
         'sdkjs',
         'sdkjs-forms',
