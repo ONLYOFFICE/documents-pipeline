@@ -176,7 +176,7 @@ pipeline {
     booleanParam(
       name: 'sign',
       defaultValue: defaults.sign,
-      description: 'Enable signing'
+      description: 'Enable HSM cloud signing'
     )
     string(
       name: 'extra_args',
@@ -848,9 +848,9 @@ void tagRepos(
 // Post Actions
 
 void buildAppcast() {
-  if (!(params.desktop && params.windows_x64 && params.windows_x86))
+  if (!(params.desktop && params.windows_x64 && params.windows_x86 && params.windows_arm64))
     return
-  if (!(stageStats['Windows x64'] == 0 && stageStats['Windows x86'] == 0))
+  if (!(stageStats['Windows x64'] == 0 && stageStats['Windows x86'] == 0 && stageStats['Windows arm64'] == 0))
     return
   try {
     sh label: 'APPCAST', script: """
@@ -870,9 +870,10 @@ void buildReports() {
     return
 
   ArrayList arr = []
-  if ( params.wipe )                          arr.add("wipe")
-  if ( params.clean    != defaults.clean    ) arr.add("no clean")
-  if ( params.build_js != defaults.build_js ) arr.add("no build JS")
+  if ( params.wipe )      arr.add("wipe")
+  if ( !params.clean )    arr.add("no clean")
+  if ( !params.build_js ) arr.add("no build JS")
+  if ( !params.sign && (params.windows_x64||params.windows_x86||params.windows_arm64)) arr.add("no sign")
   currentBuild.description = arr.join(" &centerdot; ")
 
   try {
