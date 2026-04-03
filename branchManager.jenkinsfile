@@ -26,6 +26,39 @@ if (env.BRANCH_NAME ==~ /^(hotfix|release)\/v.+/) {
 @Field String branch = ''
 @Field ArrayList baseBranches = []
 
+@Field def repoGroups = [
+  'general': [
+    'documents-pipeline',
+    'build_tools',
+    'core',
+    'desktop-apps',
+    'desktop-sdk',
+    'document-builder-package',
+    'document-server-package',
+    'onlyoffice',
+    'sdkjs',
+    'sdkjs-forms',
+    'sdkjs-ooxml',
+    'server',
+    'server-admin-panel',
+    'server-license',
+    'server-lockstorage',
+    'web-apps',
+    'web-apps-mobile',
+    'Docker-DocumentServer',
+    'DocumentBuilder'
+  ],
+  'mobile': [
+    'core-ext',
+    'document-android-editors',
+    'documents-app-android',
+    'documents-app-ios',
+    'editors-ios',
+    'sdkjs-native'
+  ]
+]
+@Field ArrayList repoList = repoGroups.general + repoGroups.mobile
+
 if (params.action in ['start', 'rename']) {
   branch = defaults.branch_type + '/v' + params.version
   baseBranches = [env.BRANCH_NAME]
@@ -75,7 +108,7 @@ pipeline {
     string(
       name: 'version',
       defaultValue: defaults.version,
-      description: 'Release version (for start only) [' + defaults.branch_type + ']'
+      description: 'Release version (for start & rename only) [' + defaults.branch_type + ']'
     )
     booleanParam(
       name: 'protect_branch',
@@ -93,105 +126,20 @@ pipeline {
     )
   }
   stages {
-    stage('documents-pipeline') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('build_tools') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('core') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('desktop-apps') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('desktop-sdk') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('document-builder-package') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('document-server-package') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('onlyoffice') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('sdkjs') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('sdkjs-forms') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('sdkjs-ooxml') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('server') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('server-admin-panel') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('server-license') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('server-lockstorage') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('web-apps') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('web-apps-mobile') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('Docker-DocumentServer') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('DocumentBuilder') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('core-ext') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('document-android-editors') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('documents-app-android') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('documents-app-ios') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('editors-ios') {
-      when { expression { stageExpr() } }
-      steps { start() }
-    }
-    stage('sdkjs-native') {
-      when { expression { stageExpr() } }
-      steps { start() }
+    stage('BRANCH MANAGER') {
+      steps { script {
+        repoList.each {
+          stage("${it}") {
+            if (startExpr()) {
+              start()
+            } else {
+              catchError(catchInterruptions: false, buildResult: null, stageResult: 'NOT_BUILT') {
+                error('Skipping this stage')
+              }
+            }
+          }
+        }
+      } }
     }
   }
   post {
@@ -219,41 +167,14 @@ pipeline {
   }
 }
 
-Boolean stageExpr(String repo = STAGE_NAME) {
-  switch(params.repo_list) {
+Boolean startExpr(String repo = STAGE_NAME) {
+  switch (params.repo_list) {
     case 'all':
       return true
     case 'general':
-      return repo in [
-        'documents-pipeline',
-        'build_tools',
-        'core',
-        'desktop-apps',
-        'desktop-sdk',
-        'document-builder-package',
-        'document-server-package',
-        'onlyoffice',
-        'sdkjs',
-        'sdkjs-forms',
-        'sdkjs-ooxml',
-        'server',
-        'server-admin-panel',
-        'server-license',
-        'server-lockstorage',
-        'web-apps',
-        'web-apps-mobile',
-        'Docker-DocumentServer',
-        'DocumentBuilder'
-      ]
+      return repo in repoGroups.general
     case 'mobile':
-      return repo in [
-        'core-ext',
-        'document-android-editors',
-        'documents-app-android',
-        'documents-app-ios',
-        'editors-ios',
-        'sdkjs-native'
-      ]
+      return repo in repoGroups.mobile
     default:
       return false
   }
